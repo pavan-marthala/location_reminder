@@ -31,6 +31,12 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   PointAnnotationManager? _centerPointManager;
   PointAnnotationManager? _handlePointManager;
   PolygonAnnotationManager? _polygonAnnotationManager;
+  PolylineAnnotationManager? _polylineAnnotationManager;
+
+  PointAnnotation? _centerAnnotation;
+  PointAnnotation? _handleAnnotation;
+  PolygonAnnotation? _polygonAnnotation;
+  PolylineAnnotation? _polylineAnnotation;
 
   double? _centerLat;
   double? _centerLng;
@@ -39,6 +45,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
 
   Uint8List? _centerMarkerBytes;
   Uint8List? _handleMarkerBytes;
+  Uint8List? _handleMarkerDraggingBytes;
+
+  late final ValueNotifier<double> _radiusMetersNotifier;
 
   @override
   void initState() {
@@ -46,11 +55,19 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     _centerLat = widget.initialLatitude;
     _centerLng = widget.initialLongitude;
     _radiusMeters = widget.initialRadiusMeters ?? 200.0;
+    _radiusMetersNotifier = ValueNotifier<double>(_radiusMeters);
+  }
+
+  @override
+  void dispose() {
+    _radiusMetersNotifier.dispose();
+    super.dispose();
   }
 
   Future<void> _loadMarkerIcons() async {
     _centerMarkerBytes = await _createCenterMarkerBytes();
-    _handleMarkerBytes = await _createHandleMarkerBytes();
+    _handleMarkerBytes = await _createBeanMarkerBytes(dragging: false);
+    _handleMarkerDraggingBytes = await _createBeanMarkerBytes(dragging: true);
   }
 
   Future<Uint8List> _createCenterMarkerBytes() async {
@@ -100,34 +117,96 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     return byteData!.buffer.asUint8List();
   }
 
-  Future<Uint8List> _createHandleMarkerBytes() async {
+  Path _createBeanPath(double width, double height) {
+    final Path path = Path();
+    final double cx = width / 2;
+    final double cy = height / 2;
+    
+    path.moveTo(cx - 15, cy - 20);
+    
+    // Top rounded end (semi-circular cap)
+    path.cubicTo(cx - 15, cy - 35, cx + 15, cy - 35, cx + 15, cy - 20);
+    
+    // Outer convex curve (right side bulge)
+    path.cubicTo(cx + 30, cy - 5, cx + 30, cy + 5, cx + 15, cy + 20);
+    
+    // Bottom rounded end (semi-circular cap)
+    path.cubicTo(cx + 15, cy + 35, cx - 15, cy + 35, cx - 15, cy + 20);
+    
+    // Inner concave curve (left side indentation)
+    path.cubicTo(cx + 2, cy + 10, cx + 2, cy - 10, cx - 15, cy - 20);
+    
+    path.close();
+    return path;
+  }
+
+  Future<Uint8List> _createBeanMarkerBytes({required bool dragging}) async {
     final ui.PictureRecorder recorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(recorder);
-    const double size = 48.0;
-    const double radius = size / 2;
-
+    
+    final double scale = dragging ? 1.25 : 1.0;
+    const double baseWidth = 80.0;
+    const double baseHeight = 80.0;
+    
+    canvas.save();
+    canvas.translate(baseWidth / 2, baseHeight / 2);
+    canvas.scale(scale);
+    canvas.translate(-baseWidth / 2, -baseHeight / 2);
+    
+    final Path path = _createBeanPath(baseWidth, baseHeight);
+    
+    // 1. Draw Shadow
     final Paint shadowPaint = Paint()
-      ..color = Colors.black.withValues(alpha: 0.25)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0);
-    canvas.drawCircle(const Offset(radius, radius + 2), radius - 6, shadowPaint);
-
+      ..color = Colors.black.withValues(alpha: dragging ? 0.45 : 0.3)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, dragging ? 8.0 : 4.0);
+    
+    canvas.save();
+    canvas.translate(2, dragging ? 4 : 2);
+    canvas.drawPath(path, shadowPaint);
+    canvas.restore();
+    
+    // 2. Glow if dragging
+    if (dragging) {
+      final Paint glowPaint = Paint()
+        ..color = const Color(0xFF1976D2).withValues(alpha: 0.5)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6.0);
+      canvas.drawPath(path, glowPaint);
+    }
+    
+    // 3. Glass Fill with white/grey contrast gradient
     final Paint fillPaint = Paint()
-      ..color = const Color(0xFF1976D2)
+      ..shader = ui.Gradient.linear(
+        const Offset(20, 20),
+        const Offset(60, 60),
+        [
+          Colors.white.withValues(alpha: 0.55),
+          Colors.white.withValues(alpha: 0.15),
+        ],
+      )
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(const Offset(radius, radius), radius - 6, fillPaint);
-
+    canvas.drawPath(path, fillPaint);
+    
+    // 4. White highlight border
     final Paint borderPaint = Paint()
-      ..color = Colors.white
+      ..color = Colors.white.withValues(alpha: 0.85)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0;
-    canvas.drawCircle(const Offset(radius, radius), radius - 6, borderPaint);
+      ..strokeWidth = 2.0;
+    canvas.drawPath(path, borderPaint);
 
-    final Paint innerDotPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(const Offset(radius, radius), 6.0, innerDotPaint);
-
-    final ui.Image image = await recorder.endRecording().toImage(size.toInt(), size.toInt());
+    // 5. Draw two vertical grip lines in the middle
+    final Paint gripPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.45)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+    
+    final double centerX = baseWidth / 2;
+    final double centerY = baseHeight / 2;
+    canvas.drawLine(Offset(centerX - 4, centerY - 6), Offset(centerX - 4, centerY + 6), gripPaint);
+    canvas.drawLine(Offset(centerX + 4, centerY - 6), Offset(centerX + 4, centerY + 6), gripPaint);
+    
+    canvas.restore();
+    
+    final ui.Image image = await recorder.endRecording().toImage(baseWidth.toInt(), baseHeight.toInt());
     final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     return byteData!.buffer.asUint8List();
   }
@@ -153,11 +232,19 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     _centerPointManager = await mapboxMap.annotations.createPointAnnotationManager();
     _handlePointManager = await mapboxMap.annotations.createPointAnnotationManager();
     _polygonAnnotationManager = await mapboxMap.annotations.createPolygonAnnotationManager();
+    _polylineAnnotationManager = await mapboxMap.annotations.createPolylineAnnotationManager();
 
     // Listen to handle dragging
     _handlePointManager!.dragEvents(
+      onBegin: (annotation) {
+        if (_handleAnnotation != null && _handleMarkerDraggingBytes != null) {
+          _handleAnnotation!.image = _handleMarkerDraggingBytes;
+          _handlePointManager!.update(_handleAnnotation!);
+        }
+      },
       onChanged: (annotation) {
         if (_centerLat == null || _centerLng == null) return;
+        if (_polygonAnnotation == null || _polylineAnnotation == null || _handleAnnotation == null) return;
 
         final handleCoords = annotation.geometry.coordinates;
         final distance = geo.Geolocator.distanceBetween(
@@ -168,11 +255,39 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         );
 
         final clamped = distance.clamp(100.0, 10000.0);
-        setState(() {
-          _radiusMeters = clamped;
-        });
+        
+        _radiusMeters = clamped;
+        _radiusMetersNotifier.value = clamped;
 
-        _drawCircleAndHandleOnly();
+        // Calculate bearing and snap handle exactly to clamped circumference
+        final bearingRad = _calculateBearing(
+          _centerLat!,
+          _centerLng!,
+          handleCoords.lat.toDouble(),
+          handleCoords.lng.toDouble(),
+        );
+        final snappedPos = _getPositionAlongBearing(_centerLat!, _centerLng!, _radiusMeters, bearingRad);
+        final rotationDegrees = (bearingRad * 180 / pi) - 90;
+
+        // Update geometries in memory
+        _handleAnnotation!.geometry = Point(coordinates: snappedPos);
+        _handleAnnotation!.iconRotate = rotationDegrees;
+        if (_handleMarkerDraggingBytes != null) {
+          _handleAnnotation!.image = _handleMarkerDraggingBytes;
+        }
+        final circlePolygon = _generateCirclePolygon(_centerLat!, _centerLng!, _radiusMeters);
+        _polygonAnnotation!.geometry = Polygon(coordinates: circlePolygon);
+        _polylineAnnotation!.geometry = LineString(coordinates: circlePolygon[0]);
+
+        // Concurrently update native annotations to maximize frame rate and eliminate flicker
+        Future.wait([
+          _handlePointManager!.update(_handleAnnotation!),
+          _polygonAnnotationManager!.update(_polygonAnnotation!),
+          _polylineAnnotationManager!.update(_polylineAnnotation!),
+        ]).catchError((e) {
+          debugPrint('Error updating geofence annotations: $e');
+          return const <void>[];
+        });
       },
       onEnd: (annotation) {
         _drawCircleAndHandle();
@@ -248,15 +363,29 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     return [coordinates];
   }
 
-  Position _getHandlePosition(double latitude, double longitude, double radiusMeters) {
+  double _calculateBearing(double lat1, double lon1, double lat2, double lon2) {
+    final lat1Rad = lat1 * pi / 180;
+    final lat2Rad = lat2 * pi / 180;
+    final dLon = (lon2 - lon1) * pi / 180;
+
+    final y = sin(dLon) * cos(lat2Rad);
+    final x = cos(lat1Rad) * sin(lat2Rad) - sin(lat1Rad) * cos(lat2Rad) * cos(dLon);
+    return atan2(y, x);
+  }
+
+  Position _getPositionAlongBearing(double latitude, double longitude, double radiusMeters, double bearingRad) {
     const double earthRadius = 6378137;
     final latRad = latitude * pi / 180;
     final radial = radiusMeters / earthRadius;
-    final newLatRad = asin(sin(latRad) * cos(radial) + cos(latRad) * sin(radial) * cos(pi / 2));
+    final newLatRad = asin(sin(latRad) * cos(radial) + cos(latRad) * sin(radial) * cos(bearingRad));
     final newLngRad = (longitude * pi / 180) +
-        atan2(sin(pi / 2) * sin(radial) * cos(latRad),
+        atan2(sin(bearingRad) * sin(radial) * cos(latRad),
             cos(radial) - sin(latRad) * sin(newLatRad));
     return Position(newLngRad * 180 / pi, newLatRad * 180 / pi);
+  }
+
+  Position _getHandlePosition(double latitude, double longitude, double radiusMeters) {
+    return _getPositionAlongBearing(latitude, longitude, radiusMeters, pi / 2);
   }
 
   Future<void> _drawCircleAndHandle() async {
@@ -265,7 +394,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     // 1. Draw Center Annotation
     if (_centerPointManager != null && _centerMarkerBytes != null) {
       await _centerPointManager!.deleteAll();
-      await _centerPointManager!.create(
+      _centerAnnotation = await _centerPointManager!.create(
         PointAnnotationOptions(
           geometry: Point(coordinates: Position(_centerLng!, _centerLat!)),
           image: _centerMarkerBytes,
@@ -280,15 +409,29 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   Future<void> _drawCircleAndHandleOnly() async {
     if (_centerLat == null || _centerLng == null) return;
 
+    final circlePolygon = _generateCirclePolygon(_centerLat!, _centerLng!, _radiusMeters);
+
     // 2. Draw Geofence Circle Polygon
     if (_polygonAnnotationManager != null) {
       await _polygonAnnotationManager!.deleteAll();
-      final circlePolygon = _generateCirclePolygon(_centerLat!, _centerLng!, _radiusMeters);
-      await _polygonAnnotationManager!.create(
+      _polygonAnnotation = await _polygonAnnotationManager!.create(
         PolygonAnnotationOptions(
           geometry: Polygon(coordinates: circlePolygon),
-          fillColor: Colors.blue.withValues(alpha: 0.18).toARGB32(),
-          fillOutlineColor: Colors.blue.toARGB32(),
+          fillColor: Colors.blue.withValues(alpha: 0.15).toARGB32(),
+          fillOutlineColor: Colors.transparent.toARGB32(),
+        ),
+      );
+    }
+
+    // 2b. Draw Geofence Circle Polyline (for thick prominent border)
+    if (_polylineAnnotationManager != null) {
+      await _polylineAnnotationManager!.deleteAll();
+      _polylineAnnotation = await _polylineAnnotationManager!.create(
+        PolylineAnnotationOptions(
+          geometry: LineString(coordinates: circlePolygon[0]),
+          lineColor: Colors.blue.toARGB32(),
+          lineWidth: 4.0,
+          lineOpacity: 0.8,
         ),
       );
     }
@@ -297,11 +440,15 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     if (_handlePointManager != null && _handleMarkerBytes != null) {
       await _handlePointManager!.deleteAll();
       final handlePos = _getHandlePosition(_centerLat!, _centerLng!, _radiusMeters);
-      await _handlePointManager!.create(
+      final bearingRad = _calculateBearing(_centerLat!, _centerLng!, handlePos.lat.toDouble(), handlePos.lng.toDouble());
+      final rotationDegrees = (bearingRad * 180 / pi) - 90;
+
+      _handleAnnotation = await _handlePointManager!.create(
         PointAnnotationOptions(
           geometry: Point(coordinates: handlePos),
           image: _handleMarkerBytes,
           iconAnchor: IconAnchor.CENTER,
+          iconRotate: rotationDegrees,
           isDraggable: true,
         ),
       );
@@ -434,18 +581,23 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (_centerLat != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          _formatRadius(_radiusMeters),
-                          style: typography.titleMedium.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          'Drag handle on the edge to resize',
-                          style: typography.bodySmall.copyWith(color: colors.textTertiary),
-                        ),
-                      ],
+                    ValueListenableBuilder<double>(
+                      valueListenable: _radiusMetersNotifier,
+                      builder: (context, radius, child) {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _formatRadius(radius),
+                              style: typography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              'Drag handle on the edge to resize',
+                              style: typography.bodySmall.copyWith(color: colors.textTertiary),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 16),
                   ],

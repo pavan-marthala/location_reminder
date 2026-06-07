@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:injectable/injectable.dart';
+import 'package:intl/intl.dart';
 
 abstract class BackgroundService {
   Future<void> init();
@@ -16,7 +17,8 @@ abstract class BackgroundService {
 @LazySingleton(as: BackgroundService)
 class BackgroundServiceImpl implements BackgroundService {
   final FlutterLocalNotificationsPlugin _localNotifications;
-  final _backgroundUpdatesController = StreamController<Map<String, dynamic>?>.broadcast();
+  final _backgroundUpdatesController =
+      StreamController<Map<String, dynamic>?>.broadcast();
 
   BackgroundServiceImpl(this._localNotifications);
 
@@ -36,7 +38,8 @@ class BackgroundServiceImpl implements BackgroundService {
     // Create the foreground notification channel on Android first
     final androidImplementation = _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (androidImplementation != null) {
       const channel = AndroidNotificationChannel(
         _foregroundChannelId,
@@ -115,8 +118,7 @@ void onStart(ServiceInstance service) async {
     if (service is AndroidServiceInstance) {
       if (await service.isForegroundService()) {
         final now = DateTime.now();
-        final timeStr =
-            '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+        final timeStr = DateFormat.jm().format(now);
         service.setForegroundNotificationInfo(
           title: 'Location Monitor Active',
           content: 'Last check: $timeStr',
