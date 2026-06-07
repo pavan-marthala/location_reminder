@@ -7,6 +7,7 @@ import 'package:reminders/core/services/location_service.dart';
 import 'package:reminders/core/services/notification_service.dart';
 import 'package:reminders/core/services/permission_validation_service.dart';
 import 'package:reminders/features/infrastructure_validation/presentation/bloc/validation_bloc.dart';
+import 'package:reminders/core/services/app_routing_notifier.dart';
 import 'package:reminders/main.dart';
 
 class MockNotificationService implements NotificationService {
@@ -105,12 +106,16 @@ void main() {
       getIt.registerLazySingleton<PermissionValidationService>(
         () => MockPermissionValidationService(),
       );
+      getIt.registerLazySingleton<AppRoutingNotifier>(
+        () => AppRoutingNotifier(getIt<PermissionValidationService>()),
+      );
       getIt.registerFactory<ValidationBloc>(
         () => ValidationBloc(
           getIt<NotificationService>(),
           getIt<AlarmService>(),
           getIt<LocationService>(),
           getIt<BackgroundService>(),
+          getIt<AppRoutingNotifier>(),
         ),
       );
     }

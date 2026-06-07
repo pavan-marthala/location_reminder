@@ -9,6 +9,7 @@ import 'package:reminders/features/reminders/presentation/pages/reminder_list_pa
 import 'package:reminders/features/reminders/presentation/pages/create_reminder_page.dart';
 import 'package:reminders/core/services/notification_service.dart';
 import 'package:reminders/core/services/background_service.dart';
+import 'package:reminders/core/services/app_routing_notifier.dart';
 import 'package:reminders/core/services/monitoring_coordinator.dart';
 import 'core/di/injection.dart';
 
@@ -40,9 +41,36 @@ class _MyAppState extends State<MyApp> {
   late final GoRouter _goRouter;
   @override
   void initState() {
+    final routingNotifier = getIt<AppRoutingNotifier>();
     _goRouter = GoRouter(
       initialLocation: AppRoutes.splash,
       navigatorKey: rootNavigatorKey,
+      refreshListenable: routingNotifier,
+      redirect: (context, state) {
+        final isSplash = state.matchedLocation == AppRoutes.splash;
+        final isValidation = state.matchedLocation == AppRoutes.validation;
+
+        // If not bootstrapped yet, always stay on splash
+        if (!routingNotifier.isBootstrapped) {
+          return AppRoutes.splash;
+        }
+
+        // If bootstrapped but permissions are invalid, redirect to validation
+        if (!routingNotifier.isValidationValid) {
+          if (!isValidation) {
+            return AppRoutes.validation;
+          }
+          return null;
+        }
+
+        // If permissions are valid but we are on splash or validation, redirect to home
+        if (isSplash || isValidation) {
+          return AppRoutes.home;
+        }
+
+        // No redirect needed for other pages
+        return null;
+      },
       debugLogDiagnostics: true,
       routes: routes(),
     );

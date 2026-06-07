@@ -6,6 +6,7 @@ import 'package:reminders/core/services/alarm_service.dart';
 import 'package:reminders/core/services/background_service.dart';
 import 'package:reminders/core/services/location_service.dart';
 import 'package:reminders/core/services/notification_service.dart';
+import 'package:reminders/core/services/app_routing_notifier.dart';
 import 'validation_event.dart';
 import 'validation_state.dart';
 
@@ -15,6 +16,7 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
   final AlarmService _alarmService;
   final LocationService _locationService;
   final BackgroundService _backgroundService;
+  final AppRoutingNotifier _routingNotifier;
 
   StreamSubscription<Position>? _locationSubscription;
   StreamSubscription<Map<String, dynamic>?>? _backgroundSubscription;
@@ -24,6 +26,7 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
     this._alarmService,
     this._locationService,
     this._backgroundService,
+    this._routingNotifier,
   ) : super(const ValidationState()) {
     on<Initialize>(_onInitialize);
     on<RequestNotificationPermission>(_onRequestNotificationPermission);
@@ -74,6 +77,9 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
           isLoading: false,
         ),
       );
+
+      // Notify routing notifier of current statuses
+      await _routingNotifier.notifyPermissionChanged();
     } catch (e) {
       emit(
         state.copyWith(
@@ -95,6 +101,8 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
         isNotificationPermissionGranted: granted,
         errorMessage: granted ? null : 'Notification permission denied',
       ));
+      // Notify routing notifier of status change
+      await _routingNotifier.notifyPermissionChanged();
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Notification permission error: $e'));
     }
@@ -127,6 +135,8 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
         isLocationPermissionGranted: granted,
         errorMessage: granted ? null : 'Location permission denied',
       ));
+      // Notify routing notifier of status change
+      await _routingNotifier.notifyPermissionChanged();
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Location permission request error: $e'));
     }

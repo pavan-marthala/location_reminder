@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:reminders/core/di/injection.dart';
-import 'package:reminders/core/routes/app_routes.dart';
 import 'package:reminders/core/theme/app_theme.dart';
-import 'package:reminders/core/services/permission_validation_service.dart';
+import 'package:reminders/core/services/app_routing_notifier.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -22,10 +20,6 @@ class _SplashPageState extends State<SplashPage> {
   Future<void> _bootstrap() async {
     final stopwatch = Stopwatch()..start();
 
-    // Check permissions
-    final permissionService = getIt<PermissionValidationService>();
-    final isReady = await permissionService.isAppReady();
-
     // Enforce a minimum display time of 1.5 seconds for branding and smooth transition
     final elapsed = stopwatch.elapsedMilliseconds;
     const minDuration = 1500;
@@ -33,13 +27,8 @@ class _SplashPageState extends State<SplashPage> {
       await Future.delayed(Duration(milliseconds: minDuration - elapsed));
     }
 
-    if (mounted) {
-      if (isReady) {
-        context.go(AppRoutes.home);
-      } else {
-        context.go(AppRoutes.validation);
-      }
-    }
+    // Trigger routing notifier initialization which checks permissions and redirects automatically
+    await getIt<AppRoutingNotifier>().initialize();
   }
 
   @override

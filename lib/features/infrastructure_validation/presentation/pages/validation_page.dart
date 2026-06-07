@@ -2,8 +2,6 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
-import 'package:reminders/core/routes/app_routes.dart';
 import 'package:reminders/core/theme/app_theme.dart';
 import 'package:reminders/core/utils/app_button.dart';
 import 'package:reminders/core/utils/app_toast.dart';
@@ -42,13 +40,6 @@ class _ValidationPageView extends StatelessWidget {
           if (state.errorMessage != null) {
             log(state.errorMessage ?? "");
             showErrorToast(message: state.errorMessage!);
-          }
-
-          // Auto-navigate to Home once all required permissions are granted
-          if (state.isInitialized &&
-              state.isNotificationPermissionGranted &&
-              state.isLocationPermissionGranted) {
-            context.go(AppRoutes.home);
           }
         },
         builder: (context, state) {
@@ -136,7 +127,7 @@ class _ValidationPageView extends StatelessWidget {
                 children: [
                   Expanded(
                     child: AppButton(
-                      text: 'Request Perms',
+                      text: 'Request Permission',
                       color: colors.primary,
                       onPressed: () {
                         context.read<ValidationBloc>().add(
@@ -211,7 +202,7 @@ class _ValidationPageView extends StatelessWidget {
                 children: [
                   Expanded(
                     child: AppButton(
-                      text: 'Location Perm',
+                      text: 'Location Permission',
                       color: colors.primary,
                       onPressed: () {
                         context.read<ValidationBloc>().add(

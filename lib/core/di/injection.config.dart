@@ -16,7 +16,7 @@ import 'package:injectable/injectable.dart' as _i2;
 import 'package:shared_preferences/shared_preferences.dart' as _i3;
 
 import '../../features/infrastructure_validation/presentation/bloc/validation_bloc.dart'
-    as _i22;
+    as _i23;
 import '../../features/reminders/data/datasources/reminder_local_datasource.dart'
     as _i7;
 import '../../features/reminders/data/repositories/reminder_repository_impl.dart'
@@ -33,16 +33,17 @@ import '../../features/reminders/domain/usecases/get_reminder_by_id_usecase.dart
     as _i17;
 import '../../features/reminders/domain/usecases/update_reminder_usecase.dart'
     as _i19;
-import '../../features/reminders/presentation/bloc/reminder_bloc.dart' as _i23;
+import '../../features/reminders/presentation/bloc/reminder_bloc.dart' as _i24;
 import '../database/app_database.dart' as _i4;
 import '../services/alarm_service.dart' as _i21;
+import '../services/app_routing_notifier.dart' as _i22;
 import '../services/background_service.dart' as _i8;
 import '../services/location_service.dart' as _i9;
 import '../services/monitoring_coordinator.dart' as _i14;
 import '../services/notification_service.dart' as _i13;
 import '../services/permission_validation_service.dart' as _i15;
 import '../services/settings_service.dart' as _i12;
-import 'register_module.dart' as _i24;
+import 'register_module.dart' as _i25;
 
 extension GetItInjectableX on _i1.GetIt {
 // initializes the registration of main-scope dependencies inside of GetIt
@@ -101,13 +102,16 @@ extension GetItInjectableX on _i1.GetIt {
           gh<_i6.AudioPlayer>(),
           gh<_i12.SettingsService>(),
         ));
-    gh.factory<_i22.ValidationBloc>(() => _i22.ValidationBloc(
+    gh.lazySingleton<_i22.AppRoutingNotifier>(
+        () => _i22.AppRoutingNotifier(gh<_i15.PermissionValidationService>()));
+    gh.factory<_i23.ValidationBloc>(() => _i23.ValidationBloc(
           gh<_i13.NotificationService>(),
           gh<_i21.AlarmService>(),
           gh<_i9.LocationService>(),
           gh<_i8.BackgroundService>(),
+          gh<_i22.AppRoutingNotifier>(),
         ));
-    gh.factory<_i23.ReminderBloc>(() => _i23.ReminderBloc(
+    gh.factory<_i24.ReminderBloc>(() => _i24.ReminderBloc(
           gh<_i18.GetAllRemindersUseCase>(),
           gh<_i20.CreateReminderUseCase>(),
           gh<_i19.UpdateReminderUseCase>(),
@@ -118,4 +122,4 @@ extension GetItInjectableX on _i1.GetIt {
   }
 }
 
-class _$RegisterModule extends _i24.RegisterModule {}
+class _$RegisterModule extends _i25.RegisterModule {}
