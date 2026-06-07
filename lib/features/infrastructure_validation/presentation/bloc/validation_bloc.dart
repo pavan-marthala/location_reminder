@@ -83,9 +83,10 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
     emit(state.copyWith(errorMessage: null));
     try {
       final granted = await _notificationService.requestPermissions();
-      if (!granted) {
-        emit(state.copyWith(errorMessage: 'Notification permission denied'));
-      }
+      emit(state.copyWith(
+        isNotificationPermissionGranted: granted,
+        errorMessage: granted ? null : 'Notification permission denied',
+      ));
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Notification permission error: $e'));
     }
@@ -113,16 +114,13 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
     emit(state.copyWith(errorMessage: null));
     try {
       final status = await _locationService.requestPermission();
-      if (status == LocationPermission.denied ||
-          status == LocationPermission.deniedForever) {
-        emit(state.copyWith(errorMessage: 'Location permission denied'));
-      }
+      final granted = status == LocationPermission.always || status == LocationPermission.whileInUse;
+      emit(state.copyWith(
+        isLocationPermissionGranted: granted,
+        errorMessage: granted ? null : 'Location permission denied',
+      ));
     } catch (e) {
-      emit(
-        state.copyWith(
-          errorMessage: 'Location permission request error: $e',
-        ),
-      );
+      emit(state.copyWith(errorMessage: 'Location permission request error: $e'));
     }
   }
 
@@ -192,24 +190,28 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
 
         emit(state.copyWith(isLocationStreamActive: true));
         await _locationSubscription?.cancel();
-        _locationSubscription = _locationService.getLocationStream().listen(
-          (position) {
-            emit(
-              state.copyWith(
-                currentCoordinates:
-                    'Lat: ${position.latitude.toStringAsFixed(6)}, Lng: ${position.longitude.toStringAsFixed(6)}',
-              ),
-            );
-          },
-          onError: (e) {
-            emit(
-              state.copyWith(
-                errorMessage: 'Location stream error: $e',
-                isLocationStreamActive: false,
-              ),
-            );
-          },
-        );
+    _locationSubscription = _locationService.getLocationStream().listen(
+      (position) {
+        if (!emit.isDone) {
+          emit(
+            state.copyWith(
+              currentCoordinates:
+                  'Lat: ${position.latitude.toStringAsFixed(6)}, Lng: ${position.longitude.toStringAsFixed(6)}',
+            ),
+          );
+        }
+      },
+      onError: (e) {
+        if (!emit.isDone) {
+          emit(
+            state.copyWith(
+              errorMessage: 'Location stream error: $e',
+              isLocationStreamActive: false,
+            ),
+          );
+        }
+      },
+    );
       } catch (e) {
         emit(
           state.copyWith(

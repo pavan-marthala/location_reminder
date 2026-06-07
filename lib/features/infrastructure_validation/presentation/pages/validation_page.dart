@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:reminders/core/theme/app_theme.dart';
@@ -14,7 +16,8 @@ class ValidationPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => getIt<ValidationBloc>()..add(const ValidationEvent.initialize()),
+      create: (context) =>
+          getIt<ValidationBloc>()..add(const ValidationEvent.initialize()),
       child: const _ValidationPageView(),
     );
   }
@@ -35,15 +38,14 @@ class _ValidationPageView extends StatelessWidget {
       body: BlocConsumer<ValidationBloc, ValidationState>(
         listener: (context, state) {
           if (state.errorMessage != null) {
+            log(state.errorMessage ?? "");
             showErrorToast(message: state.errorMessage!);
           }
         },
         builder: (context, state) {
           if (state.isLoading && !state.isInitialized) {
             return Center(
-              child: CircularProgressIndicator(
-                color: colors.primary,
-              ),
+              child: CircularProgressIndicator(color: colors.primary),
             );
           }
 
@@ -120,33 +122,47 @@ class _ValidationPageView extends StatelessWidget {
           children: [
             Text('1. Local Notifications', style: typography.titleMedium),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: AppButton(
-                    text: 'Request Perms',
-                    color: colors.primary,
-                    onPressed: () {
-                      context
-                          .read<ValidationBloc>()
-                          .add(const ValidationEvent.requestNotificationPermission());
-                    },
+            if (!state.isNotificationPermissionGranted) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: AppButton(
+                      text: 'Request Perms',
+                      color: colors.primary,
+                      onPressed: () {
+                        context.read<ValidationBloc>().add(
+                          const ValidationEvent.requestNotificationPermission(),
+                        );
+                      },
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: AppButton(
-                    text: 'Trigger Test',
-                    color: colors.secondary,
-                    onPressed: () {
-                      context
-                          .read<ValidationBloc>()
-                          .add(const ValidationEvent.triggerTestNotification());
-                    },
+                ],
+              ),
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: AppButton(
+                      text: 'Trigger Test',
+                      color: colors.secondary,
+                      onPressed: () {
+                        context.read<ValidationBloc>().add(
+                          const ValidationEvent.triggerTestNotification(),
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.check_circle, color: colors.success),
+                  const SizedBox(width: 8),
+                  Text('Permission Granted', style: typography.bodyMedium),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -181,46 +197,54 @@ class _ValidationPageView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: AppButton(
-                    text: 'Location Perm',
-                    color: colors.primary,
-                    onPressed: () {
-                      context
-                          .read<ValidationBloc>()
-                          .add(const ValidationEvent.requestLocationPermission());
-                    },
+            if (!state.isLocationPermissionGranted) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: AppButton(
+                      text: 'Location Perm',
+                      color: colors.primary,
+                      onPressed: () {
+                        context.read<ValidationBloc>().add(
+                          const ValidationEvent.requestLocationPermission(),
+                        );
+                      },
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: AppButton(
-                    text: 'Get Location',
-                    color: colors.secondary,
-                    onPressed: () {
-                      context
-                          .read<ValidationBloc>()
-                          .add(const ValidationEvent.fetchCurrentLocation());
-                    },
+                ],
+              ),
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: AppButton(
+                      text: 'Get Location',
+                      color: colors.secondary,
+                      onPressed: () {
+                        context.read<ValidationBloc>().add(
+                          const ValidationEvent.fetchCurrentLocation(),
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            AppButton(
-              width: double.infinity,
-              text: state.isLocationStreamActive
-                  ? 'Stop Location Stream'
-                  : 'Start Location Stream',
-              color: state.isLocationStreamActive ? colors.error : colors.accent2,
-              onPressed: () {
-                context
-                    .read<ValidationBloc>()
-                    .add(const ValidationEvent.toggleLocationStream());
-              },
-            ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              AppButton(
+                width: double.infinity,
+                text: state.isLocationStreamActive
+                    ? 'Stop Location Stream'
+                    : 'Start Location Stream',
+                color: state.isLocationStreamActive
+                    ? colors.error
+                    : colors.accent2,
+                onPressed: () {
+                  context.read<ValidationBloc>().add(
+                    const ValidationEvent.toggleLocationStream(),
+                  );
+                },
+              ),
+            ],
           ],
         ),
       ),
@@ -243,11 +267,15 @@ class _ValidationPageView extends StatelessWidget {
               children: [
                 Icon(
                   state.isAlarmPlaying ? Icons.volume_up : Icons.volume_off,
-                  color: state.isAlarmPlaying ? colors.success : colors.textTertiary,
+                  color: state.isAlarmPlaying
+                      ? colors.success
+                      : colors.textTertiary,
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  state.isAlarmPlaying ? 'Alarm Playing (Looping)' : 'Alarm Muted',
+                  state.isAlarmPlaying
+                      ? 'Alarm Playing (Looping)'
+                      : 'Alarm Muted',
                   style: typography.bodyMedium,
                 ),
               ],
@@ -260,9 +288,9 @@ class _ValidationPageView extends StatelessWidget {
                     text: 'Play Alarm',
                     color: colors.success,
                     onPressed: () {
-                      context
-                          .read<ValidationBloc>()
-                          .add(const ValidationEvent.startAlarm());
+                      context.read<ValidationBloc>().add(
+                        const ValidationEvent.startAlarm(),
+                      );
                     },
                   ),
                 ),
@@ -272,9 +300,9 @@ class _ValidationPageView extends StatelessWidget {
                     text: 'Stop Alarm',
                     color: colors.error,
                     onPressed: () {
-                      context
-                          .read<ValidationBloc>()
-                          .add(const ValidationEvent.stopAlarm());
+                      context.read<ValidationBloc>().add(
+                        const ValidationEvent.stopAlarm(),
+                      );
                     },
                   ),
                 ),
@@ -286,7 +314,10 @@ class _ValidationPageView extends StatelessWidget {
     );
   }
 
-  Widget _buildBackgroundServiceCard(BuildContext context, ValidationState state) {
+  Widget _buildBackgroundServiceCard(
+    BuildContext context,
+    ValidationState state,
+  ) {
     final colors = context.appColors;
     final typography = context.appTypography;
 
@@ -304,7 +335,9 @@ class _ValidationPageView extends StatelessWidget {
                   state.isBackgroundServiceRunning
                       ? Icons.play_circle_fill
                       : Icons.pause_circle_filled,
-                  color: state.isBackgroundServiceRunning ? colors.success : colors.textTertiary,
+                  color: state.isBackgroundServiceRunning
+                      ? colors.success
+                      : colors.textTertiary,
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -327,9 +360,7 @@ class _ValidationPageView extends StatelessWidget {
                 ),
                 child: Text(
                   state.latestBackgroundTick!,
-                  style: typography.bodyMedium.copyWith(
-                    fontFamily: 'Courier',
-                  ),
+                  style: typography.bodyMedium.copyWith(fontFamily: 'Courier'),
                 ),
               ),
               const SizedBox(height: 12),
@@ -339,11 +370,13 @@ class _ValidationPageView extends StatelessWidget {
               text: state.isBackgroundServiceRunning
                   ? 'Stop Foreground Service'
                   : 'Start Foreground Service',
-              color: state.isBackgroundServiceRunning ? colors.error : colors.primary,
+              color: state.isBackgroundServiceRunning
+                  ? colors.error
+                  : colors.primary,
               onPressed: () {
-                context
-                    .read<ValidationBloc>()
-                    .add(const ValidationEvent.toggleBackgroundService());
+                context.read<ValidationBloc>().add(
+                  const ValidationEvent.toggleBackgroundService(),
+                );
               },
             ),
           ],

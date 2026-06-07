@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="reminders"
         android:name="${applicationName}"
@@ -36,9 +36,9 @@
         
         <!-- Background Service components -->
         <service
-            android:name="com.transistorsoft.flutterbackgroundservice.BackgroundService"
+            android:name="id.flutter.flutter_background_service.BackgroundService"
             android:enabled="true"
-            android:exported="false"
+            android:exported="true"
             android:foregroundServiceType="location" />
 
         <!-- Don't delete the meta-data below.

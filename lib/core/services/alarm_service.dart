@@ -35,9 +35,7 @@ class AlarmServiceImpl implements AlarmService {
         ),
         iOS: AudioContextIOS(
           category: AVAudioSessionCategory.playback,
-          options: const {
-            AVAudioSessionOptions.defaultToSpeaker,
-          },
+          options: const {},
         ),
       ),
     );

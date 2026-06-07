@@ -9,6 +9,8 @@ class ValidationState with _$ValidationState {
     @Default(false) bool isAlarmPlaying,
     @Default(false) bool isBackgroundServiceRunning,
     @Default(false) bool isLocationStreamActive,
+    @Default(false) bool isNotificationPermissionGranted,
+    @Default(false) bool isLocationPermissionGranted,
     String? currentCoordinates,
     String? latestBackgroundTick,
     String? errorMessage,
