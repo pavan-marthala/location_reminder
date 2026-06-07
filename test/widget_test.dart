@@ -1,30 +1,130 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:get_it/get_it.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:reminders/core/services/alarm_service.dart';
+import 'package:reminders/core/services/background_service.dart';
+import 'package:reminders/core/services/location_service.dart';
+import 'package:reminders/core/services/notification_service.dart';
+import 'package:reminders/core/services/permission_validation_service.dart';
+import 'package:reminders/features/infrastructure_validation/presentation/bloc/validation_bloc.dart';
 import 'package:reminders/main.dart';
 
+class MockNotificationService implements NotificationService {
+  @override
+  Future<void> init() async {}
+  @override
+  Future<bool> requestPermissions() async => true;
+  @override
+  Future<void> showTestNotification({
+    required String title,
+    required String body,
+  }) async {}
+  @override
+  Future<bool> areNotificationsEnabled() async => true;
+}
+
+class MockAlarmService implements AlarmService {
+  @override
+  Future<void> init() async {}
+  @override
+  Future<void> playAlarm({String? url}) async {}
+  @override
+  Future<void> stopAlarm() async {}
+  @override
+  bool get isPlaying => false;
+}
+
+class MockLocationService implements LocationService {
+  @override
+  Future<bool> isLocationServiceEnabled() async => true;
+  @override
+  Future<LocationPermission> checkPermission() async =>
+      LocationPermission.always;
+  @override
+  Future<LocationPermission> requestPermission() async =>
+      LocationPermission.always;
+  @override
+  Future<Position> getCurrentLocation() async => Position(
+        latitude: 0.0,
+        longitude: 0.0,
+        timestamp: DateTime.now(),
+        accuracy: 0.0,
+        altitude: 0.0,
+        heading: 0.0,
+        speed: 0.0,
+        speedAccuracy: 0.0,
+        altitudeAccuracy: 0.0,
+        headingAccuracy: 0.0,
+      );
+  @override
+  Stream<Position> getLocationStream() => const Stream.empty();
+  @override
+  double calculateDistance(
+    double startLatitude,
+    double startLongitude,
+    double endLatitude,
+    double endLongitude,
+  ) =>
+      0.0;
+}
+
+class MockBackgroundService implements BackgroundService {
+  @override
+  Future<void> init() async {}
+  @override
+  Future<void> startService() async {}
+  @override
+  Future<void> stopService() async {}
+  @override
+  Future<bool> isRunning() async => false;
+  @override
+  Stream<Map<String, dynamic>?> get backgroundUpdates => const Stream.empty();
+}
+
+class MockPermissionValidationService implements PermissionValidationService {
+  @override
+  Future<bool> isAppReady() async => false; // Route to validation page for test
+  @override
+  Future<bool> isLocationAlwaysGranted() async => true;
+  @override
+  Future<bool> isNotificationGranted() async => true;
+}
+
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  setUpAll(() {
+    final getIt = GetIt.instance;
+    if (!getIt.isRegistered<NotificationService>()) {
+      getIt.registerLazySingleton<NotificationService>(
+        () => MockNotificationService(),
+      );
+      getIt.registerLazySingleton<AlarmService>(() => MockAlarmService());
+      getIt.registerLazySingleton<LocationService>(() => MockLocationService());
+      getIt.registerLazySingleton<BackgroundService>(
+        () => MockBackgroundService(),
+      );
+      getIt.registerLazySingleton<PermissionValidationService>(
+        () => MockPermissionValidationService(),
+      );
+      getIt.registerFactory<ValidationBloc>(
+        () => ValidationBloc(
+          getIt<NotificationService>(),
+          getIt<AlarmService>(),
+          getIt<LocationService>(),
+          getIt<BackgroundService>(),
+        ),
+      );
+    }
+  });
+
+  testWidgets('Infrastructure Validation screen mounts successfully',
+      (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const MyApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Allow asynchronous operations to run
+    await tester.pumpAndSettle();
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verify that the title is displayed.
+    expect(find.text('Infrastructure Validation'), findsOneWidget);
   });
 }

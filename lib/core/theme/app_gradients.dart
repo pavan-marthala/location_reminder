@@ -308,34 +308,34 @@ class AppGradients extends ThemeExtension<AppGradients> {
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        const Color(0xFF7669E2).withOpacity(0.08),
-        const Color(0xFFE8669E).withOpacity(0.08),
+        const Color(0xFF7669E2).withValues(alpha: 0.08),
+        const Color(0xFFE8669E).withValues(alpha: 0.08),
       ],
     ),
     glassOverlaySubtle: LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        const Color(0xFF7669E2).withOpacity(0.04),
-        const Color(0xFFE8669E).withOpacity(0.04),
+        const Color(0xFF7669E2).withValues(alpha: 0.04),
+        const Color(0xFFE8669E).withValues(alpha: 0.04),
       ],
     ),
     overlayBottom: LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: [Colors.transparent, const Color(0xFF000000).withOpacity(0.4)],
+      colors: [Colors.transparent, const Color(0xFF000000).withValues(alpha: 0.4)],
     ),
     overlayTop: LinearGradient(
       begin: Alignment.bottomCenter,
       end: Alignment.topCenter,
-      colors: [Colors.transparent, const Color(0xFF000000).withOpacity(0.4)],
+      colors: [Colors.transparent, const Color(0xFF000000).withValues(alpha: 0.4)],
     ),
     shimmer: LinearGradient(
       begin: Alignment.centerLeft,
       end: Alignment.centerRight,
       colors: [
         Colors.transparent,
-        Colors.black.withOpacity(0.04),
+        Colors.black.withValues(alpha: 0.04),
         Colors.transparent,
       ],
       stops: const [0.0, 0.5, 1.0],
@@ -344,8 +344,8 @@ class AppGradients extends ThemeExtension<AppGradients> {
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        const Color(0xFF7669E2).withOpacity(0.06),
-        const Color(0xFFE8669E).withOpacity(0.06),
+        const Color(0xFF7669E2).withValues(alpha: 0.06),
+        const Color(0xFFE8669E).withValues(alpha: 0.06),
       ],
     ),
     passwordWeak: const LinearGradient(

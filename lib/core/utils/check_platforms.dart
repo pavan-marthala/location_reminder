@@ -8,14 +8,14 @@ class PlatformChecker {
     if (kIsWeb) {
       return false;
     }
-    return defaultTargetPlatform == .iOS;
+    return defaultTargetPlatform == TargetPlatform.iOS;
   }
 
   static bool isAndroid() {
     if (kIsWeb) {
       return false;
     }
-    return defaultTargetPlatform == .android;
+    return defaultTargetPlatform == TargetPlatform.android;
   }
 
   static bool isWeb() {
@@ -26,7 +26,7 @@ class PlatformChecker {
     if (kIsWeb) {
       return false;
     }
-    return defaultTargetPlatform == .linux;
+    return defaultTargetPlatform == TargetPlatform.linux;
   }
 
   static bool isMacOS() {
