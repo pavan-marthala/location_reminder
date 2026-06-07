@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/theme/app_theme.dart';
@@ -7,13 +6,17 @@ import 'package:reminders/core/theme/app_colors.dart';
 import 'package:reminders/core/theme/app_typography.dart';
 import 'package:reminders/core/utils/app_button.dart';
 import 'package:reminders/core/utils/app_toast.dart';
+import 'package:reminders/core/routes/app_routes.dart';
 import 'package:reminders/generated/assets.dart';
 import 'package:reminders/features/reminders/domain/entities/reminder_entity.dart';
+import 'package:reminders/features/reminders/domain/entities/location_selection_result.dart';
 import '../bloc/reminder_bloc.dart';
 import '../bloc/reminder_event.dart';
 
 class CreateReminderPage extends StatefulWidget {
-  const CreateReminderPage({super.key});
+  final ReminderEntity? reminderToEdit;
+
+  const CreateReminderPage({super.key, this.reminderToEdit});
 
   @override
   State<CreateReminderPage> createState() => _CreateReminderPageState();
@@ -22,42 +25,92 @@ class CreateReminderPage extends StatefulWidget {
 class _CreateReminderPageState extends State<CreateReminderPage> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
-  final _latController = TextEditingController();
-  final _lngController = TextEditingController();
-  final _radiusController = TextEditingController(text: '200');
+
+  double? _selectedLat;
+  double? _selectedLng;
+  double? _selectedRadius;
+  String? _locationName;
 
   bool _isSaving = false;
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.reminderToEdit != null) {
+      final edit = widget.reminderToEdit!;
+      _titleController.text = edit.title;
+      _selectedLat = edit.latitude;
+      _selectedLng = edit.longitude;
+      _selectedRadius = edit.radiusMeters;
+      _locationName = 'Location (${edit.latitude.toStringAsFixed(4)}, ${edit.longitude.toStringAsFixed(4)})';
+    }
+  }
+
+  @override
   void dispose() {
     _titleController.dispose();
-    _latController.dispose();
-    _lngController.dispose();
-    _radiusController.dispose();
     super.dispose();
+  }
+
+  Future<void> _onSelectLocation() async {
+    final result = await context.push<LocationSelectionResult>(
+      AppRoutes.locationPicker,
+      extra: {
+        'latitude': _selectedLat,
+        'longitude': _selectedLng,
+        'radiusMeters': _selectedRadius,
+      },
+    );
+
+    if (result != null) {
+      setState(() {
+        _selectedLat = result.latitude;
+        _selectedLng = result.longitude;
+        _selectedRadius = result.radiusMeters;
+        _locationName = result.locationName;
+      });
+    }
   }
 
   void _onSave() {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedLat == null || _selectedLng == null || _selectedRadius == null) {
+      showErrorToast(message: 'Please select a location geofence first');
+      return;
+    }
 
     setState(() => _isSaving = true);
 
-    final reminder = ReminderEntity(
-      title: _titleController.text.trim(),
-      latitude: double.parse(_latController.text.trim()),
-      longitude: double.parse(_lngController.text.trim()),
-      radiusMeters: double.parse(_radiusController.text.trim()),
-      alarmTone: Assets.audioDaybreak,
-      createdAt: DateTime.now(),
-    );
+    final reminder = widget.reminderToEdit == null
+        ? ReminderEntity(
+            title: _titleController.text.trim(),
+            latitude: _selectedLat!,
+            longitude: _selectedLng!,
+            radiusMeters: _selectedRadius!,
+            alarmTone: Assets.audioDaybreak,
+            createdAt: DateTime.now(),
+          )
+        : widget.reminderToEdit!.copyWith(
+            title: _titleController.text.trim(),
+            latitude: _selectedLat!,
+            longitude: _selectedLng!,
+            radiusMeters: _selectedRadius!,
+            updatedAt: DateTime.now(),
+          );
 
     final bloc = getIt<ReminderBloc>();
-    bloc.add(ReminderEvent.createReminder(reminder: reminder));
+    if (widget.reminderToEdit == null) {
+      bloc.add(ReminderEvent.createReminder(reminder: reminder));
+    } else {
+      bloc.add(ReminderEvent.updateReminder(reminder: reminder));
+    }
 
     // Listen for state change to confirm save
     bloc.stream.first.then((_) {
       if (mounted) {
-        showSuccessToast(message: 'Reminder created');
+        showSuccessToast(
+          message: widget.reminderToEdit == null ? 'Reminder created' : 'Reminder updated',
+        );
         context.pop(true);
       }
     }).catchError((_) {
@@ -68,15 +121,24 @@ class _CreateReminderPageState extends State<CreateReminderPage> {
     });
   }
 
+  String _formatRadius(double meters) {
+    if (meters >= 1000) {
+      return '${(meters / 1000).toStringAsFixed(1)} km';
+    } else {
+      return '${meters.round()} m';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final typography = context.appTypography;
     final gradients = context.appGradients;
+    final isEdit = widget.reminderToEdit != null;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New Reminder'),
+        title: Text(isEdit ? 'Edit Reminder' : 'New Reminder'),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
@@ -85,9 +147,7 @@ class _CreateReminderPageState extends State<CreateReminderPage> {
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: context.isDark
-              ? gradients.backgroundDark
-              : gradients.backgroundLight,
+          gradient: context.isDark ? gradients.backgroundDark : gradients.backgroundLight,
         ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -97,106 +157,144 @@ class _CreateReminderPageState extends State<CreateReminderPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Title field
-                _buildLabel('Title', typography),
+                _buildLabel('Reminder Name', typography),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _titleController,
                   decoration: _inputDecoration(
-                    hint: 'e.g. Grocery Store',
+                    hint: 'e.g. Pick up Groceries',
                     icon: Icons.label_outline_rounded,
                     colors: colors,
                   ),
                   textCapitalization: TextCapitalization.sentences,
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) {
-                      return 'Title is required';
+                      return 'Name is required';
                     }
                     if (v.trim().length > 100) {
-                      return 'Title must be under 100 characters';
+                      return 'Name must be under 100 characters';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 24),
 
-                // Latitude field
-                _buildLabel('Latitude', typography),
+                // Location Summary Section
+                _buildLabel('Target Location & Geofence', typography),
                 const SizedBox(height: 8),
-                TextFormField(
-                  controller: _latController,
-                  decoration: _inputDecoration(
-                    hint: 'e.g. 17.3850',
-                    icon: Icons.swap_vert_rounded,
-                    colors: colors,
+                if (_selectedLat == null) ...[
+                  // Select Location Button
+                  InkWell(
+                    onTap: _onSelectLocation,
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: colors.card,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: colors.border),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(Icons.add_location_alt_rounded, size: 40, color: colors.primary),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Select Location on Map',
+                            style: typography.bodyMedium.copyWith(
+                              color: colors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tap to place center and resize radius',
+                            style: typography.bodySmall.copyWith(color: colors.textTertiary),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true, signed: true),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*')),
-                  ],
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Latitude is required';
-                    final val = double.tryParse(v.trim());
-                    if (val == null) return 'Enter a valid number';
-                    if (val < -90 || val > 90) return 'Must be between -90 and 90';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
+                ] else ...[
+                  // Selection Summary Card
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: colors.card,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: colors.primary.withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.location_on_rounded, color: colors.primary),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _locationName ?? 'Selected Location',
+                                style: typography.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Coordinates',
+                                  style: typography.bodySmall.copyWith(color: colors.textTertiary),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${_selectedLat!.toStringAsFixed(6)}, ${_selectedLng!.toStringAsFixed(6)}',
+                                  style: typography.bodyMedium.copyWith(
+                                    fontFamily: 'Courier',
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Geofence Radius',
+                                  style: typography.bodySmall.copyWith(color: colors.textTertiary),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  _formatRadius(_selectedRadius!),
+                                  style: typography.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        AppButton(
+                          width: double.infinity,
+                          text: 'Modify Location or Radius',
+                          color: colors.secondary,
+                          onPressed: _onSelectLocation,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
 
-                // Longitude field
-                _buildLabel('Longitude', typography),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _lngController,
-                  decoration: _inputDecoration(
-                    hint: 'e.g. 78.4867',
-                    icon: Icons.swap_horiz_rounded,
-                    colors: colors,
-                  ),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true, signed: true),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*')),
-                  ],
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Longitude is required';
-                    final val = double.tryParse(v.trim());
-                    if (val == null) return 'Enter a valid number';
-                    if (val < -180 || val > 180) return 'Must be between -180 and 180';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-
-                // Radius field
-                _buildLabel('Radius (meters)', typography),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _radiusController,
-                  decoration: _inputDecoration(
-                    hint: 'e.g. 200',
-                    icon: Icons.radar_rounded,
-                    colors: colors,
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Radius is required';
-                    final val = double.tryParse(v.trim());
-                    if (val == null || val <= 0) return 'Must be a positive number';
-                    if (val > 50000) return 'Maximum radius is 50km';
-                    return null;
-                  },
-                ),
                 const SizedBox(height: 40),
 
                 // Save button
                 AppButton(
                   width: double.infinity,
-                  text: 'Save Reminder',
+                  text: isEdit ? 'Update Reminder' : 'Save Reminder',
                   color: colors.primary,
                   isLoading: _isSaving,
                   onPressed: _isSaving ? null : _onSave,
@@ -242,8 +340,7 @@ class _CreateReminderPageState extends State<CreateReminderPage> {
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(color: colors.error),
       ),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
 }

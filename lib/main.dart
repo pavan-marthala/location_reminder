@@ -7,6 +7,8 @@ import 'package:reminders/features/splash/presentation/pages/splash_page.dart';
 import 'package:reminders/features/infrastructure_validation/presentation/pages/validation_page.dart';
 import 'package:reminders/features/reminders/presentation/pages/reminder_list_page.dart';
 import 'package:reminders/features/reminders/presentation/pages/create_reminder_page.dart';
+import 'package:reminders/features/reminders/presentation/pages/location_picker_page.dart';
+import 'package:reminders/features/reminders/domain/entities/reminder_entity.dart';
 import 'package:reminders/features/settings/presentation/pages/settings_page.dart';
 import 'package:reminders/core/services/notification_service.dart';
 import 'package:reminders/core/services/mapbox_service.dart';
@@ -121,6 +123,24 @@ List<RouteBase> routes() {
     GoRoute(
       path: AppRoutes.settings,
       builder: (context, state) => const SettingsPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.locationPicker,
+      builder: (context, state) {
+        final params = state.extra as Map<String, dynamic>? ?? {};
+        return LocationPickerPage(
+          initialLatitude: params['latitude'] as double?,
+          initialLongitude: params['longitude'] as double?,
+          initialRadiusMeters: params['radiusMeters'] as double?,
+        );
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.editReminder,
+      builder: (context, state) {
+        final reminder = state.extra as ReminderEntity?;
+        return CreateReminderPage(reminderToEdit: reminder);
+      },
     ),
   ];
 }

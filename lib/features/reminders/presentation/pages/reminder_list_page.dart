@@ -119,6 +119,17 @@ class _ReminderListView extends StatelessWidget {
                                   message: '${reminder.title} deleted',
                                 );
                               },
+                              onTap: () async {
+                                final result = await context.push<bool>(
+                                  AppRoutes.editReminder,
+                                  extra: reminder,
+                                );
+                                if (result == true && context.mounted) {
+                                  context.read<ReminderBloc>().add(
+                                        const ReminderEvent.loadReminders(),
+                                      );
+                                }
+                              },
                             );
                           },
                         ),
