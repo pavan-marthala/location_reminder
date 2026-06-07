@@ -7,6 +7,8 @@ import 'package:reminders/core/services/background_service.dart';
 import 'package:reminders/core/services/location_service.dart';
 import 'package:reminders/core/services/notification_service.dart';
 import 'package:reminders/core/services/app_routing_notifier.dart';
+import 'package:reminders/core/services/settings_service.dart';
+import 'package:reminders/core/services/monitoring_coordinator.dart';
 import 'validation_event.dart';
 import 'validation_state.dart';
 
@@ -17,6 +19,8 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
   final LocationService _locationService;
   final BackgroundService _backgroundService;
   final AppRoutingNotifier _routingNotifier;
+  final SettingsService _settingsService;
+  final MonitoringCoordinator _monitoringCoordinator;
 
   StreamSubscription<Position>? _locationSubscription;
   StreamSubscription<Map<String, dynamic>?>? _backgroundSubscription;
@@ -27,6 +31,8 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
     this._locationService,
     this._backgroundService,
     this._routingNotifier,
+    this._settingsService,
+    this._monitoringCoordinator,
   ) : super(const ValidationState()) {
     on<Initialize>(_onInitialize);
     on<RequestNotificationPermission>(_onRequestNotificationPermission);
@@ -38,6 +44,9 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
     on<StopAlarm>(_onStopAlarm);
     on<ToggleBackgroundService>(_onToggleBackgroundService);
     on<UpdateBackgroundTick>(_onUpdateBackgroundTick);
+    on<ChangeAlarmTone>(_onChangeAlarmTone);
+    on<ToggleMonitoring>(_onToggleMonitoring);
+    on<OpenAppSettings>(_onOpenAppSettings);
   }
 
   Future<void> _onInitialize(
@@ -57,6 +66,9 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
       final locPerm = await _locationService.checkPermission();
       final locGranted = locPerm == LocationPermission.always ||
           locPerm == LocationPermission.whileInUse;
+      final bgLocGranted = locPerm == LocationPermission.always;
+      final alarmTone = _settingsService.getSelectedAlarmTonePath();
+      final monitoringEnabled = _monitoringCoordinator.isMonitoringEnabled();
 
       // Listen to background service events
       await _backgroundSubscription?.cancel();
@@ -74,6 +86,9 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
           isBackgroundServiceRunning: bgRunning,
           isNotificationPermissionGranted: notifGranted,
           isLocationPermissionGranted: locGranted,
+          isBackgroundLocationPermissionGranted: bgLocGranted,
+          isMonitoringEnabled: monitoringEnabled,
+          selectedAlarmTone: alarmTone,
           isLoading: false,
         ),
       );
@@ -131,8 +146,10 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
     try {
       final status = await _locationService.requestPermission();
       final granted = status == LocationPermission.always || status == LocationPermission.whileInUse;
+      final bgGranted = status == LocationPermission.always;
       emit(state.copyWith(
         isLocationPermissionGranted: granted,
+        isBackgroundLocationPermissionGranted: bgGranted,
         errorMessage: granted ? null : 'Location permission denied',
       ));
       // Notify routing notifier of status change
@@ -310,6 +327,48 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
       }
     }
     emit(state.copyWith(isBackgroundServiceRunning: true));
+  }
+
+  Future<void> _onChangeAlarmTone(
+    ChangeAlarmTone event,
+    Emitter<ValidationState> emit,
+  ) async {
+    emit(state.copyWith(errorMessage: null));
+    try {
+      await _settingsService.saveSelectedAlarmTonePath(event.path);
+      emit(state.copyWith(selectedAlarmTone: event.path));
+    } catch (e) {
+      emit(state.copyWith(errorMessage: 'Failed to change alarm tone: $e'));
+    }
+  }
+
+  Future<void> _onToggleMonitoring(
+    ToggleMonitoring event,
+    Emitter<ValidationState> emit,
+  ) async {
+    emit(state.copyWith(errorMessage: null));
+    try {
+      await _monitoringCoordinator.setMonitoringEnabled(event.enabled);
+      final running = await _backgroundService.isRunning();
+      emit(state.copyWith(
+        isMonitoringEnabled: event.enabled,
+        isBackgroundServiceRunning: running,
+      ));
+    } catch (e) {
+      emit(state.copyWith(errorMessage: 'Failed to toggle monitoring: $e'));
+    }
+  }
+
+  Future<void> _onOpenAppSettings(
+    OpenAppSettings event,
+    Emitter<ValidationState> emit,
+  ) async {
+    emit(state.copyWith(errorMessage: null));
+    try {
+      await _locationService.openAppSettings();
+    } catch (e) {
+      emit(state.copyWith(errorMessage: 'Failed to open settings: $e'));
+    }
   }
 
   @override

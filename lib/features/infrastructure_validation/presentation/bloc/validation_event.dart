@@ -20,4 +20,11 @@ class ValidationEvent with _$ValidationEvent {
   const factory ValidationEvent.updateBackgroundTick({
     required Map<String, dynamic> data,
   }) = UpdateBackgroundTick;
+  const factory ValidationEvent.changeAlarmTone({
+    required String path,
+  }) = ChangeAlarmTone;
+  const factory ValidationEvent.toggleMonitoring({
+    required bool enabled,
+  }) = ToggleMonitoring;
+  const factory ValidationEvent.openAppSettings() = OpenAppSettings;
 }

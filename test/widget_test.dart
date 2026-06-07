@@ -10,6 +10,9 @@ import 'package:reminders/features/infrastructure_validation/presentation/bloc/v
 import 'package:reminders/core/services/app_routing_notifier.dart';
 import 'package:reminders/main.dart';
 
+import 'package:reminders/core/services/settings_service.dart';
+import 'package:reminders/core/services/monitoring_coordinator.dart';
+
 class MockNotificationService implements NotificationService {
   @override
   Future<void> init() async {}
@@ -28,7 +31,7 @@ class MockAlarmService implements AlarmService {
   @override
   Future<void> init() async {}
   @override
-  Future<void> playAlarm({String? url}) async {}
+  Future<void> playAlarm() async {}
   @override
   Future<void> stopAlarm() async {}
   @override
@@ -59,6 +62,8 @@ class MockLocationService implements LocationService {
       );
   @override
   Stream<Position> getLocationStream() => const Stream.empty();
+  @override
+  Future<bool> openAppSettings() async => true;
   @override
   double calculateDistance(
     double startLatitude,
@@ -91,6 +96,42 @@ class MockPermissionValidationService implements PermissionValidationService {
   Future<bool> isNotificationGranted() async => true;
 }
 
+class MockSettingsService implements SettingsService {
+  String _alarmTone = 'assets/audio/Daybreak.mp3';
+  bool _monitoringEnabled = true;
+
+  @override
+  Future<void> saveSelectedAlarmTonePath(String path) async {
+    _alarmTone = path;
+  }
+
+  @override
+  String getSelectedAlarmTonePath() => _alarmTone;
+
+  @override
+  Future<void> saveMonitoringEnabled(bool enabled) async {
+    _monitoringEnabled = enabled;
+  }
+
+  @override
+  bool isMonitoringEnabled() => _monitoringEnabled;
+}
+
+class MockMonitoringCoordinator implements MonitoringCoordinator {
+  bool _monitoringEnabled = true;
+
+  @override
+  Future<void> evaluateMonitoringState() async {}
+
+  @override
+  Future<void> setMonitoringEnabled(bool enabled) async {
+    _monitoringEnabled = enabled;
+  }
+
+  @override
+  bool isMonitoringEnabled() => _monitoringEnabled;
+}
+
 void main() {
   setUpAll(() {
     final getIt = GetIt.instance;
@@ -102,6 +143,12 @@ void main() {
       getIt.registerLazySingleton<LocationService>(() => MockLocationService());
       getIt.registerLazySingleton<BackgroundService>(
         () => MockBackgroundService(),
+      );
+      getIt.registerLazySingleton<SettingsService>(
+        () => MockSettingsService(),
+      );
+      getIt.registerLazySingleton<MonitoringCoordinator>(
+        () => MockMonitoringCoordinator(),
       );
       getIt.registerLazySingleton<PermissionValidationService>(
         () => MockPermissionValidationService(),
@@ -116,6 +163,8 @@ void main() {
           getIt<LocationService>(),
           getIt<BackgroundService>(),
           getIt<AppRoutingNotifier>(),
+          getIt<SettingsService>(),
+          getIt<MonitoringCoordinator>(),
         ),
       );
     }

@@ -58,11 +58,11 @@ class _ReminderListView extends StatelessWidget {
                     Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.developer_mode_rounded),
-                          tooltip: 'Validation Tools',
+                          icon: const Icon(Icons.settings_rounded),
+                          tooltip: 'Settings',
                           color: colors.textTertiary,
                           onPressed: () =>
-                              context.push(AppRoutes.validation),
+                              context.push(AppRoutes.settings),
                         ),
                       ],
                     ),

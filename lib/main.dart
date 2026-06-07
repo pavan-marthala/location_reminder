@@ -7,7 +7,9 @@ import 'package:reminders/features/splash/presentation/pages/splash_page.dart';
 import 'package:reminders/features/infrastructure_validation/presentation/pages/validation_page.dart';
 import 'package:reminders/features/reminders/presentation/pages/reminder_list_page.dart';
 import 'package:reminders/features/reminders/presentation/pages/create_reminder_page.dart';
+import 'package:reminders/features/settings/presentation/pages/settings_page.dart';
 import 'package:reminders/core/services/notification_service.dart';
+import 'package:reminders/core/services/mapbox_service.dart';
 import 'package:reminders/core/services/background_service.dart';
 import 'package:reminders/core/services/app_routing_notifier.dart';
 import 'package:reminders/core/services/monitoring_coordinator.dart';
@@ -19,14 +21,15 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   await configureDependencies();
 
   // Initialize Core Services during bootstrap to register channels and prevent crashes
   await getIt<NotificationService>().init();
   await getIt<BackgroundService>().init();
   await getIt<MonitoringCoordinator>().evaluateMonitoringState();
+  await getIt<MapboxService>().init();
 
-  await dotenv.load(fileName: ".env");
   runApp(const MyApp());
 }
 
@@ -114,6 +117,10 @@ List<RouteBase> routes() {
     GoRoute(
       path: AppRoutes.createReminder,
       builder: (context, state) => const CreateReminderPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.settings,
+      builder: (context, state) => const SettingsPage(),
     ),
   ];
 }

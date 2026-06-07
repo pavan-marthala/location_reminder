@@ -7,6 +7,7 @@ abstract class LocationService {
   Future<LocationPermission> requestPermission();
   Future<Position> getCurrentLocation();
   Stream<Position> getLocationStream();
+  Future<bool> openAppSettings();
   double calculateDistance(
     double startLatitude,
     double startLongitude,
@@ -46,9 +47,14 @@ class LocationServiceImpl implements LocationService {
     return Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 10, // Receive updates when user moves 10 meters
+        distanceFilter: 10,
       ),
     );
+  }
+
+  @override
+  Future<bool> openAppSettings() {
+    return Geolocator.openAppSettings();
   }
 
   @override

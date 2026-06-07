@@ -23,6 +23,10 @@ mixin _$ValidationState {
   bool get isNotificationPermissionGranted =>
       throw _privateConstructorUsedError;
   bool get isLocationPermissionGranted => throw _privateConstructorUsedError;
+  bool get isBackgroundLocationPermissionGranted =>
+      throw _privateConstructorUsedError;
+  bool get isMonitoringEnabled => throw _privateConstructorUsedError;
+  String? get selectedAlarmTone => throw _privateConstructorUsedError;
   String? get currentCoordinates => throw _privateConstructorUsedError;
   String? get latestBackgroundTick => throw _privateConstructorUsedError;
   String? get errorMessage => throw _privateConstructorUsedError;
@@ -46,6 +50,9 @@ abstract class $ValidationStateCopyWith<$Res> {
       bool isLocationStreamActive,
       bool isNotificationPermissionGranted,
       bool isLocationPermissionGranted,
+      bool isBackgroundLocationPermissionGranted,
+      bool isMonitoringEnabled,
+      String? selectedAlarmTone,
       String? currentCoordinates,
       String? latestBackgroundTick,
       String? errorMessage,
@@ -71,6 +78,9 @@ class _$ValidationStateCopyWithImpl<$Res, $Val extends ValidationState>
     Object? isLocationStreamActive = null,
     Object? isNotificationPermissionGranted = null,
     Object? isLocationPermissionGranted = null,
+    Object? isBackgroundLocationPermissionGranted = null,
+    Object? isMonitoringEnabled = null,
+    Object? selectedAlarmTone = freezed,
     Object? currentCoordinates = freezed,
     Object? latestBackgroundTick = freezed,
     Object? errorMessage = freezed,
@@ -101,6 +111,19 @@ class _$ValidationStateCopyWithImpl<$Res, $Val extends ValidationState>
           ? _value.isLocationPermissionGranted
           : isLocationPermissionGranted // ignore: cast_nullable_to_non_nullable
               as bool,
+      isBackgroundLocationPermissionGranted: null ==
+              isBackgroundLocationPermissionGranted
+          ? _value.isBackgroundLocationPermissionGranted
+          : isBackgroundLocationPermissionGranted // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isMonitoringEnabled: null == isMonitoringEnabled
+          ? _value.isMonitoringEnabled
+          : isMonitoringEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      selectedAlarmTone: freezed == selectedAlarmTone
+          ? _value.selectedAlarmTone
+          : selectedAlarmTone // ignore: cast_nullable_to_non_nullable
+              as String?,
       currentCoordinates: freezed == currentCoordinates
           ? _value.currentCoordinates
           : currentCoordinates // ignore: cast_nullable_to_non_nullable
@@ -136,6 +159,9 @@ abstract class _$$ValidationStateImplCopyWith<$Res>
       bool isLocationStreamActive,
       bool isNotificationPermissionGranted,
       bool isLocationPermissionGranted,
+      bool isBackgroundLocationPermissionGranted,
+      bool isMonitoringEnabled,
+      String? selectedAlarmTone,
       String? currentCoordinates,
       String? latestBackgroundTick,
       String? errorMessage,
@@ -159,6 +185,9 @@ class __$$ValidationStateImplCopyWithImpl<$Res>
     Object? isLocationStreamActive = null,
     Object? isNotificationPermissionGranted = null,
     Object? isLocationPermissionGranted = null,
+    Object? isBackgroundLocationPermissionGranted = null,
+    Object? isMonitoringEnabled = null,
+    Object? selectedAlarmTone = freezed,
     Object? currentCoordinates = freezed,
     Object? latestBackgroundTick = freezed,
     Object? errorMessage = freezed,
@@ -189,6 +218,19 @@ class __$$ValidationStateImplCopyWithImpl<$Res>
           ? _value.isLocationPermissionGranted
           : isLocationPermissionGranted // ignore: cast_nullable_to_non_nullable
               as bool,
+      isBackgroundLocationPermissionGranted: null ==
+              isBackgroundLocationPermissionGranted
+          ? _value.isBackgroundLocationPermissionGranted
+          : isBackgroundLocationPermissionGranted // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isMonitoringEnabled: null == isMonitoringEnabled
+          ? _value.isMonitoringEnabled
+          : isMonitoringEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      selectedAlarmTone: freezed == selectedAlarmTone
+          ? _value.selectedAlarmTone
+          : selectedAlarmTone // ignore: cast_nullable_to_non_nullable
+              as String?,
       currentCoordinates: freezed == currentCoordinates
           ? _value.currentCoordinates
           : currentCoordinates // ignore: cast_nullable_to_non_nullable
@@ -219,6 +261,9 @@ class _$ValidationStateImpl implements _ValidationState {
       this.isLocationStreamActive = false,
       this.isNotificationPermissionGranted = false,
       this.isLocationPermissionGranted = false,
+      this.isBackgroundLocationPermissionGranted = false,
+      this.isMonitoringEnabled = true,
+      this.selectedAlarmTone,
       this.currentCoordinates,
       this.latestBackgroundTick,
       this.errorMessage,
@@ -243,6 +288,14 @@ class _$ValidationStateImpl implements _ValidationState {
   @JsonKey()
   final bool isLocationPermissionGranted;
   @override
+  @JsonKey()
+  final bool isBackgroundLocationPermissionGranted;
+  @override
+  @JsonKey()
+  final bool isMonitoringEnabled;
+  @override
+  final String? selectedAlarmTone;
+  @override
   final String? currentCoordinates;
   @override
   final String? latestBackgroundTick;
@@ -254,7 +307,7 @@ class _$ValidationStateImpl implements _ValidationState {
 
   @override
   String toString() {
-    return 'ValidationState(isInitialized: $isInitialized, isAlarmPlaying: $isAlarmPlaying, isBackgroundServiceRunning: $isBackgroundServiceRunning, isLocationStreamActive: $isLocationStreamActive, isNotificationPermissionGranted: $isNotificationPermissionGranted, isLocationPermissionGranted: $isLocationPermissionGranted, currentCoordinates: $currentCoordinates, latestBackgroundTick: $latestBackgroundTick, errorMessage: $errorMessage, isLoading: $isLoading)';
+    return 'ValidationState(isInitialized: $isInitialized, isAlarmPlaying: $isAlarmPlaying, isBackgroundServiceRunning: $isBackgroundServiceRunning, isLocationStreamActive: $isLocationStreamActive, isNotificationPermissionGranted: $isNotificationPermissionGranted, isLocationPermissionGranted: $isLocationPermissionGranted, isBackgroundLocationPermissionGranted: $isBackgroundLocationPermissionGranted, isMonitoringEnabled: $isMonitoringEnabled, selectedAlarmTone: $selectedAlarmTone, currentCoordinates: $currentCoordinates, latestBackgroundTick: $latestBackgroundTick, errorMessage: $errorMessage, isLoading: $isLoading)';
   }
 
   @override
@@ -266,8 +319,7 @@ class _$ValidationStateImpl implements _ValidationState {
                 other.isInitialized == isInitialized) &&
             (identical(other.isAlarmPlaying, isAlarmPlaying) ||
                 other.isAlarmPlaying == isAlarmPlaying) &&
-            (identical(other.isBackgroundServiceRunning,
-                    isBackgroundServiceRunning) ||
+            (identical(other.isBackgroundServiceRunning, isBackgroundServiceRunning) ||
                 other.isBackgroundServiceRunning ==
                     isBackgroundServiceRunning) &&
             (identical(other.isLocationStreamActive, isLocationStreamActive) ||
@@ -280,6 +332,14 @@ class _$ValidationStateImpl implements _ValidationState {
                     isLocationPermissionGranted) ||
                 other.isLocationPermissionGranted ==
                     isLocationPermissionGranted) &&
+            (identical(other.isBackgroundLocationPermissionGranted,
+                    isBackgroundLocationPermissionGranted) ||
+                other.isBackgroundLocationPermissionGranted ==
+                    isBackgroundLocationPermissionGranted) &&
+            (identical(other.isMonitoringEnabled, isMonitoringEnabled) ||
+                other.isMonitoringEnabled == isMonitoringEnabled) &&
+            (identical(other.selectedAlarmTone, selectedAlarmTone) ||
+                other.selectedAlarmTone == selectedAlarmTone) &&
             (identical(other.currentCoordinates, currentCoordinates) ||
                 other.currentCoordinates == currentCoordinates) &&
             (identical(other.latestBackgroundTick, latestBackgroundTick) ||
@@ -299,6 +359,9 @@ class _$ValidationStateImpl implements _ValidationState {
       isLocationStreamActive,
       isNotificationPermissionGranted,
       isLocationPermissionGranted,
+      isBackgroundLocationPermissionGranted,
+      isMonitoringEnabled,
+      selectedAlarmTone,
       currentCoordinates,
       latestBackgroundTick,
       errorMessage,
@@ -320,6 +383,9 @@ abstract class _ValidationState implements ValidationState {
       final bool isLocationStreamActive,
       final bool isNotificationPermissionGranted,
       final bool isLocationPermissionGranted,
+      final bool isBackgroundLocationPermissionGranted,
+      final bool isMonitoringEnabled,
+      final String? selectedAlarmTone,
       final String? currentCoordinates,
       final String? latestBackgroundTick,
       final String? errorMessage,
@@ -337,6 +403,12 @@ abstract class _ValidationState implements ValidationState {
   bool get isNotificationPermissionGranted;
   @override
   bool get isLocationPermissionGranted;
+  @override
+  bool get isBackgroundLocationPermissionGranted;
+  @override
+  bool get isMonitoringEnabled;
+  @override
+  String? get selectedAlarmTone;
   @override
   String? get currentCoordinates;
   @override
