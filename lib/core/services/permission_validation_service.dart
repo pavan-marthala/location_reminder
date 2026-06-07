@@ -29,7 +29,8 @@ class PermissionValidationServiceImpl implements PermissionValidationService {
   @override
   Future<bool> isLocationAlwaysGranted() async {
     final status = await _locationService.checkPermission();
-    return status == LocationPermission.always;
+    return status == LocationPermission.always ||
+        status == LocationPermission.whileInUse;
   }
 
   @override

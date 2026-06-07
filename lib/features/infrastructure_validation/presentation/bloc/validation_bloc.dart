@@ -49,6 +49,12 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
 
       final bgRunning = await _backgroundService.isRunning();
 
+      // Check actual permission statuses from the OS
+      final notifGranted = await _notificationService.areNotificationsEnabled();
+      final locPerm = await _locationService.checkPermission();
+      final locGranted = locPerm == LocationPermission.always ||
+          locPerm == LocationPermission.whileInUse;
+
       // Listen to background service events
       await _backgroundSubscription?.cancel();
       _backgroundSubscription = _backgroundService.backgroundUpdates.listen(
@@ -63,6 +69,8 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
         state.copyWith(
           isInitialized: true,
           isBackgroundServiceRunning: bgRunning,
+          isNotificationPermissionGranted: notifGranted,
+          isLocationPermissionGranted: locGranted,
           isLoading: false,
         ),
       );

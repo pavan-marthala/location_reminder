@@ -49,6 +49,14 @@ class $RemindersTable extends Reminders
   late final GeneratedColumn<double> radius = GeneratedColumn<double>(
       'radius', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _alarmToneMeta =
+      const VerificationMeta('alarmTone');
+  @override
+  late final GeneratedColumn<String> alarmTone = GeneratedColumn<String>(
+      'alarm_tone', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: Constant(Assets.audioDaybreak));
   static const VerificationMeta _isEnabledMeta =
       const VerificationMeta('isEnabled');
   @override
@@ -75,6 +83,12 @@ class $RemindersTable extends Reminders
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
       'created_at', aliasedName, false,
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -83,9 +97,11 @@ class $RemindersTable extends Reminders
         latitude,
         longitude,
         radius,
+        alarmTone,
         isEnabled,
         isTriggered,
-        createdAt
+        createdAt,
+        updatedAt
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -130,6 +146,10 @@ class $RemindersTable extends Reminders
     } else if (isInserting) {
       context.missing(_radiusMeta);
     }
+    if (data.containsKey('alarm_tone')) {
+      context.handle(_alarmToneMeta,
+          alarmTone.isAcceptableOrUnknown(data['alarm_tone']!, _alarmToneMeta));
+    }
     if (data.containsKey('is_enabled')) {
       context.handle(_isEnabledMeta,
           isEnabled.isAcceptableOrUnknown(data['is_enabled']!, _isEnabledMeta));
@@ -145,6 +165,10 @@ class $RemindersTable extends Reminders
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
     } else if (isInserting) {
       context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
     }
     return context;
   }
@@ -167,12 +191,16 @@ class $RemindersTable extends Reminders
           .read(DriftSqlType.double, data['${effectivePrefix}longitude'])!,
       radius: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}radius'])!,
+      alarmTone: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}alarm_tone'])!,
       isEnabled: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_enabled'])!,
       isTriggered: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_triggered'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at']),
     );
   }
 
@@ -189,9 +217,11 @@ class ReminderData extends DataClass implements Insertable<ReminderData> {
   final double latitude;
   final double longitude;
   final double radius;
+  final String alarmTone;
   final bool isEnabled;
   final bool isTriggered;
   final DateTime createdAt;
+  final DateTime? updatedAt;
   const ReminderData(
       {required this.id,
       required this.title,
@@ -199,9 +229,11 @@ class ReminderData extends DataClass implements Insertable<ReminderData> {
       required this.latitude,
       required this.longitude,
       required this.radius,
+      required this.alarmTone,
       required this.isEnabled,
       required this.isTriggered,
-      required this.createdAt});
+      required this.createdAt,
+      this.updatedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -213,9 +245,13 @@ class ReminderData extends DataClass implements Insertable<ReminderData> {
     map['latitude'] = Variable<double>(latitude);
     map['longitude'] = Variable<double>(longitude);
     map['radius'] = Variable<double>(radius);
+    map['alarm_tone'] = Variable<String>(alarmTone);
     map['is_enabled'] = Variable<bool>(isEnabled);
     map['is_triggered'] = Variable<bool>(isTriggered);
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
     return map;
   }
 
@@ -229,9 +265,13 @@ class ReminderData extends DataClass implements Insertable<ReminderData> {
       latitude: Value(latitude),
       longitude: Value(longitude),
       radius: Value(radius),
+      alarmTone: Value(alarmTone),
       isEnabled: Value(isEnabled),
       isTriggered: Value(isTriggered),
       createdAt: Value(createdAt),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
     );
   }
 
@@ -245,9 +285,11 @@ class ReminderData extends DataClass implements Insertable<ReminderData> {
       latitude: serializer.fromJson<double>(json['latitude']),
       longitude: serializer.fromJson<double>(json['longitude']),
       radius: serializer.fromJson<double>(json['radius']),
+      alarmTone: serializer.fromJson<String>(json['alarmTone']),
       isEnabled: serializer.fromJson<bool>(json['isEnabled']),
       isTriggered: serializer.fromJson<bool>(json['isTriggered']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
     );
   }
   @override
@@ -260,9 +302,11 @@ class ReminderData extends DataClass implements Insertable<ReminderData> {
       'latitude': serializer.toJson<double>(latitude),
       'longitude': serializer.toJson<double>(longitude),
       'radius': serializer.toJson<double>(radius),
+      'alarmTone': serializer.toJson<String>(alarmTone),
       'isEnabled': serializer.toJson<bool>(isEnabled),
       'isTriggered': serializer.toJson<bool>(isTriggered),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
     };
   }
 
@@ -273,9 +317,11 @@ class ReminderData extends DataClass implements Insertable<ReminderData> {
           double? latitude,
           double? longitude,
           double? radius,
+          String? alarmTone,
           bool? isEnabled,
           bool? isTriggered,
-          DateTime? createdAt}) =>
+          DateTime? createdAt,
+          Value<DateTime?> updatedAt = const Value.absent()}) =>
       ReminderData(
         id: id ?? this.id,
         title: title ?? this.title,
@@ -283,9 +329,11 @@ class ReminderData extends DataClass implements Insertable<ReminderData> {
         latitude: latitude ?? this.latitude,
         longitude: longitude ?? this.longitude,
         radius: radius ?? this.radius,
+        alarmTone: alarmTone ?? this.alarmTone,
         isEnabled: isEnabled ?? this.isEnabled,
         isTriggered: isTriggered ?? this.isTriggered,
         createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
       );
   @override
   String toString() {
@@ -296,16 +344,18 @@ class ReminderData extends DataClass implements Insertable<ReminderData> {
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('radius: $radius, ')
+          ..write('alarmTone: $alarmTone, ')
           ..write('isEnabled: $isEnabled, ')
           ..write('isTriggered: $isTriggered, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode => Object.hash(id, title, description, latitude, longitude,
-      radius, isEnabled, isTriggered, createdAt);
+      radius, alarmTone, isEnabled, isTriggered, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -316,9 +366,11 @@ class ReminderData extends DataClass implements Insertable<ReminderData> {
           other.latitude == this.latitude &&
           other.longitude == this.longitude &&
           other.radius == this.radius &&
+          other.alarmTone == this.alarmTone &&
           other.isEnabled == this.isEnabled &&
           other.isTriggered == this.isTriggered &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
 }
 
 class RemindersCompanion extends UpdateCompanion<ReminderData> {
@@ -328,9 +380,11 @@ class RemindersCompanion extends UpdateCompanion<ReminderData> {
   final Value<double> latitude;
   final Value<double> longitude;
   final Value<double> radius;
+  final Value<String> alarmTone;
   final Value<bool> isEnabled;
   final Value<bool> isTriggered;
   final Value<DateTime> createdAt;
+  final Value<DateTime?> updatedAt;
   const RemindersCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
@@ -338,9 +392,11 @@ class RemindersCompanion extends UpdateCompanion<ReminderData> {
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
     this.radius = const Value.absent(),
+    this.alarmTone = const Value.absent(),
     this.isEnabled = const Value.absent(),
     this.isTriggered = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
   });
   RemindersCompanion.insert({
     this.id = const Value.absent(),
@@ -349,9 +405,11 @@ class RemindersCompanion extends UpdateCompanion<ReminderData> {
     required double latitude,
     required double longitude,
     required double radius,
+    this.alarmTone = const Value.absent(),
     this.isEnabled = const Value.absent(),
     this.isTriggered = const Value.absent(),
     required DateTime createdAt,
+    this.updatedAt = const Value.absent(),
   })  : title = Value(title),
         latitude = Value(latitude),
         longitude = Value(longitude),
@@ -364,9 +422,11 @@ class RemindersCompanion extends UpdateCompanion<ReminderData> {
     Expression<double>? latitude,
     Expression<double>? longitude,
     Expression<double>? radius,
+    Expression<String>? alarmTone,
     Expression<bool>? isEnabled,
     Expression<bool>? isTriggered,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -375,9 +435,11 @@ class RemindersCompanion extends UpdateCompanion<ReminderData> {
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       if (radius != null) 'radius': radius,
+      if (alarmTone != null) 'alarm_tone': alarmTone,
       if (isEnabled != null) 'is_enabled': isEnabled,
       if (isTriggered != null) 'is_triggered': isTriggered,
       if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
     });
   }
 
@@ -388,9 +450,11 @@ class RemindersCompanion extends UpdateCompanion<ReminderData> {
       Value<double>? latitude,
       Value<double>? longitude,
       Value<double>? radius,
+      Value<String>? alarmTone,
       Value<bool>? isEnabled,
       Value<bool>? isTriggered,
-      Value<DateTime>? createdAt}) {
+      Value<DateTime>? createdAt,
+      Value<DateTime?>? updatedAt}) {
     return RemindersCompanion(
       id: id ?? this.id,
       title: title ?? this.title,
@@ -398,9 +462,11 @@ class RemindersCompanion extends UpdateCompanion<ReminderData> {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       radius: radius ?? this.radius,
+      alarmTone: alarmTone ?? this.alarmTone,
       isEnabled: isEnabled ?? this.isEnabled,
       isTriggered: isTriggered ?? this.isTriggered,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
@@ -425,6 +491,9 @@ class RemindersCompanion extends UpdateCompanion<ReminderData> {
     if (radius.present) {
       map['radius'] = Variable<double>(radius.value);
     }
+    if (alarmTone.present) {
+      map['alarm_tone'] = Variable<String>(alarmTone.value);
+    }
     if (isEnabled.present) {
       map['is_enabled'] = Variable<bool>(isEnabled.value);
     }
@@ -433,6 +502,9 @@ class RemindersCompanion extends UpdateCompanion<ReminderData> {
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
     return map;
   }
@@ -446,9 +518,11 @@ class RemindersCompanion extends UpdateCompanion<ReminderData> {
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('radius: $radius, ')
+          ..write('alarmTone: $alarmTone, ')
           ..write('isEnabled: $isEnabled, ')
           ..write('isTriggered: $isTriggered, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }

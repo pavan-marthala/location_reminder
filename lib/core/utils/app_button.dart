@@ -74,7 +74,7 @@ class AppButton extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                           fontSize: 18,
                         ),
-                    overflow: .ellipsis,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ],

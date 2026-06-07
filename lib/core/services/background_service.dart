@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:injectable/injectable.dart';
 
 abstract class BackgroundService {
@@ -14,14 +15,38 @@ abstract class BackgroundService {
 
 @LazySingleton(as: BackgroundService)
 class BackgroundServiceImpl implements BackgroundService {
+  final FlutterLocalNotificationsPlugin _localNotifications;
   final _backgroundUpdatesController = StreamController<Map<String, dynamic>?>.broadcast();
+
+  BackgroundServiceImpl(this._localNotifications);
 
   @override
   Stream<Map<String, dynamic>?> get backgroundUpdates =>
       _backgroundUpdatesController.stream;
 
+  /// Dedicated channel for the persistent foreground service notification.
+  /// This is separate from the alarm_channel used for user-facing notifications.
+  static const String _foregroundChannelId = 'foreground_service_channel';
+  static const String _foregroundChannelName = 'Background Location Monitor';
+  static const String _foregroundChannelDesc =
+      'Maintains the location reminder background monitoring process';
+
   @override
   Future<void> init() async {
+    // Create the foreground notification channel on Android first
+    final androidImplementation = _localNotifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    if (androidImplementation != null) {
+      const channel = AndroidNotificationChannel(
+        _foregroundChannelId,
+        _foregroundChannelName,
+        description: _foregroundChannelDesc,
+        importance: Importance.low,
+      );
+      await androidImplementation.createNotificationChannel(channel);
+    }
+
     final service = FlutterBackgroundService();
 
     await service.configure(
@@ -29,7 +54,7 @@ class BackgroundServiceImpl implements BackgroundService {
         onStart: onStart,
         autoStart: false,
         isForegroundMode: true,
-        notificationChannelId: 'alarm_channel',
+        notificationChannelId: _foregroundChannelId,
         initialNotificationTitle: 'Location Monitor Active',
         initialNotificationContent: 'Monitoring reminders in background',
         foregroundServiceNotificationId: 888,
@@ -83,13 +108,18 @@ void onStart(ServiceInstance service) async {
     service.stopSelf();
   });
 
-  // Periodic task in background isolate
-  Timer.periodic(const Duration(seconds: 10), (timer) async {
+  // Periodic task in background isolate — runs every 60 seconds.
+  // Only updates the existing persistent foreground notification content;
+  // does NOT create new user-visible notifications.
+  Timer.periodic(const Duration(seconds: 60), (timer) async {
     if (service is AndroidServiceInstance) {
       if (await service.isForegroundService()) {
+        final now = DateTime.now();
+        final timeStr =
+            '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
         service.setForegroundNotificationInfo(
           title: 'Location Monitor Active',
-          content: 'Active check: ${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second}',
+          content: 'Last check: $timeStr',
         );
       }
     }

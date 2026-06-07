@@ -16,15 +16,33 @@ import 'package:injectable/injectable.dart' as _i2;
 import 'package:shared_preferences/shared_preferences.dart' as _i3;
 
 import '../../features/infrastructure_validation/presentation/bloc/validation_bloc.dart'
-    as _i12;
+    as _i22;
+import '../../features/reminders/data/datasources/reminder_local_datasource.dart'
+    as _i7;
+import '../../features/reminders/data/repositories/reminder_repository_impl.dart'
+    as _i11;
+import '../../features/reminders/domain/repositories/reminder_repository.dart'
+    as _i10;
+import '../../features/reminders/domain/usecases/create_reminder_usecase.dart'
+    as _i20;
+import '../../features/reminders/domain/usecases/delete_reminder_usecase.dart'
+    as _i16;
+import '../../features/reminders/domain/usecases/get_all_reminders_usecase.dart'
+    as _i18;
+import '../../features/reminders/domain/usecases/get_reminder_by_id_usecase.dart'
+    as _i17;
+import '../../features/reminders/domain/usecases/update_reminder_usecase.dart'
+    as _i19;
+import '../../features/reminders/presentation/bloc/reminder_bloc.dart' as _i23;
 import '../database/app_database.dart' as _i4;
-import '../services/alarm_service.dart' as _i7;
-import '../services/background_service.dart' as _i11;
-import '../services/location_service.dart' as _i8;
-import '../services/notification_service.dart' as _i10;
-import '../services/permission_validation_service.dart' as _i13;
-import '../services/settings_service.dart' as _i9;
-import 'register_module.dart' as _i14;
+import '../services/alarm_service.dart' as _i21;
+import '../services/background_service.dart' as _i8;
+import '../services/location_service.dart' as _i9;
+import '../services/monitoring_coordinator.dart' as _i14;
+import '../services/notification_service.dart' as _i13;
+import '../services/permission_validation_service.dart' as _i15;
+import '../services/settings_service.dart' as _i12;
+import 'register_module.dart' as _i24;
 
 extension GetItInjectableX on _i1.GetIt {
 // initializes the registration of main-scope dependencies inside of GetIt
@@ -46,29 +64,58 @@ extension GetItInjectableX on _i1.GetIt {
     gh.lazySingleton<_i5.FlutterLocalNotificationsPlugin>(
         () => registerModule.localNotifications);
     gh.lazySingleton<_i6.AudioPlayer>(() => registerModule.audioPlayer);
-    gh.lazySingleton<_i7.AlarmService>(
-        () => _i7.AlarmServiceImpl(gh<_i6.AudioPlayer>()));
-    gh.lazySingleton<_i8.LocationService>(() => _i8.LocationServiceImpl());
-    gh.lazySingleton<_i9.SettingsService>(
-        () => _i9.SettingsServiceImpl(gh<_i3.SharedPreferences>()));
-    gh.lazySingleton<_i10.NotificationService>(() =>
-        _i10.NotificationServiceImpl(
+    gh.lazySingleton<_i7.ReminderLocalDatasource>(
+        () => _i7.ReminderLocalDatasourceImpl(gh<_i4.AppDatabase>()));
+    gh.lazySingleton<_i8.BackgroundService>(() =>
+        _i8.BackgroundServiceImpl(gh<_i5.FlutterLocalNotificationsPlugin>()));
+    gh.lazySingleton<_i9.LocationService>(() => _i9.LocationServiceImpl());
+    gh.lazySingleton<_i10.ReminderRepository>(
+        () => _i11.ReminderRepositoryImpl(gh<_i7.ReminderLocalDatasource>()));
+    gh.lazySingleton<_i12.SettingsService>(
+        () => _i12.SettingsServiceImpl(gh<_i3.SharedPreferences>()));
+    gh.lazySingleton<_i13.NotificationService>(() =>
+        _i13.NotificationServiceImpl(
             gh<_i5.FlutterLocalNotificationsPlugin>()));
-    gh.lazySingleton<_i11.BackgroundService>(
-        () => _i11.BackgroundServiceImpl());
-    gh.factory<_i12.ValidationBloc>(() => _i12.ValidationBloc(
-          gh<_i10.NotificationService>(),
-          gh<_i7.AlarmService>(),
-          gh<_i8.LocationService>(),
-          gh<_i11.BackgroundService>(),
-        ));
-    gh.lazySingleton<_i13.PermissionValidationService>(
-        () => _i13.PermissionValidationServiceImpl(
-              gh<_i8.LocationService>(),
-              gh<_i10.NotificationService>(),
+    gh.lazySingleton<_i14.MonitoringCoordinator>(
+        () => _i14.MonitoringCoordinatorImpl(
+              gh<_i12.SettingsService>(),
+              gh<_i8.BackgroundService>(),
+              gh<_i10.ReminderRepository>(),
             ));
+    gh.lazySingleton<_i15.PermissionValidationService>(
+        () => _i15.PermissionValidationServiceImpl(
+              gh<_i9.LocationService>(),
+              gh<_i13.NotificationService>(),
+            ));
+    gh.factory<_i16.DeleteReminderUseCase>(
+        () => _i16.DeleteReminderUseCase(gh<_i10.ReminderRepository>()));
+    gh.factory<_i17.GetReminderByIdUseCase>(
+        () => _i17.GetReminderByIdUseCase(gh<_i10.ReminderRepository>()));
+    gh.factory<_i18.GetAllRemindersUseCase>(
+        () => _i18.GetAllRemindersUseCase(gh<_i10.ReminderRepository>()));
+    gh.factory<_i19.UpdateReminderUseCase>(
+        () => _i19.UpdateReminderUseCase(gh<_i10.ReminderRepository>()));
+    gh.factory<_i20.CreateReminderUseCase>(
+        () => _i20.CreateReminderUseCase(gh<_i10.ReminderRepository>()));
+    gh.lazySingleton<_i21.AlarmService>(() => _i21.AlarmServiceImpl(
+          gh<_i6.AudioPlayer>(),
+          gh<_i12.SettingsService>(),
+        ));
+    gh.factory<_i22.ValidationBloc>(() => _i22.ValidationBloc(
+          gh<_i13.NotificationService>(),
+          gh<_i21.AlarmService>(),
+          gh<_i9.LocationService>(),
+          gh<_i8.BackgroundService>(),
+        ));
+    gh.factory<_i23.ReminderBloc>(() => _i23.ReminderBloc(
+          gh<_i18.GetAllRemindersUseCase>(),
+          gh<_i20.CreateReminderUseCase>(),
+          gh<_i19.UpdateReminderUseCase>(),
+          gh<_i16.DeleteReminderUseCase>(),
+          gh<_i14.MonitoringCoordinator>(),
+        ));
     return this;
   }
 }
 
-class _$RegisterModule extends _i14.RegisterModule {}
+class _$RegisterModule extends _i24.RegisterModule {}

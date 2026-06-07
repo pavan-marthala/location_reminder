@@ -1,9 +1,10 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:injectable/injectable.dart';
+import 'package:reminders/core/services/settings_service.dart';
 
 abstract class AlarmService {
   Future<void> init();
-  Future<void> playAlarm({String? url});
+  Future<void> playAlarm();
   Future<void> stopAlarm();
   bool get isPlaying;
 }
@@ -11,12 +12,10 @@ abstract class AlarmService {
 @LazySingleton(as: AlarmService)
 class AlarmServiceImpl implements AlarmService {
   final AudioPlayer _audioPlayer;
+  final SettingsService _settingsService;
   bool _isPlaying = false;
 
-  AlarmServiceImpl(this._audioPlayer);
-
-  static const String _defaultAlarmUrl =
-      'https://cdn.pixabay.com/audio/2022/03/24/audio_7ac39d50df.mp3'; // Standard Beep Sound
+  AlarmServiceImpl(this._audioPlayer, this._settingsService);
 
   @override
   bool get isPlaying => _isPlaying;
@@ -47,12 +46,12 @@ class AlarmServiceImpl implements AlarmService {
   }
 
   @override
-  Future<void> playAlarm({String? url}) async {
+  Future<void> playAlarm() async {
     if (_isPlaying) return;
 
-    final sourceUrl = url ?? _defaultAlarmUrl;
+    final assetPath = _settingsService.getSelectedAlarmTonePath();
     await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-    await _audioPlayer.play(UrlSource(sourceUrl));
+    await _audioPlayer.play(AssetSource(assetPath));
     _isPlaying = true;
   }
 

@@ -4,8 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:reminders/core/routes/app_routes.dart';
 import 'package:reminders/core/theme/app_theme.dart';
 import 'package:reminders/features/splash/presentation/pages/splash_page.dart';
-import 'package:reminders/features/home/presentation/pages/home_page.dart';
 import 'package:reminders/features/infrastructure_validation/presentation/pages/validation_page.dart';
+import 'package:reminders/features/reminders/presentation/pages/reminder_list_page.dart';
+import 'package:reminders/features/reminders/presentation/pages/create_reminder_page.dart';
+import 'package:reminders/core/services/notification_service.dart';
+import 'package:reminders/core/services/background_service.dart';
+import 'package:reminders/core/services/monitoring_coordinator.dart';
 import 'core/di/injection.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(
@@ -15,6 +19,11 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await configureDependencies();
+
+  // Initialize Core Services during bootstrap to register channels and prevent crashes
+  await getIt<NotificationService>().init();
+  await getIt<BackgroundService>().init();
+  await getIt<MonitoringCoordinator>().evaluateMonitoringState();
 
   await dotenv.load(fileName: ".env");
   runApp(const MyApp());
@@ -64,11 +73,19 @@ List<RouteBase> routes() {
     ),
     GoRoute(
       path: AppRoutes.home,
-      builder: (context, state) => const HomePage(),
+      builder: (context, state) => const ReminderListPage(),
     ),
     GoRoute(
       path: AppRoutes.validation,
       builder: (context, state) => const ValidationPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.reminders,
+      builder: (context, state) => const ReminderListPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.createReminder,
+      builder: (context, state) => const CreateReminderPage(),
     ),
   ];
 }
