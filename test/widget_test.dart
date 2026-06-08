@@ -31,7 +31,7 @@ class MockAlarmService implements AlarmService {
   @override
   Future<void> init() async {}
   @override
-  Future<void> playAlarm() async {}
+  Future<void> playAlarm([String? customPath]) async {}
   @override
   Future<void> stopAlarm() async {}
   @override

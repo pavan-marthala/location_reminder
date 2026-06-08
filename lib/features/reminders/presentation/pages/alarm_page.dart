@@ -65,12 +65,21 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
           _reminder = reminder;
           _isLoading = false;
         });
+
+        // Start playing the alarm sound immediately
+        try {
+          await getIt<AlarmService>().playAlarm(reminder?.alarmTone);
+        } catch (_) {}
       }
     } catch (_) {
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
+        // Fallback to default alarm tone on error
+        try {
+          await getIt<AlarmService>().playAlarm();
+        } catch (_) {}
       }
     }
   }

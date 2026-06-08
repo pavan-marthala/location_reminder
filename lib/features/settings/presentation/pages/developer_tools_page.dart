@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/theme/app_theme.dart';
+import 'package:reminders/core/routes/app_routes.dart';
 import 'package:reminders/core/services/background_service.dart';
 import 'package:reminders/features/infrastructure_validation/presentation/bloc/validation_bloc.dart';
 import 'package:reminders/features/infrastructure_validation/presentation/bloc/validation_event.dart';
@@ -196,6 +198,36 @@ class _DeveloperToolsPageViewState extends State<_DeveloperToolsPageView> {
                                 ),
                               ),
                             ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Section: Alarm Audio Test
+                  _buildSectionHeader(context, 'Alarm Audio Test'),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.play_arrow_rounded),
+                            label: const Text('Launch Test Alarm Screen'),
+                            onPressed: () {
+                              context.push(AppRoutes.alarm, extra: {
+                                'id': 0,
+                                'title': 'Test Alarm Sound',
+                              });
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: colors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
                           ),
                         ],
                       ),

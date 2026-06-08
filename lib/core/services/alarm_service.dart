@@ -5,7 +5,7 @@ import 'package:reminders/core/services/settings_service.dart';
 
 abstract class AlarmService {
   Future<void> init();
-  Future<void> playAlarm();
+  Future<void> playAlarm([String? customPath]);
   Future<void> stopAlarm();
   bool get isPlaying;
 }
@@ -47,12 +47,13 @@ class AlarmServiceImpl implements AlarmService {
   }
 
   @override
-  Future<void> playAlarm() async {
+  Future<void> playAlarm([String? customPath]) async {
     if (_isPlaying) return;
 
-    final assetPath = _settingsService.getSelectedAlarmTonePath();
+    final assetPath = customPath ?? _settingsService.getSelectedAlarmTonePath();
+    final cleanPath = assetPath.startsWith('assets/') ? assetPath.substring(7) : assetPath;
     await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-    await _audioPlayer.play(AssetSource(assetPath));
+    await _audioPlayer.play(AssetSource(cleanPath));
     _isPlaying = true;
   }
 
