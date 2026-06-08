@@ -15,6 +15,9 @@ import 'package:reminders/core/services/mapbox_service.dart';
 import 'package:reminders/core/services/background_service.dart';
 import 'package:reminders/core/services/app_routing_notifier.dart';
 import 'package:reminders/core/services/monitoring_coordinator.dart';
+import 'package:reminders/features/reminders/presentation/pages/alarm_page.dart';
+import 'package:reminders/features/settings/presentation/pages/developer_tools_page.dart';
+import 'package:reminders/core/database/app_database.dart';
 import 'core/di/injection.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(
@@ -79,6 +82,29 @@ class _MyAppState extends State<MyApp> {
       debugLogDiagnostics: true,
       routes: routes(),
     );
+
+    // Listen to background service updates to launch Alarm Screen
+    getIt<BackgroundService>().backgroundUpdates.listen((event) {
+      if (event != null) {
+        // Trigger DB reactive watchers on any background isolate state changes
+        try {
+          final db = getIt<AppDatabase>();
+          db.markTablesUpdated([db.reminders]);
+        } catch (_) {}
+
+        if (event['status'] == 'triggered') {
+          final id = event['reminderId'] as int?;
+          final title = event['reminderTitle'] as String?;
+          if (id != null) {
+            _goRouter.push(AppRoutes.alarm, extra: {
+              'id': id,
+              'title': title ?? 'Reminder',
+            });
+          }
+        }
+      }
+    });
+
     super.initState();
   }
 
@@ -141,6 +167,20 @@ List<RouteBase> routes() {
         final reminder = state.extra as ReminderEntity?;
         return CreateReminderPage(reminderToEdit: reminder);
       },
+    ),
+    GoRoute(
+      path: AppRoutes.alarm,
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        return AlarmPage(
+          reminderId: extra['id'] as int? ?? 0,
+          reminderTitle: extra['title'] as String? ?? 'Reminder',
+        );
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.developerTools,
+      builder: (context, state) => const DeveloperToolsPage(),
     ),
   ];
 }

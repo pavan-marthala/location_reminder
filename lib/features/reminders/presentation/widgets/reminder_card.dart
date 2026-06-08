@@ -93,14 +93,52 @@ class ReminderCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    Text(
+                      reminder.locationName ?? 'Selected Location',
+                      style: typography.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: reminder.isEnabled
+                            ? colors.textPrimary
+                            : colors.textTertiary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (reminder.locationAddress != null && reminder.locationAddress!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        reminder.locationAddress!,
+                        style: typography.bodySmall.copyWith(
+                          color: colors.textTertiary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                     const SizedBox(height: 4),
                     Text(
-                      '${reminder.latitude.toStringAsFixed(4)}, ${reminder.longitude.toStringAsFixed(4)} • ${reminder.radiusMeters.toInt()}m',
+                      'Radius: ${_formatRadius(reminder.radiusMeters)}',
                       style: typography.bodySmall.copyWith(
                         color: colors.textTertiary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        _buildStatusBadge(context, reminder.status, reminder.isEnabled),
+                        if (reminder.lastTriggeredAt != null) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            'Last: ${_formatTime(reminder.lastTriggeredAt!)}',
+                            style: typography.bodySmall.copyWith(
+                              color: colors.textTertiary,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
@@ -116,5 +154,76 @@ class ReminderCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatRadius(double meters) {
+    if (meters >= 1000) {
+      final km = meters / 1000;
+      return '${km.toStringAsFixed(1)}km';
+    }
+    return '${meters.toInt()}m';
+  }
+
+  Widget _buildStatusBadge(BuildContext context, String status, bool isEnabled) {
+    final colors = context.appColors;
+
+    Color badgeColor;
+    Color textColor;
+    String label;
+
+    if (!isEnabled) {
+      if (status == 'completed') {
+        badgeColor = colors.success.withValues(alpha: 0.15);
+        textColor = colors.success;
+        label = 'Completed';
+      } else {
+        badgeColor = colors.textTertiary.withValues(alpha: 0.15);
+        textColor = colors.textTertiary;
+        label = 'Disabled';
+      }
+    } else {
+      switch (status) {
+        case 'triggered':
+          badgeColor = colors.error.withValues(alpha: 0.15);
+          textColor = colors.error;
+          label = 'Triggered';
+          break;
+        case 'snoozed':
+          badgeColor = Colors.orange.withValues(alpha: 0.15);
+          textColor = Colors.orange;
+          label = 'Snoozed';
+          break;
+        case 'active':
+        default:
+          badgeColor = colors.primary.withValues(alpha: 0.12);
+          textColor = colors.primary;
+          label = 'Monitoring';
+          break;
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: badgeColor,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          color: textColor,
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  String _formatTime(DateTime dt) {
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final min = dt.minute.toString().padLeft(2, '0');
+    final sec = dt.second.toString().padLeft(2, '0');
+    return '$hour:$min:$sec';
   }
 }

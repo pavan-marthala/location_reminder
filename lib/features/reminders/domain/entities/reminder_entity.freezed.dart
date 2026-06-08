@@ -25,6 +25,13 @@ mixin _$ReminderEntity {
   String get alarmTone => throw _privateConstructorUsedError;
   bool get isEnabled => throw _privateConstructorUsedError;
   bool get isTriggered => throw _privateConstructorUsedError;
+  String get status => throw _privateConstructorUsedError;
+  DateTime? get triggeredAt => throw _privateConstructorUsedError;
+  DateTime? get lastTriggeredAt => throw _privateConstructorUsedError;
+  DateTime? get snoozedUntil => throw _privateConstructorUsedError;
+  String? get locationName => throw _privateConstructorUsedError;
+  String? get locationAddress => throw _privateConstructorUsedError;
+  DateTime? get completedAt => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
   DateTime? get updatedAt => throw _privateConstructorUsedError;
 
@@ -49,6 +56,13 @@ abstract class $ReminderEntityCopyWith<$Res> {
       String alarmTone,
       bool isEnabled,
       bool isTriggered,
+      String status,
+      DateTime? triggeredAt,
+      DateTime? lastTriggeredAt,
+      DateTime? snoozedUntil,
+      String? locationName,
+      String? locationAddress,
+      DateTime? completedAt,
       DateTime createdAt,
       DateTime? updatedAt});
 }
@@ -75,6 +89,13 @@ class _$ReminderEntityCopyWithImpl<$Res, $Val extends ReminderEntity>
     Object? alarmTone = null,
     Object? isEnabled = null,
     Object? isTriggered = null,
+    Object? status = null,
+    Object? triggeredAt = freezed,
+    Object? lastTriggeredAt = freezed,
+    Object? snoozedUntil = freezed,
+    Object? locationName = freezed,
+    Object? locationAddress = freezed,
+    Object? completedAt = freezed,
     Object? createdAt = null,
     Object? updatedAt = freezed,
   }) {
@@ -115,6 +136,34 @@ class _$ReminderEntityCopyWithImpl<$Res, $Val extends ReminderEntity>
           ? _value.isTriggered
           : isTriggered // ignore: cast_nullable_to_non_nullable
               as bool,
+      status: null == status
+          ? _value.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as String,
+      triggeredAt: freezed == triggeredAt
+          ? _value.triggeredAt
+          : triggeredAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      lastTriggeredAt: freezed == lastTriggeredAt
+          ? _value.lastTriggeredAt
+          : lastTriggeredAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      snoozedUntil: freezed == snoozedUntil
+          ? _value.snoozedUntil
+          : snoozedUntil // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      locationName: freezed == locationName
+          ? _value.locationName
+          : locationName // ignore: cast_nullable_to_non_nullable
+              as String?,
+      locationAddress: freezed == locationAddress
+          ? _value.locationAddress
+          : locationAddress // ignore: cast_nullable_to_non_nullable
+              as String?,
+      completedAt: freezed == completedAt
+          ? _value.completedAt
+          : completedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -145,6 +194,13 @@ abstract class _$$ReminderEntityImplCopyWith<$Res>
       String alarmTone,
       bool isEnabled,
       bool isTriggered,
+      String status,
+      DateTime? triggeredAt,
+      DateTime? lastTriggeredAt,
+      DateTime? snoozedUntil,
+      String? locationName,
+      String? locationAddress,
+      DateTime? completedAt,
       DateTime createdAt,
       DateTime? updatedAt});
 }
@@ -169,6 +225,13 @@ class __$$ReminderEntityImplCopyWithImpl<$Res>
     Object? alarmTone = null,
     Object? isEnabled = null,
     Object? isTriggered = null,
+    Object? status = null,
+    Object? triggeredAt = freezed,
+    Object? lastTriggeredAt = freezed,
+    Object? snoozedUntil = freezed,
+    Object? locationName = freezed,
+    Object? locationAddress = freezed,
+    Object? completedAt = freezed,
     Object? createdAt = null,
     Object? updatedAt = freezed,
   }) {
@@ -209,6 +272,34 @@ class __$$ReminderEntityImplCopyWithImpl<$Res>
           ? _value.isTriggered
           : isTriggered // ignore: cast_nullable_to_non_nullable
               as bool,
+      status: null == status
+          ? _value.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as String,
+      triggeredAt: freezed == triggeredAt
+          ? _value.triggeredAt
+          : triggeredAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      lastTriggeredAt: freezed == lastTriggeredAt
+          ? _value.lastTriggeredAt
+          : lastTriggeredAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      snoozedUntil: freezed == snoozedUntil
+          ? _value.snoozedUntil
+          : snoozedUntil // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      locationName: freezed == locationName
+          ? _value.locationName
+          : locationName // ignore: cast_nullable_to_non_nullable
+              as String?,
+      locationAddress: freezed == locationAddress
+          ? _value.locationAddress
+          : locationAddress // ignore: cast_nullable_to_non_nullable
+              as String?,
+      completedAt: freezed == completedAt
+          ? _value.completedAt
+          : completedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -234,6 +325,13 @@ class _$ReminderEntityImpl implements _ReminderEntity {
       required this.alarmTone,
       this.isEnabled = true,
       this.isTriggered = false,
+      this.status = 'active',
+      this.triggeredAt,
+      this.lastTriggeredAt,
+      this.snoozedUntil,
+      this.locationName,
+      this.locationAddress,
+      this.completedAt,
       required this.createdAt,
       this.updatedAt});
 
@@ -258,13 +356,28 @@ class _$ReminderEntityImpl implements _ReminderEntity {
   @JsonKey()
   final bool isTriggered;
   @override
+  @JsonKey()
+  final String status;
+  @override
+  final DateTime? triggeredAt;
+  @override
+  final DateTime? lastTriggeredAt;
+  @override
+  final DateTime? snoozedUntil;
+  @override
+  final String? locationName;
+  @override
+  final String? locationAddress;
+  @override
+  final DateTime? completedAt;
+  @override
   final DateTime createdAt;
   @override
   final DateTime? updatedAt;
 
   @override
   String toString() {
-    return 'ReminderEntity(id: $id, title: $title, description: $description, latitude: $latitude, longitude: $longitude, radiusMeters: $radiusMeters, alarmTone: $alarmTone, isEnabled: $isEnabled, isTriggered: $isTriggered, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'ReminderEntity(id: $id, title: $title, description: $description, latitude: $latitude, longitude: $longitude, radiusMeters: $radiusMeters, alarmTone: $alarmTone, isEnabled: $isEnabled, isTriggered: $isTriggered, status: $status, triggeredAt: $triggeredAt, lastTriggeredAt: $lastTriggeredAt, snoozedUntil: $snoozedUntil, locationName: $locationName, locationAddress: $locationAddress, completedAt: $completedAt, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -288,6 +401,19 @@ class _$ReminderEntityImpl implements _ReminderEntity {
                 other.isEnabled == isEnabled) &&
             (identical(other.isTriggered, isTriggered) ||
                 other.isTriggered == isTriggered) &&
+            (identical(other.status, status) || other.status == status) &&
+            (identical(other.triggeredAt, triggeredAt) ||
+                other.triggeredAt == triggeredAt) &&
+            (identical(other.lastTriggeredAt, lastTriggeredAt) ||
+                other.lastTriggeredAt == lastTriggeredAt) &&
+            (identical(other.snoozedUntil, snoozedUntil) ||
+                other.snoozedUntil == snoozedUntil) &&
+            (identical(other.locationName, locationName) ||
+                other.locationName == locationName) &&
+            (identical(other.locationAddress, locationAddress) ||
+                other.locationAddress == locationAddress) &&
+            (identical(other.completedAt, completedAt) ||
+                other.completedAt == completedAt) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -306,6 +432,13 @@ class _$ReminderEntityImpl implements _ReminderEntity {
       alarmTone,
       isEnabled,
       isTriggered,
+      status,
+      triggeredAt,
+      lastTriggeredAt,
+      snoozedUntil,
+      locationName,
+      locationAddress,
+      completedAt,
       createdAt,
       updatedAt);
 
@@ -328,6 +461,13 @@ abstract class _ReminderEntity implements ReminderEntity {
       required final String alarmTone,
       final bool isEnabled,
       final bool isTriggered,
+      final String status,
+      final DateTime? triggeredAt,
+      final DateTime? lastTriggeredAt,
+      final DateTime? snoozedUntil,
+      final String? locationName,
+      final String? locationAddress,
+      final DateTime? completedAt,
       required final DateTime createdAt,
       final DateTime? updatedAt}) = _$ReminderEntityImpl;
 
@@ -349,6 +489,20 @@ abstract class _ReminderEntity implements ReminderEntity {
   bool get isEnabled;
   @override
   bool get isTriggered;
+  @override
+  String get status;
+  @override
+  DateTime? get triggeredAt;
+  @override
+  DateTime? get lastTriggeredAt;
+  @override
+  DateTime? get snoozedUntil;
+  @override
+  String? get locationName;
+  @override
+  String? get locationAddress;
+  @override
+  DateTime? get completedAt;
   @override
   DateTime get createdAt;
   @override

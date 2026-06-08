@@ -7,4 +7,6 @@ class AppRoutes {
   static const settings = '/settings';
   static const locationPicker = '/location-picker';
   static const editReminder = '/reminders/edit';
+  static const alarm = '/alarm';
+  static const developerTools = '/settings/developer-tools';
 }

@@ -18,4 +18,10 @@ class ReminderEvent with _$ReminderEvent {
     required int id,
     required bool isEnabled,
   }) = ToggleReminder;
+  const factory ReminderEvent.remindersUpdated({
+    required List<ReminderEntity> reminders,
+  }) = RemindersUpdated;
+  const factory ReminderEvent.remindersError({
+    required String message,
+  }) = RemindersError;
 }

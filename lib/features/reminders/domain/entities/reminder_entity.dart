@@ -14,6 +14,13 @@ class ReminderEntity with _$ReminderEntity {
     required String alarmTone,
     @Default(true) bool isEnabled,
     @Default(false) bool isTriggered,
+    @Default('active') String status,
+    DateTime? triggeredAt,
+    DateTime? lastTriggeredAt,
+    DateTime? snoozedUntil,
+    String? locationName,
+    String? locationAddress,
+    DateTime? completedAt,
     required DateTime createdAt,
     DateTime? updatedAt,
   }) = _ReminderEntity;

@@ -5,6 +5,7 @@ import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/routes/app_routes.dart';
 import 'package:reminders/core/theme/app_theme.dart';
 import 'package:reminders/core/utils/app_toast.dart';
+import 'package:reminders/core/services/background_service.dart';
 import '../bloc/reminder_bloc.dart';
 import '../bloc/reminder_event.dart';
 import '../bloc/reminder_state.dart';

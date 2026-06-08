@@ -19,13 +19,23 @@ class MonitoringCoordinatorImpl implements MonitoringCoordinator {
     this._settingsService,
     this._backgroundService,
     this._reminderRepository,
-  );
+  ) {
+    // Listen to updates from background service (specifically when a reminder is triggered)
+    _backgroundService.backgroundUpdates.listen((event) {
+      if (event != null &&
+          (event['status'] == 'triggered' ||
+           event['action'] == 'triggered' ||
+           event['status'] == 'check')) {
+        evaluateMonitoringState();
+      }
+    });
+  }
 
   @override
   Future<void> evaluateMonitoringState() async {
     final explicitlyEnabled = _settingsService.isMonitoringEnabled();
     final reminders = await _reminderRepository.getAllReminders();
-    final hasActiveReminder = reminders.any((r) => r.isEnabled);
+    final hasActiveReminder = reminders.any((r) => r.isEnabled && !r.isTriggered);
 
     final shouldBeRunning = explicitlyEnabled && hasActiveReminder;
 

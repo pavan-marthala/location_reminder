@@ -1,23 +1,27 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'package:reminders/core/services/monitoring_coordinator.dart';
+import 'package:reminders/features/reminders/domain/entities/reminder_entity.dart';
 import 'package:reminders/features/reminders/domain/usecases/create_reminder_usecase.dart';
 import 'package:reminders/features/reminders/domain/usecases/delete_reminder_usecase.dart';
-import 'package:reminders/features/reminders/domain/usecases/get_all_reminders_usecase.dart';
 import 'package:reminders/features/reminders/domain/usecases/update_reminder_usecase.dart';
+import 'package:reminders/features/reminders/domain/usecases/watch_all_reminders_usecase.dart';
 import 'reminder_event.dart';
 import 'reminder_state.dart';
 
 @injectable
 class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
-  final GetAllRemindersUseCase _getAllReminders;
+  final WatchAllRemindersUseCase _watchAllReminders;
   final CreateReminderUseCase _createReminder;
   final UpdateReminderUseCase _updateReminder;
   final DeleteReminderUseCase _deleteReminder;
   final MonitoringCoordinator _monitoringCoordinator;
 
+  StreamSubscription<List<ReminderEntity>>? _remindersSubscription;
+
   ReminderBloc(
-    this._getAllReminders,
+    this._watchAllReminders,
     this._createReminder,
     this._updateReminder,
     this._deleteReminder,
@@ -28,6 +32,8 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
     on<UpdateReminder>(_onUpdateReminder);
     on<DeleteReminder>(_onDeleteReminder);
     on<ToggleReminder>(_onToggleReminder);
+    on<RemindersUpdated>(_onRemindersUpdated);
+    on<RemindersError>(_onRemindersError);
   }
 
   Future<void> _onLoadReminders(
@@ -35,16 +41,15 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
     Emitter<ReminderState> emit,
   ) async {
     emit(const ReminderState.loading());
-    try {
-      final reminders = await _getAllReminders();
-      if (reminders.isEmpty) {
-        emit(const ReminderState.empty());
-      } else {
-        emit(ReminderState.loaded(reminders: reminders));
-      }
-    } catch (e) {
-      emit(ReminderState.error(message: 'Failed to load reminders: $e'));
-    }
+    await _remindersSubscription?.cancel();
+    _remindersSubscription = _watchAllReminders().listen(
+      (reminders) {
+        add(ReminderEvent.remindersUpdated(reminders: reminders));
+      },
+      onError: (e) {
+        add(ReminderEvent.remindersError(message: e.toString()));
+      },
+    );
   }
 
   Future<void> _onCreateReminder(
@@ -104,12 +109,17 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
         emit(ReminderState.loaded(reminders: updatedReminders));
       }
 
-      // Persist toggle via repository (datasource handles updatedAt)
-      final reminder = (currentState is ReminderLoaded
+      final currentReminder = (currentState is ReminderLoaded
               ? currentState.reminders.firstWhere((r) => r.id == event.id)
-              : null)
-          ?.copyWith(isEnabled: event.isEnabled, updatedAt: DateTime.now());
-      if (reminder == null) throw Exception('Reminder not found');
+              : null);
+      if (currentReminder == null) throw Exception('Reminder not found');
+
+      final reminder = currentReminder.copyWith(
+        isEnabled: event.isEnabled,
+        isTriggered: event.isEnabled ? false : currentReminder.isTriggered,
+        status: event.isEnabled ? 'active' : 'disabled',
+        updatedAt: DateTime.now(),
+      );
 
       await _updateReminder(reminder);
       await _monitoringCoordinator.evaluateMonitoringState();
@@ -118,5 +128,29 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
       // Reload to get consistent state
       add(const ReminderEvent.loadReminders());
     }
+  }
+
+  void _onRemindersUpdated(
+    RemindersUpdated event,
+    Emitter<ReminderState> emit,
+  ) {
+    if (event.reminders.isEmpty) {
+      emit(const ReminderState.empty());
+    } else {
+      emit(ReminderState.loaded(reminders: event.reminders));
+    }
+  }
+
+  void _onRemindersError(
+    RemindersError event,
+    Emitter<ReminderState> emit,
+  ) {
+    emit(ReminderState.error(message: event.message));
+  }
+
+  @override
+  Future<void> close() {
+    _remindersSubscription?.cancel();
+    return super.close();
   }
 }

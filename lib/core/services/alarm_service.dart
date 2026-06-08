@@ -1,4 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:injectable/injectable.dart';
 import 'package:reminders/core/services/settings_service.dart';
 
@@ -57,6 +58,10 @@ class AlarmServiceImpl implements AlarmService {
 
   @override
   Future<void> stopAlarm() async {
+    try {
+      FlutterBackgroundService().invoke('stopAlarm');
+    } catch (_) {}
+
     if (!_isPlaying) return;
 
     await _audioPlayer.stop();

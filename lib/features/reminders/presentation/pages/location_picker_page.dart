@@ -9,6 +9,8 @@ import 'package:reminders/core/theme/app_theme.dart';
 import 'package:reminders/core/utils/app_button.dart';
 import 'package:reminders/core/utils/app_toast.dart';
 import 'package:reminders/features/reminders/domain/entities/location_selection_result.dart';
+import 'package:reminders/core/di/injection.dart';
+import 'package:reminders/core/services/mapbox_service.dart';
 
 class LocationPickerPage extends StatefulWidget {
   final double? initialLatitude;
@@ -471,20 +473,45 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     }
   }
 
-  void _onConfirm() {
+  Future<void> _onConfirm() async {
     if (_centerLat == null || _centerLng == null) {
       showErrorToast(message: 'Please tap the map to select a location');
       return;
     }
 
-    final result = LocationSelectionResult(
-      latitude: _centerLat!,
-      longitude: _centerLng!,
-      radiusMeters: _radiusMeters,
-      locationName: 'Location (${_centerLat!.toStringAsFixed(4)}, ${_centerLng!.toStringAsFixed(4)})',
-    );
+    setState(() => _isLoadingLocation = true);
 
-    context.pop(result);
+    try {
+      final mapboxService = getIt<MapboxService>();
+      final geocodeResult = await mapboxService.reverseGeocode(_centerLat!, _centerLng!);
+
+      final result = LocationSelectionResult(
+        latitude: _centerLat!,
+        longitude: _centerLng!,
+        radiusMeters: _radiusMeters,
+        locationName: geocodeResult['name'],
+        locationAddress: geocodeResult['address'],
+      );
+
+      if (mounted) {
+        context.pop(result);
+      }
+    } catch (e) {
+      final result = LocationSelectionResult(
+        latitude: _centerLat!,
+        longitude: _centerLng!,
+        radiusMeters: _radiusMeters,
+        locationName: 'Location (${_centerLat!.toStringAsFixed(4)}, ${_centerLng!.toStringAsFixed(4)})',
+        locationAddress: 'Coordinates: ${_centerLat!.toStringAsFixed(6)}, ${_centerLng!.toStringAsFixed(6)}',
+      );
+      if (mounted) {
+        context.pop(result);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingLocation = false);
+      }
+    }
   }
 
   @override

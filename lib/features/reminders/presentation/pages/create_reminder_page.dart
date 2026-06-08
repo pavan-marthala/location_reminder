@@ -30,6 +30,7 @@ class _CreateReminderPageState extends State<CreateReminderPage> {
   double? _selectedLng;
   double? _selectedRadius;
   String? _locationName;
+  String? _locationAddress;
 
   bool _isSaving = false;
 
@@ -42,7 +43,8 @@ class _CreateReminderPageState extends State<CreateReminderPage> {
       _selectedLat = edit.latitude;
       _selectedLng = edit.longitude;
       _selectedRadius = edit.radiusMeters;
-      _locationName = 'Location (${edit.latitude.toStringAsFixed(4)}, ${edit.longitude.toStringAsFixed(4)})';
+      _locationName = edit.locationName ?? 'Location (${edit.latitude.toStringAsFixed(4)}, ${edit.longitude.toStringAsFixed(4)})';
+      _locationAddress = edit.locationAddress;
     }
   }
 
@@ -68,6 +70,7 @@ class _CreateReminderPageState extends State<CreateReminderPage> {
         _selectedLng = result.longitude;
         _selectedRadius = result.radiusMeters;
         _locationName = result.locationName;
+        _locationAddress = result.locationAddress;
       });
     }
   }
@@ -88,6 +91,8 @@ class _CreateReminderPageState extends State<CreateReminderPage> {
             longitude: _selectedLng!,
             radiusMeters: _selectedRadius!,
             alarmTone: Assets.audioDaybreak,
+            locationName: _locationName,
+            locationAddress: _locationAddress,
             createdAt: DateTime.now(),
           )
         : widget.reminderToEdit!.copyWith(
@@ -95,6 +100,8 @@ class _CreateReminderPageState extends State<CreateReminderPage> {
             latitude: _selectedLat!,
             longitude: _selectedLng!,
             radiusMeters: _selectedRadius!,
+            locationName: _locationName,
+            locationAddress: _locationAddress,
             updatedAt: DateTime.now(),
           );
 

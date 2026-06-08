@@ -9,6 +9,8 @@ import 'package:reminders/generated/assets.dart';
 import '../../../infrastructure_validation/presentation/bloc/validation_bloc.dart';
 import '../../../infrastructure_validation/presentation/bloc/validation_event.dart';
 import '../../../infrastructure_validation/presentation/bloc/validation_state.dart';
+import 'package:go_router/go_router.dart';
+import 'package:reminders/core/routes/app_routes.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -240,84 +242,19 @@ class _SettingsPageView extends StatelessWidget {
                             ],
                           ),
                         ),
+                        const Divider(height: 1),
+                        ListTile(
+                          title: Text('Developer Tools', style: typography.bodyLarge.copyWith(fontWeight: FontWeight.bold)),
+                          subtitle: Text('Expose coordinates, distance, geofences, and evaluation logs', style: typography.bodySmall.copyWith(color: colors.textTertiary)),
+                          trailing: const Icon(Icons.chevron_right_rounded),
+                          onTap: () {
+                            context.push(AppRoutes.developerTools);
+                          },
+                        ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 20),
-
-                  // 4. Diagnostics Section
-                  _buildSectionHeader(context, 'Developer Diagnostics'),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          AppButton(
-                            text: 'Test Notification',
-                            color: colors.primary,
-                            onPressed: () {
-                              context.read<ValidationBloc>().add(
-                                const ValidationEvent.triggerTestNotification(),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          const Divider(),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Location Status Diagnostics',
-                            style: typography.bodyMedium.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: colors.background,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: colors.border),
-                            ),
-                            child: Text(
-                              state.currentCoordinates ?? 'Coordinates: Not Fetched',
-                              style: typography.bodyMedium.copyWith(
-                                fontFamily: 'Courier',
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: AppButton(
-                                  text: 'Get Current Location',
-                                  color: colors.secondary,
-                                  onPressed: () {
-                                    context.read<ValidationBloc>().add(
-                                      const ValidationEvent.fetchCurrentLocation(),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          AppButton(
-                            width: double.infinity,
-                            text: state.isLocationStreamActive
-                                ? 'Stop Location Streaming'
-                                : 'Start Location Streaming',
-                            color: state.isLocationStreamActive ? colors.error : colors.accent2,
-                            onPressed: () {
-                              context.read<ValidationBloc>().add(
-                                const ValidationEvent.toggleLocationStream(),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 ],
               ),
             );

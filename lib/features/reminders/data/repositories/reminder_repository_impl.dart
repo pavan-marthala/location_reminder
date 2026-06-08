@@ -17,6 +17,13 @@ class ReminderRepositoryImpl implements ReminderRepository {
   }
 
   @override
+  Stream<List<ReminderEntity>> watchAllReminders() {
+    return _datasource.watchAllReminders().map(
+          (dataList) => dataList.map(ReminderMapper.fromData).toList(),
+        );
+  }
+
+  @override
   Future<ReminderEntity?> getReminderById(int id) async {
     final data = await _datasource.getReminderById(id);
     return data != null ? ReminderMapper.fromData(data) : null;

@@ -23,6 +23,8 @@ mixin _$ReminderEvent {
     required TResult Function(ReminderEntity reminder) updateReminder,
     required TResult Function(int id) deleteReminder,
     required TResult Function(int id, bool isEnabled) toggleReminder,
+    required TResult Function(List<ReminderEntity> reminders) remindersUpdated,
+    required TResult Function(String message) remindersError,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -32,6 +34,8 @@ mixin _$ReminderEvent {
     TResult? Function(ReminderEntity reminder)? updateReminder,
     TResult? Function(int id)? deleteReminder,
     TResult? Function(int id, bool isEnabled)? toggleReminder,
+    TResult? Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult? Function(String message)? remindersError,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -41,6 +45,8 @@ mixin _$ReminderEvent {
     TResult Function(ReminderEntity reminder)? updateReminder,
     TResult Function(int id)? deleteReminder,
     TResult Function(int id, bool isEnabled)? toggleReminder,
+    TResult Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult Function(String message)? remindersError,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -51,6 +57,8 @@ mixin _$ReminderEvent {
     required TResult Function(UpdateReminder value) updateReminder,
     required TResult Function(DeleteReminder value) deleteReminder,
     required TResult Function(ToggleReminder value) toggleReminder,
+    required TResult Function(RemindersUpdated value) remindersUpdated,
+    required TResult Function(RemindersError value) remindersError,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -60,6 +68,8 @@ mixin _$ReminderEvent {
     TResult? Function(UpdateReminder value)? updateReminder,
     TResult? Function(DeleteReminder value)? deleteReminder,
     TResult? Function(ToggleReminder value)? toggleReminder,
+    TResult? Function(RemindersUpdated value)? remindersUpdated,
+    TResult? Function(RemindersError value)? remindersError,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -69,6 +79,8 @@ mixin _$ReminderEvent {
     TResult Function(UpdateReminder value)? updateReminder,
     TResult Function(DeleteReminder value)? deleteReminder,
     TResult Function(ToggleReminder value)? toggleReminder,
+    TResult Function(RemindersUpdated value)? remindersUpdated,
+    TResult Function(RemindersError value)? remindersError,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -135,6 +147,8 @@ class _$LoadRemindersImpl implements LoadReminders {
     required TResult Function(ReminderEntity reminder) updateReminder,
     required TResult Function(int id) deleteReminder,
     required TResult Function(int id, bool isEnabled) toggleReminder,
+    required TResult Function(List<ReminderEntity> reminders) remindersUpdated,
+    required TResult Function(String message) remindersError,
   }) {
     return loadReminders();
   }
@@ -147,6 +161,8 @@ class _$LoadRemindersImpl implements LoadReminders {
     TResult? Function(ReminderEntity reminder)? updateReminder,
     TResult? Function(int id)? deleteReminder,
     TResult? Function(int id, bool isEnabled)? toggleReminder,
+    TResult? Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult? Function(String message)? remindersError,
   }) {
     return loadReminders?.call();
   }
@@ -159,6 +175,8 @@ class _$LoadRemindersImpl implements LoadReminders {
     TResult Function(ReminderEntity reminder)? updateReminder,
     TResult Function(int id)? deleteReminder,
     TResult Function(int id, bool isEnabled)? toggleReminder,
+    TResult Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult Function(String message)? remindersError,
     required TResult orElse(),
   }) {
     if (loadReminders != null) {
@@ -175,6 +193,8 @@ class _$LoadRemindersImpl implements LoadReminders {
     required TResult Function(UpdateReminder value) updateReminder,
     required TResult Function(DeleteReminder value) deleteReminder,
     required TResult Function(ToggleReminder value) toggleReminder,
+    required TResult Function(RemindersUpdated value) remindersUpdated,
+    required TResult Function(RemindersError value) remindersError,
   }) {
     return loadReminders(this);
   }
@@ -187,6 +207,8 @@ class _$LoadRemindersImpl implements LoadReminders {
     TResult? Function(UpdateReminder value)? updateReminder,
     TResult? Function(DeleteReminder value)? deleteReminder,
     TResult? Function(ToggleReminder value)? toggleReminder,
+    TResult? Function(RemindersUpdated value)? remindersUpdated,
+    TResult? Function(RemindersError value)? remindersError,
   }) {
     return loadReminders?.call(this);
   }
@@ -199,6 +221,8 @@ class _$LoadRemindersImpl implements LoadReminders {
     TResult Function(UpdateReminder value)? updateReminder,
     TResult Function(DeleteReminder value)? deleteReminder,
     TResult Function(ToggleReminder value)? toggleReminder,
+    TResult Function(RemindersUpdated value)? remindersUpdated,
+    TResult Function(RemindersError value)? remindersError,
     required TResult orElse(),
   }) {
     if (loadReminders != null) {
@@ -293,6 +317,8 @@ class _$CreateReminderImpl implements CreateReminder {
     required TResult Function(ReminderEntity reminder) updateReminder,
     required TResult Function(int id) deleteReminder,
     required TResult Function(int id, bool isEnabled) toggleReminder,
+    required TResult Function(List<ReminderEntity> reminders) remindersUpdated,
+    required TResult Function(String message) remindersError,
   }) {
     return createReminder(reminder);
   }
@@ -305,6 +331,8 @@ class _$CreateReminderImpl implements CreateReminder {
     TResult? Function(ReminderEntity reminder)? updateReminder,
     TResult? Function(int id)? deleteReminder,
     TResult? Function(int id, bool isEnabled)? toggleReminder,
+    TResult? Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult? Function(String message)? remindersError,
   }) {
     return createReminder?.call(reminder);
   }
@@ -317,6 +345,8 @@ class _$CreateReminderImpl implements CreateReminder {
     TResult Function(ReminderEntity reminder)? updateReminder,
     TResult Function(int id)? deleteReminder,
     TResult Function(int id, bool isEnabled)? toggleReminder,
+    TResult Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult Function(String message)? remindersError,
     required TResult orElse(),
   }) {
     if (createReminder != null) {
@@ -333,6 +363,8 @@ class _$CreateReminderImpl implements CreateReminder {
     required TResult Function(UpdateReminder value) updateReminder,
     required TResult Function(DeleteReminder value) deleteReminder,
     required TResult Function(ToggleReminder value) toggleReminder,
+    required TResult Function(RemindersUpdated value) remindersUpdated,
+    required TResult Function(RemindersError value) remindersError,
   }) {
     return createReminder(this);
   }
@@ -345,6 +377,8 @@ class _$CreateReminderImpl implements CreateReminder {
     TResult? Function(UpdateReminder value)? updateReminder,
     TResult? Function(DeleteReminder value)? deleteReminder,
     TResult? Function(ToggleReminder value)? toggleReminder,
+    TResult? Function(RemindersUpdated value)? remindersUpdated,
+    TResult? Function(RemindersError value)? remindersError,
   }) {
     return createReminder?.call(this);
   }
@@ -357,6 +391,8 @@ class _$CreateReminderImpl implements CreateReminder {
     TResult Function(UpdateReminder value)? updateReminder,
     TResult Function(DeleteReminder value)? deleteReminder,
     TResult Function(ToggleReminder value)? toggleReminder,
+    TResult Function(RemindersUpdated value)? remindersUpdated,
+    TResult Function(RemindersError value)? remindersError,
     required TResult orElse(),
   }) {
     if (createReminder != null) {
@@ -457,6 +493,8 @@ class _$UpdateReminderImpl implements UpdateReminder {
     required TResult Function(ReminderEntity reminder) updateReminder,
     required TResult Function(int id) deleteReminder,
     required TResult Function(int id, bool isEnabled) toggleReminder,
+    required TResult Function(List<ReminderEntity> reminders) remindersUpdated,
+    required TResult Function(String message) remindersError,
   }) {
     return updateReminder(reminder);
   }
@@ -469,6 +507,8 @@ class _$UpdateReminderImpl implements UpdateReminder {
     TResult? Function(ReminderEntity reminder)? updateReminder,
     TResult? Function(int id)? deleteReminder,
     TResult? Function(int id, bool isEnabled)? toggleReminder,
+    TResult? Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult? Function(String message)? remindersError,
   }) {
     return updateReminder?.call(reminder);
   }
@@ -481,6 +521,8 @@ class _$UpdateReminderImpl implements UpdateReminder {
     TResult Function(ReminderEntity reminder)? updateReminder,
     TResult Function(int id)? deleteReminder,
     TResult Function(int id, bool isEnabled)? toggleReminder,
+    TResult Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult Function(String message)? remindersError,
     required TResult orElse(),
   }) {
     if (updateReminder != null) {
@@ -497,6 +539,8 @@ class _$UpdateReminderImpl implements UpdateReminder {
     required TResult Function(UpdateReminder value) updateReminder,
     required TResult Function(DeleteReminder value) deleteReminder,
     required TResult Function(ToggleReminder value) toggleReminder,
+    required TResult Function(RemindersUpdated value) remindersUpdated,
+    required TResult Function(RemindersError value) remindersError,
   }) {
     return updateReminder(this);
   }
@@ -509,6 +553,8 @@ class _$UpdateReminderImpl implements UpdateReminder {
     TResult? Function(UpdateReminder value)? updateReminder,
     TResult? Function(DeleteReminder value)? deleteReminder,
     TResult? Function(ToggleReminder value)? toggleReminder,
+    TResult? Function(RemindersUpdated value)? remindersUpdated,
+    TResult? Function(RemindersError value)? remindersError,
   }) {
     return updateReminder?.call(this);
   }
@@ -521,6 +567,8 @@ class _$UpdateReminderImpl implements UpdateReminder {
     TResult Function(UpdateReminder value)? updateReminder,
     TResult Function(DeleteReminder value)? deleteReminder,
     TResult Function(ToggleReminder value)? toggleReminder,
+    TResult Function(RemindersUpdated value)? remindersUpdated,
+    TResult Function(RemindersError value)? remindersError,
     required TResult orElse(),
   }) {
     if (updateReminder != null) {
@@ -610,6 +658,8 @@ class _$DeleteReminderImpl implements DeleteReminder {
     required TResult Function(ReminderEntity reminder) updateReminder,
     required TResult Function(int id) deleteReminder,
     required TResult Function(int id, bool isEnabled) toggleReminder,
+    required TResult Function(List<ReminderEntity> reminders) remindersUpdated,
+    required TResult Function(String message) remindersError,
   }) {
     return deleteReminder(id);
   }
@@ -622,6 +672,8 @@ class _$DeleteReminderImpl implements DeleteReminder {
     TResult? Function(ReminderEntity reminder)? updateReminder,
     TResult? Function(int id)? deleteReminder,
     TResult? Function(int id, bool isEnabled)? toggleReminder,
+    TResult? Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult? Function(String message)? remindersError,
   }) {
     return deleteReminder?.call(id);
   }
@@ -634,6 +686,8 @@ class _$DeleteReminderImpl implements DeleteReminder {
     TResult Function(ReminderEntity reminder)? updateReminder,
     TResult Function(int id)? deleteReminder,
     TResult Function(int id, bool isEnabled)? toggleReminder,
+    TResult Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult Function(String message)? remindersError,
     required TResult orElse(),
   }) {
     if (deleteReminder != null) {
@@ -650,6 +704,8 @@ class _$DeleteReminderImpl implements DeleteReminder {
     required TResult Function(UpdateReminder value) updateReminder,
     required TResult Function(DeleteReminder value) deleteReminder,
     required TResult Function(ToggleReminder value) toggleReminder,
+    required TResult Function(RemindersUpdated value) remindersUpdated,
+    required TResult Function(RemindersError value) remindersError,
   }) {
     return deleteReminder(this);
   }
@@ -662,6 +718,8 @@ class _$DeleteReminderImpl implements DeleteReminder {
     TResult? Function(UpdateReminder value)? updateReminder,
     TResult? Function(DeleteReminder value)? deleteReminder,
     TResult? Function(ToggleReminder value)? toggleReminder,
+    TResult? Function(RemindersUpdated value)? remindersUpdated,
+    TResult? Function(RemindersError value)? remindersError,
   }) {
     return deleteReminder?.call(this);
   }
@@ -674,6 +732,8 @@ class _$DeleteReminderImpl implements DeleteReminder {
     TResult Function(UpdateReminder value)? updateReminder,
     TResult Function(DeleteReminder value)? deleteReminder,
     TResult Function(ToggleReminder value)? toggleReminder,
+    TResult Function(RemindersUpdated value)? remindersUpdated,
+    TResult Function(RemindersError value)? remindersError,
     required TResult orElse(),
   }) {
     if (deleteReminder != null) {
@@ -771,6 +831,8 @@ class _$ToggleReminderImpl implements ToggleReminder {
     required TResult Function(ReminderEntity reminder) updateReminder,
     required TResult Function(int id) deleteReminder,
     required TResult Function(int id, bool isEnabled) toggleReminder,
+    required TResult Function(List<ReminderEntity> reminders) remindersUpdated,
+    required TResult Function(String message) remindersError,
   }) {
     return toggleReminder(id, isEnabled);
   }
@@ -783,6 +845,8 @@ class _$ToggleReminderImpl implements ToggleReminder {
     TResult? Function(ReminderEntity reminder)? updateReminder,
     TResult? Function(int id)? deleteReminder,
     TResult? Function(int id, bool isEnabled)? toggleReminder,
+    TResult? Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult? Function(String message)? remindersError,
   }) {
     return toggleReminder?.call(id, isEnabled);
   }
@@ -795,6 +859,8 @@ class _$ToggleReminderImpl implements ToggleReminder {
     TResult Function(ReminderEntity reminder)? updateReminder,
     TResult Function(int id)? deleteReminder,
     TResult Function(int id, bool isEnabled)? toggleReminder,
+    TResult Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult Function(String message)? remindersError,
     required TResult orElse(),
   }) {
     if (toggleReminder != null) {
@@ -811,6 +877,8 @@ class _$ToggleReminderImpl implements ToggleReminder {
     required TResult Function(UpdateReminder value) updateReminder,
     required TResult Function(DeleteReminder value) deleteReminder,
     required TResult Function(ToggleReminder value) toggleReminder,
+    required TResult Function(RemindersUpdated value) remindersUpdated,
+    required TResult Function(RemindersError value) remindersError,
   }) {
     return toggleReminder(this);
   }
@@ -823,6 +891,8 @@ class _$ToggleReminderImpl implements ToggleReminder {
     TResult? Function(UpdateReminder value)? updateReminder,
     TResult? Function(DeleteReminder value)? deleteReminder,
     TResult? Function(ToggleReminder value)? toggleReminder,
+    TResult? Function(RemindersUpdated value)? remindersUpdated,
+    TResult? Function(RemindersError value)? remindersError,
   }) {
     return toggleReminder?.call(this);
   }
@@ -835,6 +905,8 @@ class _$ToggleReminderImpl implements ToggleReminder {
     TResult Function(UpdateReminder value)? updateReminder,
     TResult Function(DeleteReminder value)? deleteReminder,
     TResult Function(ToggleReminder value)? toggleReminder,
+    TResult Function(RemindersUpdated value)? remindersUpdated,
+    TResult Function(RemindersError value)? remindersError,
     required TResult orElse(),
   }) {
     if (toggleReminder != null) {
@@ -853,5 +925,343 @@ abstract class ToggleReminder implements ReminderEvent {
   bool get isEnabled;
   @JsonKey(ignore: true)
   _$$ToggleReminderImplCopyWith<_$ToggleReminderImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$RemindersUpdatedImplCopyWith<$Res> {
+  factory _$$RemindersUpdatedImplCopyWith(_$RemindersUpdatedImpl value,
+          $Res Function(_$RemindersUpdatedImpl) then) =
+      __$$RemindersUpdatedImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({List<ReminderEntity> reminders});
+}
+
+/// @nodoc
+class __$$RemindersUpdatedImplCopyWithImpl<$Res>
+    extends _$ReminderEventCopyWithImpl<$Res, _$RemindersUpdatedImpl>
+    implements _$$RemindersUpdatedImplCopyWith<$Res> {
+  __$$RemindersUpdatedImplCopyWithImpl(_$RemindersUpdatedImpl _value,
+      $Res Function(_$RemindersUpdatedImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? reminders = null,
+  }) {
+    return _then(_$RemindersUpdatedImpl(
+      reminders: null == reminders
+          ? _value._reminders
+          : reminders // ignore: cast_nullable_to_non_nullable
+              as List<ReminderEntity>,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$RemindersUpdatedImpl implements RemindersUpdated {
+  const _$RemindersUpdatedImpl({required final List<ReminderEntity> reminders})
+      : _reminders = reminders;
+
+  final List<ReminderEntity> _reminders;
+  @override
+  List<ReminderEntity> get reminders {
+    if (_reminders is EqualUnmodifiableListView) return _reminders;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_reminders);
+  }
+
+  @override
+  String toString() {
+    return 'ReminderEvent.remindersUpdated(reminders: $reminders)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$RemindersUpdatedImpl &&
+            const DeepCollectionEquality()
+                .equals(other._reminders, _reminders));
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, const DeepCollectionEquality().hash(_reminders));
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$RemindersUpdatedImplCopyWith<_$RemindersUpdatedImpl> get copyWith =>
+      __$$RemindersUpdatedImplCopyWithImpl<_$RemindersUpdatedImpl>(
+          this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() loadReminders,
+    required TResult Function(ReminderEntity reminder) createReminder,
+    required TResult Function(ReminderEntity reminder) updateReminder,
+    required TResult Function(int id) deleteReminder,
+    required TResult Function(int id, bool isEnabled) toggleReminder,
+    required TResult Function(List<ReminderEntity> reminders) remindersUpdated,
+    required TResult Function(String message) remindersError,
+  }) {
+    return remindersUpdated(reminders);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? loadReminders,
+    TResult? Function(ReminderEntity reminder)? createReminder,
+    TResult? Function(ReminderEntity reminder)? updateReminder,
+    TResult? Function(int id)? deleteReminder,
+    TResult? Function(int id, bool isEnabled)? toggleReminder,
+    TResult? Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult? Function(String message)? remindersError,
+  }) {
+    return remindersUpdated?.call(reminders);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? loadReminders,
+    TResult Function(ReminderEntity reminder)? createReminder,
+    TResult Function(ReminderEntity reminder)? updateReminder,
+    TResult Function(int id)? deleteReminder,
+    TResult Function(int id, bool isEnabled)? toggleReminder,
+    TResult Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult Function(String message)? remindersError,
+    required TResult orElse(),
+  }) {
+    if (remindersUpdated != null) {
+      return remindersUpdated(reminders);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(LoadReminders value) loadReminders,
+    required TResult Function(CreateReminder value) createReminder,
+    required TResult Function(UpdateReminder value) updateReminder,
+    required TResult Function(DeleteReminder value) deleteReminder,
+    required TResult Function(ToggleReminder value) toggleReminder,
+    required TResult Function(RemindersUpdated value) remindersUpdated,
+    required TResult Function(RemindersError value) remindersError,
+  }) {
+    return remindersUpdated(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(LoadReminders value)? loadReminders,
+    TResult? Function(CreateReminder value)? createReminder,
+    TResult? Function(UpdateReminder value)? updateReminder,
+    TResult? Function(DeleteReminder value)? deleteReminder,
+    TResult? Function(ToggleReminder value)? toggleReminder,
+    TResult? Function(RemindersUpdated value)? remindersUpdated,
+    TResult? Function(RemindersError value)? remindersError,
+  }) {
+    return remindersUpdated?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(LoadReminders value)? loadReminders,
+    TResult Function(CreateReminder value)? createReminder,
+    TResult Function(UpdateReminder value)? updateReminder,
+    TResult Function(DeleteReminder value)? deleteReminder,
+    TResult Function(ToggleReminder value)? toggleReminder,
+    TResult Function(RemindersUpdated value)? remindersUpdated,
+    TResult Function(RemindersError value)? remindersError,
+    required TResult orElse(),
+  }) {
+    if (remindersUpdated != null) {
+      return remindersUpdated(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class RemindersUpdated implements ReminderEvent {
+  const factory RemindersUpdated(
+      {required final List<ReminderEntity> reminders}) = _$RemindersUpdatedImpl;
+
+  List<ReminderEntity> get reminders;
+  @JsonKey(ignore: true)
+  _$$RemindersUpdatedImplCopyWith<_$RemindersUpdatedImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$RemindersErrorImplCopyWith<$Res> {
+  factory _$$RemindersErrorImplCopyWith(_$RemindersErrorImpl value,
+          $Res Function(_$RemindersErrorImpl) then) =
+      __$$RemindersErrorImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String message});
+}
+
+/// @nodoc
+class __$$RemindersErrorImplCopyWithImpl<$Res>
+    extends _$ReminderEventCopyWithImpl<$Res, _$RemindersErrorImpl>
+    implements _$$RemindersErrorImplCopyWith<$Res> {
+  __$$RemindersErrorImplCopyWithImpl(
+      _$RemindersErrorImpl _value, $Res Function(_$RemindersErrorImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? message = null,
+  }) {
+    return _then(_$RemindersErrorImpl(
+      message: null == message
+          ? _value.message
+          : message // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$RemindersErrorImpl implements RemindersError {
+  const _$RemindersErrorImpl({required this.message});
+
+  @override
+  final String message;
+
+  @override
+  String toString() {
+    return 'ReminderEvent.remindersError(message: $message)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$RemindersErrorImpl &&
+            (identical(other.message, message) || other.message == message));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, message);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$RemindersErrorImplCopyWith<_$RemindersErrorImpl> get copyWith =>
+      __$$RemindersErrorImplCopyWithImpl<_$RemindersErrorImpl>(
+          this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() loadReminders,
+    required TResult Function(ReminderEntity reminder) createReminder,
+    required TResult Function(ReminderEntity reminder) updateReminder,
+    required TResult Function(int id) deleteReminder,
+    required TResult Function(int id, bool isEnabled) toggleReminder,
+    required TResult Function(List<ReminderEntity> reminders) remindersUpdated,
+    required TResult Function(String message) remindersError,
+  }) {
+    return remindersError(message);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? loadReminders,
+    TResult? Function(ReminderEntity reminder)? createReminder,
+    TResult? Function(ReminderEntity reminder)? updateReminder,
+    TResult? Function(int id)? deleteReminder,
+    TResult? Function(int id, bool isEnabled)? toggleReminder,
+    TResult? Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult? Function(String message)? remindersError,
+  }) {
+    return remindersError?.call(message);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? loadReminders,
+    TResult Function(ReminderEntity reminder)? createReminder,
+    TResult Function(ReminderEntity reminder)? updateReminder,
+    TResult Function(int id)? deleteReminder,
+    TResult Function(int id, bool isEnabled)? toggleReminder,
+    TResult Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult Function(String message)? remindersError,
+    required TResult orElse(),
+  }) {
+    if (remindersError != null) {
+      return remindersError(message);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(LoadReminders value) loadReminders,
+    required TResult Function(CreateReminder value) createReminder,
+    required TResult Function(UpdateReminder value) updateReminder,
+    required TResult Function(DeleteReminder value) deleteReminder,
+    required TResult Function(ToggleReminder value) toggleReminder,
+    required TResult Function(RemindersUpdated value) remindersUpdated,
+    required TResult Function(RemindersError value) remindersError,
+  }) {
+    return remindersError(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(LoadReminders value)? loadReminders,
+    TResult? Function(CreateReminder value)? createReminder,
+    TResult? Function(UpdateReminder value)? updateReminder,
+    TResult? Function(DeleteReminder value)? deleteReminder,
+    TResult? Function(ToggleReminder value)? toggleReminder,
+    TResult? Function(RemindersUpdated value)? remindersUpdated,
+    TResult? Function(RemindersError value)? remindersError,
+  }) {
+    return remindersError?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(LoadReminders value)? loadReminders,
+    TResult Function(CreateReminder value)? createReminder,
+    TResult Function(UpdateReminder value)? updateReminder,
+    TResult Function(DeleteReminder value)? deleteReminder,
+    TResult Function(ToggleReminder value)? toggleReminder,
+    TResult Function(RemindersUpdated value)? remindersUpdated,
+    TResult Function(RemindersError value)? remindersError,
+    required TResult orElse(),
+  }) {
+    if (remindersError != null) {
+      return remindersError(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class RemindersError implements ReminderEvent {
+  const factory RemindersError({required final String message}) =
+      _$RemindersErrorImpl;
+
+  String get message;
+  @JsonKey(ignore: true)
+  _$$RemindersErrorImplCopyWith<_$RemindersErrorImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
