@@ -6,6 +6,7 @@ import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/theme/app_theme.dart';
 import 'package:reminders/core/routes/app_routes.dart';
 import 'package:reminders/core/services/background_service.dart';
+import 'package:reminders/core/services/notification_service.dart';
 import 'package:reminders/features/infrastructure_validation/presentation/bloc/validation_bloc.dart';
 import 'package:reminders/features/infrastructure_validation/presentation/bloc/validation_event.dart';
 import 'package:reminders/features/infrastructure_validation/presentation/bloc/validation_state.dart';
@@ -221,6 +222,27 @@ class _DeveloperToolsPageViewState extends State<_DeveloperToolsPageView> {
                                 'id': 0,
                                 'title': 'Test Alarm Sound',
                               });
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: colors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.alarm_on_rounded),
+                            label: const Text('Test Full Screen Alarm'),
+                            onPressed: () async {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Triggering in 3 seconds... Lock your screen!'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                              await Future.delayed(const Duration(seconds: 3));
+                              await getIt<NotificationService>().showFullScreenTestNotification();
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: colors.primary,

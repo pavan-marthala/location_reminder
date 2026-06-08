@@ -5,6 +5,7 @@ import 'package:reminders/core/database/app_database.dart';
 abstract class ReminderLocalDatasource {
   Future<List<ReminderData>> getAllReminders();
   Stream<List<ReminderData>> watchAllReminders();
+  Stream<ReminderData?> watchReminderById(int id);
   Future<ReminderData?> getReminderById(int id);
   Future<int> createReminder(RemindersCompanion companion);
   Future<void> updateReminder(RemindersCompanion companion);
@@ -34,6 +35,12 @@ class ReminderLocalDatasourceImpl implements ReminderLocalDatasource {
             (t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc),
           ]))
         .watch();
+  }
+
+  @override
+  Stream<ReminderData?> watchReminderById(int id) {
+    return (_db.select(_db.reminders)..where((t) => t.id.equals(id)))
+        .watchSingleOrNull();
   }
 
   @override

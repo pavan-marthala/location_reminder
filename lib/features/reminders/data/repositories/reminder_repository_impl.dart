@@ -30,6 +30,13 @@ class ReminderRepositoryImpl implements ReminderRepository {
   }
 
   @override
+  Stream<ReminderEntity?> watchReminderById(int id) {
+    return _datasource.watchReminderById(id).map(
+          (data) => data != null ? ReminderMapper.fromData(data) : null,
+        );
+  }
+
+  @override
   Future<int> createReminder(ReminderEntity reminder) {
     final companion = ReminderMapper.toInsertCompanion(reminder);
     return _datasource.createReminder(companion);

@@ -24,6 +24,8 @@ class MockNotificationService implements NotificationService {
     required String body,
   }) async {}
   @override
+  Future<void> showFullScreenTestNotification() async {}
+  @override
   Future<bool> areNotificationsEnabled() async => true;
 }
 

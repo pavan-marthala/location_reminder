@@ -2,11 +2,19 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:injectable/injectable.dart';
+import 'package:go_router/go_router.dart';
+import 'package:reminders/core/di/injection.dart';
+import 'package:reminders/core/routes/app_routes.dart';
+import 'package:reminders/core/services/alarm_service.dart';
+import 'package:reminders/core/services/monitoring_coordinator.dart';
+import 'package:reminders/features/reminders/domain/repositories/reminder_repository.dart';
+import 'package:reminders/main.dart';
 
 abstract class NotificationService {
   Future<void> init();
   Future<bool> requestPermissions();
   Future<void> showTestNotification({required String title, required String body});
+  Future<void> showFullScreenTestNotification();
   Future<bool> areNotificationsEnabled();
 }
 
@@ -37,7 +45,7 @@ class NotificationServiceImpl implements NotificationService {
 
     await _localNotifications.initialize(
       settings: initSettings,
-      onDidReceiveNotificationResponse: _onNotificationTapped,
+      onDidReceiveNotificationResponse: _onNotificationResponse,
       onDidReceiveBackgroundNotificationResponse: _onBackgroundNotificationTapped,
     );
 
@@ -48,7 +56,6 @@ class NotificationServiceImpl implements NotificationService {
       description: _channelDescription,
       importance: Importance.max,
       playSound: true,
-      enableVibration: true,
     );
 
     await _localNotifications
@@ -97,6 +104,32 @@ class NotificationServiceImpl implements NotificationService {
   }
 
   @override
+  Future<void> showFullScreenTestNotification() async {
+    final androidDetails = const AndroidNotificationDetails(
+      _channelId,
+      _channelName,
+      channelDescription: _channelDescription,
+      importance: Importance.max,
+      priority: Priority.high,
+      fullScreenIntent: true,
+      category: AndroidNotificationCategory.alarm,
+    );
+    const iosDetails = DarwinNotificationDetails();
+    final details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _localNotifications.show(
+      id: 9999,
+      title: 'Test Full Screen Alarm',
+      body: 'This is a proof of concept notification.',
+      notificationDetails: details,
+      payload: '0',
+    );
+  }
+
+  @override
   Future<bool> areNotificationsEnabled() async {
     final androidImplementation = _localNotifications
         .resolvePlatformSpecificImplementation<
@@ -118,13 +151,88 @@ class NotificationServiceImpl implements NotificationService {
   }
 }
 
-void _onNotificationTapped(NotificationResponse response) {
-  // Handle notification tap in foreground
-  debugPrint('Notification tapped: ${response.payload}');
+/// Handles all notification responses — body taps AND action button taps.
+void _onNotificationResponse(NotificationResponse response) {
+  debugPrint('Notification response: actionId=${response.actionId}, payload=${response.payload}');
+
+  final actionId = response.actionId;
+  final payload = response.payload;
+  final reminderId = payload != null ? int.tryParse(payload) : null;
+
+  // Handle action buttons (dismiss / snooze from notification shade)
+  if (actionId != null && actionId.isNotEmpty && reminderId != null && reminderId > 0) {
+    _handleNotificationAction(actionId, reminderId);
+    return;
+  }
+
+  // Default: body tap → navigate to AlarmPage
+  if (reminderId != null) {
+    rootNavigatorKey.currentContext?.push(
+      AppRoutes.alarm,
+      extra: {
+        'id': reminderId,
+        'title': reminderId == 0 ? 'Test Alarm Sound' : 'Reminder',
+      },
+    );
+  }
+}
+
+/// Processes dismiss/snooze actions triggered from notification buttons.
+Future<void> _handleNotificationAction(String actionId, int reminderId) async {
+  debugPrint('Handling notification action: $actionId for reminder $reminderId');
+
+  try {
+    // Stop alarm audio first (most time-critical)
+    try {
+      getIt<AlarmService>().stopAlarm();
+    } catch (_) {}
+
+    final repo = getIt<ReminderRepository>();
+    final reminder = await repo.getReminderById(reminderId);
+    if (reminder == null) return;
+
+    switch (actionId) {
+      case 'dismiss':
+        final updated = reminder.copyWith(
+          status: 'completed',
+          isEnabled: false,
+          isTriggered: false,
+          completedAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+        await repo.updateReminder(updated);
+        break;
+
+      case 'snooze_5':
+        final updated = reminder.copyWith(
+          status: 'snoozed',
+          isTriggered: false,
+          snoozedUntil: DateTime.now().add(const Duration(minutes: 5)),
+          updatedAt: DateTime.now(),
+        );
+        await repo.updateReminder(updated);
+        break;
+
+      default:
+        debugPrint('Unknown notification action: $actionId');
+        return;
+    }
+
+    // Re-evaluate monitoring (may stop service if no active reminders remain)
+    try {
+      await getIt<MonitoringCoordinator>().evaluateMonitoringState();
+    } catch (_) {}
+
+    // Cancel the notification itself
+    try {
+      await FlutterLocalNotificationsPlugin().cancel(id: reminderId);
+    } catch (_) {}
+  } catch (e) {
+    debugPrint('Error handling notification action: $e');
+  }
 }
 
 @pragma('vm:entry-point')
 void _onBackgroundNotificationTapped(NotificationResponse response) {
-  // Handle background notification tap
   debugPrint('Background notification tapped: ${response.payload}');
 }

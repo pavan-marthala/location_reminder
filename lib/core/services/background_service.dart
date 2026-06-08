@@ -223,14 +223,18 @@ void onStart(ServiceInstance service) async {
 
   service.on('stopService').listen((event) async {
     await positionSubscription?.cancel();
-    await audioPlayer.stop();
-    await audioPlayer.dispose();
+    try {
+      await audioPlayer.stop();
+      await audioPlayer.dispose();
+    } catch (_) {}
     await database.close();
     service.stopSelf();
   });
 
   service.on('stopAlarm').listen((event) async {
-    await audioPlayer.stop();
+    try {
+      await audioPlayer.stop();
+    } catch (_) {}
   });
 
   // Verify Location Services & Permissions
@@ -358,15 +362,31 @@ void onStart(ServiceInstance service) async {
             ),
           );
 
-          const androidDetails = AndroidNotificationDetails(
+          final androidDetails = AndroidNotificationDetails(
             'alarm_channel',
             'Alarms & Reminders',
             channelDescription:
                 'Channel for location-based reminders and alarm triggers',
             importance: Importance.max,
             priority: Priority.high,
-            playSound: true,
+            playSound: false, // UI Alarm Screen owns audio playback
             enableVibration: true,
+            fullScreenIntent: true,
+            category: AndroidNotificationCategory.alarm,
+            actions: <AndroidNotificationAction>[
+              const AndroidNotificationAction(
+                'dismiss',
+                'Dismiss',
+                showsUserInterface: false,
+                cancelNotification: true,
+              ),
+              const AndroidNotificationAction(
+                'snooze_5',
+                'Snooze 5 min',
+                showsUserInterface: false,
+                cancelNotification: true,
+              ),
+            ],
           );
           const iosDetails = DarwinNotificationDetails();
           final details = NotificationDetails(
@@ -379,14 +399,8 @@ void onStart(ServiceInstance service) async {
             title: 'Reminder Triggered!',
             body: 'You entered the geofence for: ${reminder.title}',
             notificationDetails: details,
+            payload: reminder.id.toString(),
           );
-
-          final tonePath = reminder.alarmTone;
-          final cleanTonePath = tonePath.startsWith('assets/')
-              ? tonePath.substring(7)
-              : tonePath;
-          await audioPlayer.setReleaseMode(ReleaseMode.loop);
-          await audioPlayer.play(AssetSource(cleanTonePath));
 
           service.invoke('update', {
             'time': DateTime.now().toIso8601String(),

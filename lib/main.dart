@@ -57,6 +57,12 @@ class _MyAppState extends State<MyApp> {
       redirect: (context, state) {
         final isSplash = state.matchedLocation == AppRoutes.splash;
         final isValidation = state.matchedLocation == AppRoutes.validation;
+        final isAlarm = state.matchedLocation == AppRoutes.alarm;
+
+        // Bypass for alarm route so full screen intents or routing test navigations are allowed immediately
+        if (isAlarm) {
+          return null;
+        }
 
         // If not bootstrapped yet, always stay on splash
         if (!routingNotifier.isBootstrapped) {

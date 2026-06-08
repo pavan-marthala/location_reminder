@@ -28,6 +28,8 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
   bool _isLoading = true;
   Timer? _clockTimer;
   String _timeString = '';
+  StreamSubscription<ReminderEntity?>? _reminderWatcher;
+  bool _isClosing = false;
 
   @override
   void initState() {
@@ -66,6 +68,9 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
           _isLoading = false;
         });
 
+        // Start watching for external state changes (e.g. notification actions)
+        _startWatchingReminder();
+
         // Start playing the alarm sound immediately
         try {
           await getIt<AlarmService>().playAlarm(reminder?.alarmTone);
@@ -84,16 +89,66 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
     }
   }
 
+  /// Subscribes to real-time DB changes for this reminder.
+  /// Auto-closes the AlarmPage if the reminder is dismissed/snoozed
+  /// externally (e.g. from notification action buttons).
+  void _startWatchingReminder() {
+    if (widget.reminderId <= 0) return; // Skip for test alarms
+
+    final repo = getIt<ReminderRepository>();
+    _reminderWatcher = repo.watchReminderById(widget.reminderId).listen((updated) {
+      if (!mounted) return;
+
+      if (updated == null) {
+        // Reminder was deleted
+        _autoClose();
+        return;
+      }
+
+      // Close if externally dismissed or snoozed
+      final isDone = updated.status == 'completed' ||
+          updated.status == 'snoozed' ||
+          (!updated.isTriggered && updated.status != 'active');
+
+      if (isDone) {
+        _autoClose();
+      }
+    });
+  }
+
+  /// Stops audio and pops the screen (triggered by external state changes).
+  Future<void> _autoClose() async {
+    if (_isClosing) return;
+    _isClosing = true;
+    try {
+      await getIt<AlarmService>().stopAlarm();
+    } catch (_) {}
+    if (mounted) {
+      context.pop(true);
+    }
+  }
+
   @override
   void dispose() {
+    _reminderWatcher?.cancel();
     _clockTimer?.cancel();
     _animationController.dispose();
     super.dispose();
   }
 
   Future<void> _onDismiss() async {
+    if (_isClosing) return;
+    _isClosing = true;
+
+    // Cancel watcher first to prevent reactive _autoClose race
+    _reminderWatcher?.cancel();
+
+    await getIt<AlarmService>().stopAlarm();
+
     if (_reminder == null) {
-      context.pop();
+      if (mounted) {
+        context.pop();
+      }
       return;
     }
 
@@ -106,7 +161,6 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
     );
 
     await getIt<ReminderRepository>().updateReminder(updated);
-    await getIt<AlarmService>().stopAlarm();
     await getIt<MonitoringCoordinator>().evaluateMonitoringState();
 
     if (mounted) {
@@ -115,8 +169,18 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
   }
 
   Future<void> _onSnooze(int minutes) async {
+    if (_isClosing) return;
+    _isClosing = true;
+
+    // Cancel watcher first to prevent reactive _autoClose race
+    _reminderWatcher?.cancel();
+
+    await getIt<AlarmService>().stopAlarm();
+
     if (_reminder == null) {
-      context.pop();
+      if (mounted) {
+        context.pop();
+      }
       return;
     }
 
@@ -128,7 +192,6 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
     );
 
     await getIt<ReminderRepository>().updateReminder(updated);
-    await getIt<AlarmService>().stopAlarm();
     await getIt<MonitoringCoordinator>().evaluateMonitoringState();
 
     if (mounted) {

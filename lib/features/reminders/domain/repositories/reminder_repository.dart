@@ -4,6 +4,7 @@ abstract class ReminderRepository {
   Future<List<ReminderEntity>> getAllReminders();
   Stream<List<ReminderEntity>> watchAllReminders();
   Future<ReminderEntity?> getReminderById(int id);
+  Stream<ReminderEntity?> watchReminderById(int id);
   Future<int> createReminder(ReminderEntity reminder);
   Future<void> updateReminder(ReminderEntity reminder);
   Future<void> deleteReminder(int id);
