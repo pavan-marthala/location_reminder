@@ -32,13 +32,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   MapboxMap? _mapboxMap;
   PointAnnotationManager? _centerPointManager;
   PointAnnotationManager? _handlePointManager;
-  PolygonAnnotationManager? _polygonAnnotationManager;
-  PolylineAnnotationManager? _polylineAnnotationManager;
 
-  PointAnnotation? _centerAnnotation;
   PointAnnotation? _handleAnnotation;
-  PolygonAnnotation? _polygonAnnotation;
-  PolylineAnnotation? _polylineAnnotation;
 
   double? _centerLat;
   double? _centerLng;
@@ -48,6 +43,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   Uint8List? _centerMarkerBytes;
   Uint8List? _handleMarkerBytes;
   Uint8List? _handleMarkerDraggingBytes;
+  Uint8List? _circleRasterBytes;
 
   late final ValueNotifier<double> _radiusMetersNotifier;
 
@@ -68,149 +64,161 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
 
   Future<void> _loadMarkerIcons() async {
     _centerMarkerBytes = await _createCenterMarkerBytes();
-    _handleMarkerBytes = await _createBeanMarkerBytes(dragging: false);
-    _handleMarkerDraggingBytes = await _createBeanMarkerBytes(dragging: true);
+    _handleMarkerBytes = await _createCircularHandleBytes(dragging: false);
+    _handleMarkerDraggingBytes = await _createCircularHandleBytes(dragging: true);
+    _circleRasterBytes = await _createCircleRasterBytes();
   }
 
   Future<Uint8List> _createCenterMarkerBytes() async {
     final ui.PictureRecorder recorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(recorder);
-    const double width = 48.0;
-    const double height = 64.0;
+    const double width = 128.0;
+    const double height = 128.0;
+    final double cx = width / 2;
+    final double cy = height / 2;
 
-    final Path path = Path();
-    path.moveTo(width / 2, 0);
-    path.arcToPoint(
-      const Offset(width, height * 0.4),
-      radius: const Radius.circular(24),
-      largeArc: false,
-    );
-    path.quadraticBezierTo(width, height * 0.7, width / 2, height);
-    path.quadraticBezierTo(0, height * 0.7, 0, height * 0.4);
-    path.arcToPoint(
-      const Offset(width / 2, 0),
-      radius: const Radius.circular(24),
-      largeArc: false,
-    );
+    // 1. Soft outer shadow for elevation
+    final Paint shadowPaint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.25)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6.0);
+    canvas.drawCircle(Offset(cx, cy + 2.0), 30.0, shadowPaint);
 
-    final Paint fillPaint = Paint()
-      ..color = const Color(0xFFE53935)
+    // 2. Translucent outer blue accuracy/pulse ring
+    final Paint haloPaint = Paint()
+      ..color = const Color(0xFF00B0FF).withValues(alpha: 0.16)
       ..style = PaintingStyle.fill;
-    canvas.drawPath(path, fillPaint);
+    canvas.drawCircle(Offset(cx, cy), 28.0, haloPaint);
 
+    // 3. Crisp white concentric border ring
     final Paint borderPaint = Paint()
       ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0;
-    canvas.drawPath(path, borderPaint);
-
-    final Paint innerCirclePaint = Paint()
-      ..color = Colors.white
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(const Offset(width / 2, height * 0.4), 8.0, innerCirclePaint);
+    canvas.drawCircle(Offset(cx, cy), 16.0, borderPaint);
 
-    final Paint innerRedDotPaint = Paint()
-      ..color = const Color(0xFFB71C1C)
+    // 4. Vibrant blue core circle
+    final Paint corePaint = Paint()
+      ..color = const Color(0xFF00B0FF)
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(const Offset(width / 2, height * 0.4), 4.0, innerRedDotPaint);
+    canvas.drawCircle(Offset(cx, cy), 12.0, corePaint);
+
+    // 5. Light-source reflection highlight on the blue core
+    final Paint highlightPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.45)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(cx - 3.0, cy - 3.0), 3.5, highlightPaint);
 
     final ui.Image image = await recorder.endRecording().toImage(width.toInt(), height.toInt());
     final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     return byteData!.buffer.asUint8List();
   }
 
-  Path _createBeanPath(double width, double height) {
-    final Path path = Path();
-    final double cx = width / 2;
-    final double cy = height / 2;
-    
-    path.moveTo(cx - 15, cy - 20);
-    
-    // Top rounded end (semi-circular cap)
-    path.cubicTo(cx - 15, cy - 35, cx + 15, cy - 35, cx + 15, cy - 20);
-    
-    // Outer convex curve (right side bulge)
-    path.cubicTo(cx + 30, cy - 5, cx + 30, cy + 5, cx + 15, cy + 20);
-    
-    // Bottom rounded end (semi-circular cap)
-    path.cubicTo(cx + 15, cy + 35, cx - 15, cy + 35, cx - 15, cy + 20);
-    
-    // Inner concave curve (left side indentation)
-    path.cubicTo(cx + 2, cy + 10, cx + 2, cy - 10, cx - 15, cy - 20);
-    
-    path.close();
-    return path;
-  }
-
-  Future<Uint8List> _createBeanMarkerBytes({required bool dragging}) async {
+  Future<Uint8List> _createCircularHandleBytes({required bool dragging}) async {
     final ui.PictureRecorder recorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(recorder);
-    
-    final double scale = dragging ? 1.25 : 1.0;
-    const double baseWidth = 80.0;
-    const double baseHeight = 80.0;
-    
-    canvas.save();
-    canvas.translate(baseWidth / 2, baseHeight / 2);
-    canvas.scale(scale);
-    canvas.translate(-baseWidth / 2, -baseHeight / 2);
-    
-    final Path path = _createBeanPath(baseWidth, baseHeight);
-    
-    // 1. Draw Shadow
+    const double width = 128.0;
+    const double height = 128.0;
+    final double cx = width / 2;
+    final double cy = height / 2;
+
+    // Google Maps-style circular drag handle
+    // Base circle radius is 20.0. When dragging, it scales up to 25.0.
+    final double radius = dragging ? 25.0 : 20.0;
+
+    // 1. Soft outer drop shadow for elevation
     final Paint shadowPaint = Paint()
-      ..color = Colors.black.withValues(alpha: dragging ? 0.45 : 0.3)
+      ..color = Colors.black.withValues(alpha: dragging ? 0.35 : 0.25)
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, dragging ? 8.0 : 4.0);
-    
-    canvas.save();
-    canvas.translate(2, dragging ? 4 : 2);
-    canvas.drawPath(path, shadowPaint);
-    canvas.restore();
-    
-    // 2. Glow if dragging
-    if (dragging) {
-      final Paint glowPaint = Paint()
-        ..color = const Color(0xFF1976D2).withValues(alpha: 0.5)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6.0);
-      canvas.drawPath(path, glowPaint);
-    }
-    
-    // 3. Glass Fill with white/grey contrast gradient
+    canvas.drawCircle(Offset(cx, cy + (dragging ? 3.0 : 1.5)), radius, shadowPaint);
+
+    // 2. Base white fill
     final Paint fillPaint = Paint()
-      ..shader = ui.Gradient.linear(
-        const Offset(20, 20),
-        const Offset(60, 60),
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(cx, cy), radius, fillPaint);
+
+    // 3. Vibrant blue border
+    final Paint borderPaint = Paint()
+      ..color = const Color(0xFF00B0FF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0;
+    canvas.drawCircle(Offset(cx, cy), radius, borderPaint);
+
+    // 4. Subtle inner light highlight
+    final Paint innerHighlight = Paint()
+      ..color = Colors.white.withValues(alpha: 0.3)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    canvas.drawCircle(Offset(cx, cy), radius - 1.5, innerHighlight);
+
+    final ui.Image image = await recorder.endRecording().toImage(width.toInt(), height.toInt());
+    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
+  }
+
+  Future<Uint8List> _createCircleRasterBytes() async {
+    final ui.PictureRecorder recorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(recorder);
+    const double size = 512.0;
+    final double cx = size / 2;
+    final double cy = size / 2;
+    // We leave a 16px margin for the soft glow, so radius is 240px
+    const double radius = 240.0;
+
+    // 1. Soft Blue Radial Gradient Fill (80-90% Map Visibility)
+    final Paint fillPaint = Paint()
+      ..shader = ui.Gradient.radial(
+        Offset(cx, cy),
+        radius,
         [
-          Colors.white.withValues(alpha: 0.55),
-          Colors.white.withValues(alpha: 0.15),
+          const Color(0xFF00B0FF).withValues(alpha: 0.03), // Lighter center (97% visibility)
+          const Color(0xFF00B0FF).withValues(alpha: 0.20), // Darker edge (80% visibility)
         ],
       )
       ..style = PaintingStyle.fill;
-    canvas.drawPath(path, fillPaint);
-    
-    // 4. White highlight border
-    final Paint borderPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.85)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
-    canvas.drawPath(path, borderPaint);
+    canvas.drawCircle(Offset(cx, cy), radius, fillPaint);
 
-    // 5. Draw two vertical grip lines in the middle
-    final Paint gripPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.45)
+    // 2. Outer Blue Soft Glow (Thick, highly blurred)
+    final Paint glowPaint = Paint()
+      ..color = const Color(0xFF00B0FF).withValues(alpha: 0.35)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
-    
-    final double centerX = baseWidth / 2;
-    final double centerY = baseHeight / 2;
-    canvas.drawLine(Offset(centerX - 4, centerY - 6), Offset(centerX - 4, centerY + 6), gripPaint);
-    canvas.drawLine(Offset(centerX + 4, centerY - 6), Offset(centerX + 4, centerY + 6), gripPaint);
-    
-    canvas.restore();
-    
-    final ui.Image image = await recorder.endRecording().toImage(baseWidth.toInt(), baseHeight.toInt());
+      ..strokeWidth = 10.0
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6.0);
+    _drawDashedCircle(canvas, Offset(cx, cy), radius, glowPaint);
+
+    // 3. Blue Base Border
+    final Paint baseBorderPaint = Paint()
+      ..color = const Color(0xFF00B0FF).withValues(alpha: 0.8)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0;
+    _drawDashedCircle(canvas, Offset(cx, cy), radius, baseBorderPaint);
+
+    // 4. White Highlight Stroke (Crisp inner reflection)
+    final Paint highlightPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.9)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    _drawDashedCircle(canvas, Offset(cx, cy), radius, highlightPaint);
+
+    final ui.Image image = await recorder.endRecording().toImage(size.toInt(), size.toInt());
     final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     return byteData!.buffer.asUint8List();
+  }
+
+  void _drawDashedCircle(Canvas canvas, Offset center, double radius, Paint paint, {double dashLength = 5.0, double spaceLength = 5.0}) {
+    final double circumference = 2 * pi * radius;
+    final int dashCount = (circumference / (dashLength + spaceLength)).floor();
+    final double angleStep = 2 * pi / dashCount;
+    final double dashAngle = angleStep * (dashLength / (dashLength + spaceLength));
+    for (int i = 0; i < dashCount; i++) {
+      final double startAngle = i * angleStep;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        dashAngle,
+        false,
+        paint,
+      );
+    }
   }
 
   Future<void> _onMapCreated(MapboxMap mapboxMap) async {
@@ -233,10 +241,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     // Initialize Annotation Managers
     _centerPointManager = await mapboxMap.annotations.createPointAnnotationManager();
     _handlePointManager = await mapboxMap.annotations.createPointAnnotationManager();
-    _polygonAnnotationManager = await mapboxMap.annotations.createPolygonAnnotationManager();
-    _polylineAnnotationManager = await mapboxMap.annotations.createPolylineAnnotationManager();
 
-    // Listen to handle dragging
+    // Listen to handle dragging natively
     _handlePointManager!.dragEvents(
       onBegin: (annotation) {
         if (_handleAnnotation != null && _handleMarkerDraggingBytes != null) {
@@ -244,9 +250,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
           _handlePointManager!.update(_handleAnnotation!);
         }
       },
-      onChanged: (annotation) {
+      onChanged: (annotation) async {
         if (_centerLat == null || _centerLng == null) return;
-        if (_polygonAnnotation == null || _polylineAnnotation == null || _handleAnnotation == null) return;
+        if (_handleAnnotation == null) return;
 
         final handleCoords = annotation.geometry.coordinates;
         final distance = geo.Geolocator.distanceBetween(
@@ -269,23 +275,30 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
           handleCoords.lng.toDouble(),
         );
         final snappedPos = _getPositionAlongBearing(_centerLat!, _centerLng!, _radiusMeters, bearingRad);
-        final rotationDegrees = (bearingRad * 180 / pi) - 90;
 
         // Update geometries in memory
         _handleAnnotation!.geometry = Point(coordinates: snappedPos);
-        _handleAnnotation!.iconRotate = rotationDegrees;
         if (_handleMarkerDraggingBytes != null) {
           _handleAnnotation!.image = _handleMarkerDraggingBytes;
         }
-        final circlePolygon = _generateCirclePolygon(_centerLat!, _centerLng!, _radiusMeters);
-        _polygonAnnotation!.geometry = Polygon(coordinates: circlePolygon);
-        _polylineAnnotation!.geometry = LineString(coordinates: circlePolygon[0]);
 
-        // Concurrently update native annotations to maximize frame rate and eliminate flicker
+        // Calculate bounding box for geofence circle
+        const double earthRadius = 6378137.0;
+        final double latOffset = (_radiusMeters / earthRadius) * (180.0 / pi);
+        final double latRad = _centerLat! * pi / 180.0;
+        final double lngOffset = (_radiusMeters / (earthRadius * cos(latRad))) * (180.0 / pi);
+
+        final List<List<double>> coordinates = [
+          [_centerLng! - lngOffset, _centerLat! + latOffset], // top-left
+          [_centerLng! + lngOffset, _centerLat! + latOffset], // top-right
+          [_centerLng! + lngOffset, _centerLat! - latOffset], // bottom-right
+          [_centerLng! - lngOffset, _centerLat! - latOffset], // bottom-left
+        ];
+
+        // Concurrently update native handle and geofence coordinates
         Future.wait([
           _handlePointManager!.update(_handleAnnotation!),
-          _polygonAnnotationManager!.update(_polygonAnnotation!),
-          _polylineAnnotationManager!.update(_polylineAnnotation!),
+          mapboxMap.style.setStyleSourceProperty('geofence-image-source', 'coordinates', coordinates),
         ]).catchError((e) {
           debugPrint('Error updating geofence annotations: $e');
           return const <void>[];
@@ -343,28 +356,6 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     return 10.0;
   }
 
-  List<List<Position>> _generateCirclePolygon(double latitude, double longitude, double radiusMeters) {
-    const int points = 64;
-    final List<Position> coordinates = [];
-    const double earthRadius = 6378137; // in meters
-
-    final latRad = latitude * pi / 180;
-    final lngRad = longitude * pi / 180;
-
-    for (int i = 0; i <= points; i++) {
-      final angle = i * 2 * pi / points;
-
-      final radial = radiusMeters / earthRadius;
-      final newLatRad = asin(sin(latRad) * cos(radial) + cos(latRad) * sin(radial) * cos(angle));
-      final newLngRad = lngRad +
-          atan2(sin(angle) * sin(radial) * cos(latRad),
-              cos(radial) - sin(latRad) * sin(newLatRad));
-
-      coordinates.add(Position(newLngRad * 180 / pi, newLatRad * 180 / pi));
-    }
-    return [coordinates];
-  }
-
   double _calculateBearing(double lat1, double lon1, double lat2, double lon2) {
     final lat1Rad = lat1 * pi / 180;
     final lat2Rad = lat2 * pi / 180;
@@ -393,14 +384,14 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   Future<void> _drawCircleAndHandle() async {
     if (_centerLat == null || _centerLng == null) return;
 
-    // 1. Draw Center Annotation
+    // 1. Draw Center Annotation (Native Ground Anchor Marker)
     if (_centerPointManager != null && _centerMarkerBytes != null) {
       await _centerPointManager!.deleteAll();
-      _centerAnnotation = await _centerPointManager!.create(
+      await _centerPointManager!.create(
         PointAnnotationOptions(
           geometry: Point(coordinates: Position(_centerLng!, _centerLat!)),
           image: _centerMarkerBytes,
-          iconAnchor: IconAnchor.BOTTOM,
+          iconAnchor: IconAnchor.CENTER,
         ),
       );
     }
@@ -409,48 +400,80 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   }
 
   Future<void> _drawCircleAndHandleOnly() async {
-    if (_centerLat == null || _centerLng == null) return;
+    if (_centerLat == null || _centerLng == null || _mapboxMap == null) return;
 
-    final circlePolygon = _generateCirclePolygon(_centerLat!, _centerLng!, _radiusMeters);
+    final style = _mapboxMap!.style;
+    final sourceId = 'geofence-image-source';
+    final layerId = 'geofence-raster-layer';
 
-    // 2. Draw Geofence Circle Polygon
-    if (_polygonAnnotationManager != null) {
-      await _polygonAnnotationManager!.deleteAll();
-      _polygonAnnotation = await _polygonAnnotationManager!.create(
-        PolygonAnnotationOptions(
-          geometry: Polygon(coordinates: circlePolygon),
-          fillColor: Colors.blue.withValues(alpha: 0.15).toARGB32(),
-          fillOutlineColor: Colors.transparent.toARGB32(),
-        ),
+    // Calculate geofence bounding box
+    const double earthRadius = 6378137.0;
+    final double latOffset = (_radiusMeters / earthRadius) * (180.0 / pi);
+    final double latRad = _centerLat! * pi / 180.0;
+    final double lngOffset = (_radiusMeters / (earthRadius * cos(latRad))) * (180.0 / pi);
+
+    final List<List<double>> coordinates = [
+      [_centerLng! - lngOffset, _centerLat! + latOffset], // top-left
+      [_centerLng! + lngOffset, _centerLat! + latOffset], // top-right
+      [_centerLng! + lngOffset, _centerLat! - latOffset], // bottom-right
+      [_centerLng! - lngOffset, _centerLat! - latOffset], // bottom-left
+    ];
+
+    // Add or update the native ImageSource
+    final existsSource = await style.styleSourceExists(sourceId);
+    if (!existsSource) {
+      final source = ImageSource(
+        id: sourceId,
+        coordinates: coordinates,
       );
+      await style.addSource(source);
+
+      if (_circleRasterBytes != null) {
+        final mbxImage = MbxImage(width: 512, height: 512, data: _circleRasterBytes!);
+        await style.updateStyleImageSourceImage(sourceId, mbxImage);
+      }
+    } else {
+      await style.setStyleSourceProperty(sourceId, 'coordinates', coordinates);
     }
 
-    // 2b. Draw Geofence Circle Polyline (for thick prominent border)
-    if (_polylineAnnotationManager != null) {
-      await _polylineAnnotationManager!.deleteAll();
-      _polylineAnnotation = await _polylineAnnotationManager!.create(
-        PolylineAnnotationOptions(
-          geometry: LineString(coordinates: circlePolygon[0]),
-          lineColor: Colors.blue.toARGB32(),
-          lineWidth: 4.0,
-          lineOpacity: 0.8,
-        ),
+    // Add RasterLayer if it doesn't exist, placing it below map symbol/label layers
+    final existsLayer = await style.styleLayerExists(layerId);
+    if (!existsLayer) {
+      String? firstSymbolId;
+      try {
+        final layers = await style.getStyleLayers();
+        for (final layerInfo in layers) {
+          if (layerInfo != null && layerInfo.type == 'symbol') {
+            firstSymbolId = layerInfo.id;
+            break;
+          }
+        }
+      } catch (e) {
+        debugPrint('Failed to get style layers: $e');
+      }
+
+      final layer = RasterLayer(
+        id: layerId,
+        sourceId: sourceId,
       );
+
+      if (firstSymbolId != null) {
+        await style.addLayerAt(layer, LayerPosition(below: firstSymbolId));
+      } else {
+        await style.addLayer(layer);
+      }
     }
 
-    // 3. Draw Draggable Handle Annotation
+    // 3. Draw Draggable Handle Annotation (Draggable Circle)
     if (_handlePointManager != null && _handleMarkerBytes != null) {
       await _handlePointManager!.deleteAll();
       final handlePos = _getHandlePosition(_centerLat!, _centerLng!, _radiusMeters);
-      final bearingRad = _calculateBearing(_centerLat!, _centerLng!, handlePos.lat.toDouble(), handlePos.lng.toDouble());
-      final rotationDegrees = (bearingRad * 180 / pi) - 90;
 
       _handleAnnotation = await _handlePointManager!.create(
         PointAnnotationOptions(
           geometry: Point(coordinates: handlePos),
           image: _handleMarkerBytes,
           iconAnchor: IconAnchor.CENTER,
-          iconRotate: rotationDegrees,
           isDraggable: true,
         ),
       );
