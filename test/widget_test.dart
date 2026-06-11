@@ -101,6 +101,7 @@ class MockPermissionValidationService implements PermissionValidationService {
 class MockSettingsService implements SettingsService {
   String _alarmTone = 'assets/audio/Daybreak.mp3';
   bool _monitoringEnabled = true;
+  bool _onboardingCompleted = false;
 
   @override
   Future<void> saveSelectedAlarmTonePath(String path) async {
@@ -117,6 +118,14 @@ class MockSettingsService implements SettingsService {
 
   @override
   bool isMonitoringEnabled() => _monitoringEnabled;
+
+  @override
+  Future<void> setOnboardingCompleted(bool completed) async {
+    _onboardingCompleted = completed;
+  }
+
+  @override
+  bool isOnboardingCompleted() => _onboardingCompleted;
 }
 
 class MockMonitoringCoordinator implements MonitoringCoordinator {
@@ -181,6 +190,6 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify that the title is displayed.
-    expect(find.text('Infrastructure Validation'), findsOneWidget);
+    expect(find.text('Never Miss Your Stop Again'), findsOneWidget);
   });
 }

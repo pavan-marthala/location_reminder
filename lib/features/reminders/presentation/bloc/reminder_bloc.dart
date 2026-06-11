@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import 'package:reminders/core/di/injection.dart';
+import 'package:reminders/core/services/alarm_scheduler_service.dart';
 import 'package:reminders/core/services/monitoring_coordinator.dart';
 import 'package:reminders/features/reminders/domain/entities/reminder_entity.dart';
 import 'package:reminders/features/reminders/domain/usecases/create_reminder_usecase.dart';
@@ -85,6 +87,9 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
   ) async {
     try {
       await _deleteReminder(event.id);
+      try {
+        await getIt<AlarmSchedulerService>().cancelSnooze(event.id);
+      } catch (_) {}
       await _monitoringCoordinator.evaluateMonitoringState();
       add(const ReminderEvent.loadReminders());
     } catch (e) {
@@ -122,6 +127,11 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
       );
 
       await _updateReminder(reminder);
+      if (!event.isEnabled) {
+        try {
+          await getIt<AlarmSchedulerService>().cancelSnooze(event.id);
+        } catch (_) {}
+      }
       await _monitoringCoordinator.evaluateMonitoringState();
     } catch (e) {
       emit(ReminderState.error(message: 'Failed to toggle reminder: $e'));

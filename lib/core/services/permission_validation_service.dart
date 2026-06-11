@@ -1,5 +1,7 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:injectable/injectable.dart';
+import 'package:reminders/core/di/injection.dart';
+import 'package:reminders/core/services/settings_service.dart';
 import 'location_service.dart';
 import 'notification_service.dart';
 
@@ -22,8 +24,8 @@ class PermissionValidationServiceImpl implements PermissionValidationService {
   @override
   Future<bool> isAppReady() async {
     final locationReady = await isLocationAlwaysGranted();
-    final notificationsReady = await isNotificationGranted();
-    return locationReady && notificationsReady;
+    final onboardingCompleted = getIt<SettingsService>().isOnboardingCompleted();
+    return locationReady && onboardingCompleted;
   }
 
   @override

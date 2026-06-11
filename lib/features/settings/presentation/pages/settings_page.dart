@@ -31,8 +31,10 @@ class _SettingsPageView extends StatelessWidget {
   String _getAlarmToneName(String? path) {
     if (path == null) return 'Daybreak';
     if (path.contains('Daybreak')) return 'Daybreak';
-    if (path.contains('SlowMorning') || path.contains('Slow_Morning')) return 'Slow Morning';
-    if (path.contains('Earth_Day') || path.contains('EarthDay')) return 'Earth Day';
+    if (path.contains('SlowMorning') || path.contains('Slow_Morning'))
+      return 'Slow Morning';
+    if (path.contains('Earth_Day') || path.contains('EarthDay'))
+      return 'Earth Day';
     return path.split('/').last;
   }
 
@@ -49,13 +51,12 @@ class _SettingsPageView extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Settings'), centerTitle: true),
       body: Container(
         decoration: BoxDecoration(
-          gradient: context.isDark ? gradients.backgroundDark : gradients.backgroundLight,
+          gradient: context.isDark
+              ? gradients.backgroundDark
+              : gradients.backgroundLight,
         ),
         child: BlocConsumer<ValidationBloc, ValidationState>(
           listener: (context, state) {
@@ -136,15 +137,24 @@ class _SettingsPageView extends StatelessWidget {
                         children: [
                           Text(
                             'Selected Alarm Tone',
-                            style: typography.bodyMedium.copyWith(color: colors.textSecondary),
+                            style: typography.bodyMedium.copyWith(
+                              color: colors.textSecondary,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
-                            initialValue: state.selectedAlarmTone != null &&
-                                    availableTones.any((element) =>
-                                        element['path'] == state.selectedAlarmTone)
+                            initialValue:
+                                state.selectedAlarmTone != null &&
+                                    availableTones.any(
+                                      (element) =>
+                                          element['path'] ==
+                                          state.selectedAlarmTone,
+                                    )
                                 ? state.selectedAlarmTone
                                 : Assets.audioDaybreak,
+                            dropdownColor: colors.card,
+                            borderRadius: BorderRadius.circular(16),
+                            enableFeedback: true,
                             items: availableTones.map((tone) {
                               return DropdownMenuItem<String>(
                                 value: tone['path'],
@@ -152,7 +162,12 @@ class _SettingsPageView extends StatelessWidget {
                               );
                             }).toList(),
                             decoration: InputDecoration(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              filled: false,
+
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(color: colors.border),
@@ -161,9 +176,14 @@ class _SettingsPageView extends StatelessWidget {
                             onChanged: (newValue) {
                               if (newValue != null) {
                                 context.read<ValidationBloc>().add(
-                                  ValidationEvent.changeAlarmTone(path: newValue),
+                                  ValidationEvent.changeAlarmTone(
+                                    path: newValue,
+                                  ),
                                 );
-                                showSuccessToast(message: 'Alarm tone updated to ${_getAlarmToneName(newValue)}');
+                                showSuccessToast(
+                                  message:
+                                      'Alarm tone updated to ${_getAlarmToneName(newValue)}',
+                                );
                               }
                             },
                           ),
@@ -172,8 +192,12 @@ class _SettingsPageView extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: AppButton(
-                                  text: state.isAlarmPlaying ? 'Stop Test Alarm' : 'Play Test Alarm',
-                                  color: state.isAlarmPlaying ? colors.error : colors.success,
+                                  text: state.isAlarmPlaying
+                                      ? 'Stop Test Alarm'
+                                      : 'Play Test Alarm',
+                                  color: state.isAlarmPlaying
+                                      ? colors.error
+                                      : colors.success,
                                   onPressed: () {
                                     context.read<ValidationBloc>().add(
                                       state.isAlarmPlaying
@@ -197,8 +221,18 @@ class _SettingsPageView extends StatelessWidget {
                     child: Column(
                       children: [
                         SwitchListTile(
-                          title: Text('Enable Monitoring', style: typography.bodyLarge.copyWith(fontWeight: FontWeight.bold)),
-                          subtitle: Text('Allow background checking for active reminders', style: typography.bodySmall.copyWith(color: colors.textTertiary)),
+                          title: Text(
+                            'Enable Monitoring',
+                            style: typography.bodyLarge.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Allow background checking for active reminders',
+                            style: typography.bodySmall.copyWith(
+                              color: colors.textTertiary,
+                            ),
+                          ),
                           value: state.isMonitoringEnabled,
                           activeThumbColor: colors.primary,
                           onChanged: (val) {
@@ -228,13 +262,17 @@ class _SettingsPageView extends StatelessWidget {
                                   children: [
                                     Text(
                                       'Background Service Status',
-                                      style: typography.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                                      style: typography.bodyMedium.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                     Text(
                                       state.isBackgroundServiceRunning
                                           ? 'Running and ready'
                                           : 'Stopped',
-                                      style: typography.bodySmall.copyWith(color: colors.textTertiary),
+                                      style: typography.bodySmall.copyWith(
+                                        color: colors.textTertiary,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -244,8 +282,18 @@ class _SettingsPageView extends StatelessWidget {
                         ),
                         const Divider(height: 1),
                         ListTile(
-                          title: Text('Developer Tools', style: typography.bodyLarge.copyWith(fontWeight: FontWeight.bold)),
-                          subtitle: Text('Expose coordinates, distance, geofences, and evaluation logs', style: typography.bodySmall.copyWith(color: colors.textTertiary)),
+                          title: Text(
+                            'Developer Tools',
+                            style: typography.bodyLarge.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Expose coordinates, distance, geofences, and evaluation logs',
+                            style: typography.bodySmall.copyWith(
+                              color: colors.textTertiary,
+                            ),
+                          ),
                           trailing: const Icon(Icons.chevron_right_rounded),
                           onTap: () {
                             context.push(AppRoutes.developerTools);
@@ -302,7 +350,9 @@ class _SettingsPageView extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: typography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+              style: typography.bodyMedium.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           if (!isGranted)
@@ -310,13 +360,19 @@ class _SettingsPageView extends StatelessWidget {
               onPressed: onAction,
               child: Text(
                 'Request',
-                style: TextStyle(color: colors.primary, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: colors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             )
           else
             Text(
               'Granted',
-              style: typography.bodySmall.copyWith(color: colors.success, fontWeight: FontWeight.bold),
+              style: typography.bodySmall.copyWith(
+                color: colors.success,
+                fontWeight: FontWeight.bold,
+              ),
             ),
         ],
       ),

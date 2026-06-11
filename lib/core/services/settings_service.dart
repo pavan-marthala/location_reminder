@@ -7,6 +7,8 @@ abstract class SettingsService {
   String getSelectedAlarmTonePath();
   Future<void> saveMonitoringEnabled(bool enabled);
   bool isMonitoringEnabled();
+  Future<void> setOnboardingCompleted(bool completed);
+  bool isOnboardingCompleted();
 }
 
 @LazySingleton(as: SettingsService)
@@ -14,6 +16,7 @@ class SettingsServiceImpl implements SettingsService {
   final SharedPreferences _prefs;
   static const String _keyAlarmTonePath = 'selected_alarm_tone_path';
   static const String _keyMonitoringEnabled = 'monitoring_enabled';
+  static const String _keyOnboardingCompleted = 'onboarding_completed';
 
   SettingsServiceImpl(this._prefs);
 
@@ -37,5 +40,15 @@ class SettingsServiceImpl implements SettingsService {
   @override
   bool isMonitoringEnabled() {
     return _prefs.getBool(_keyMonitoringEnabled) ?? true;
+  }
+
+  @override
+  Future<void> setOnboardingCompleted(bool completed) async {
+    await _prefs.setBool(_keyOnboardingCompleted, completed);
+  }
+
+  @override
+  bool isOnboardingCompleted() {
+    return _prefs.getBool(_keyOnboardingCompleted) ?? false;
   }
 }

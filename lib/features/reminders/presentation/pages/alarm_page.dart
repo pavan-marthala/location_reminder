@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/theme/app_theme.dart';
 import 'package:reminders/core/services/alarm_service.dart';
+import 'package:reminders/core/services/alarm_scheduler_service.dart';
 import 'package:reminders/core/services/monitoring_coordinator.dart';
 import 'package:reminders/features/reminders/domain/entities/reminder_entity.dart';
 import 'package:reminders/features/reminders/domain/repositories/reminder_repository.dart';
@@ -61,7 +62,22 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
   Future<void> _loadReminder() async {
     try {
       final repo = getIt<ReminderRepository>();
-      final reminder = await repo.getReminderById(widget.reminderId);
+      var reminder = await repo.getReminderById(widget.reminderId);
+
+      if (reminder != null && reminder.status == 'snoozed') {
+        reminder = reminder.copyWith(
+          status: 'triggered',
+          isTriggered: true,
+          triggeredAt: DateTime.now(),
+          lastTriggeredAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+        await repo.updateReminder(reminder);
+        try {
+          await getIt<MonitoringCoordinator>().evaluateMonitoringState();
+        } catch (_) {}
+      }
+
       if (mounted) {
         setState(() {
           _reminder = reminder;
@@ -161,6 +177,9 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
     );
 
     await getIt<ReminderRepository>().updateReminder(updated);
+    try {
+      await getIt<AlarmSchedulerService>().cancelSnooze(widget.reminderId);
+    } catch (_) {}
     await getIt<MonitoringCoordinator>().evaluateMonitoringState();
 
     if (mounted) {
@@ -184,15 +203,9 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
       return;
     }
 
-    final updated = _reminder!.copyWith(
-      status: 'snoozed',
-      isTriggered: false,
-      snoozedUntil: DateTime.now().add(Duration(minutes: minutes)),
-      updatedAt: DateTime.now(),
-    );
-
-    await getIt<ReminderRepository>().updateReminder(updated);
-    await getIt<MonitoringCoordinator>().evaluateMonitoringState();
+    try {
+      await getIt<AlarmSchedulerService>().scheduleSnooze(widget.reminderId, minutes);
+    } catch (_) {}
 
     if (mounted) {
       context.pop(true);

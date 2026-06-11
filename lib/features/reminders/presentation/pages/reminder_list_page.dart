@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/routes/app_routes.dart';
 import 'package:reminders/core/theme/app_theme.dart';
+import 'package:reminders/core/utils/app_button.dart';
 import 'package:reminders/core/utils/app_toast.dart';
-import 'package:reminders/core/services/background_service.dart';
 import '../bloc/reminder_bloc.dart';
 import '../bloc/reminder_event.dart';
 import '../bloc/reminder_state.dart';
@@ -187,41 +187,67 @@ class _ReminderListView extends StatelessWidget {
   Widget _buildEmptyState(BuildContext context) {
     final colors = context.appColors;
     final typography = context.appTypography;
+    final isDark = context.isDark;
 
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(48),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Custom Generated Empty State Illustration
             Container(
-              width: 80,
-              height: 80,
+              height: 220,
+              width: double.infinity,
               decoration: BoxDecoration(
-                color: colors.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+                color: colors.card.withValues(alpha: isDark ? 0.3 : 0.6),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: colors.border.withValues(alpha: 0.5)),
+                boxShadow: [
+                  BoxShadow(
+                    color: colors.black.withValues(alpha: isDark ? 0.15 : 0.04),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
-              child: Icon(
-                Icons.add_location_alt_rounded,
-                size: 40,
-                color: colors.primary,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Image.asset(
+                  'assets/illustration_empty.png',
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             Text(
               'No Reminders Yet',
-              style: typography.titleMedium.copyWith(
-                fontWeight: FontWeight.bold,
+              style: typography.titleLarge.copyWith(
+                fontWeight: FontWeight.w800,
+                color: colors.textPrimary,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
-              'Tap the button below to create\nyour first location reminder.',
+              'Create a destination reminder and we’ll alert you when you’re nearby.',
               textAlign: TextAlign.center,
               style: typography.bodyMedium.copyWith(
-                color: colors.textTertiary,
+                color: colors.textSecondary,
                 height: 1.5,
               ),
+            ),
+            const SizedBox(height: 28),
+            // Custom CTA Button
+            AppButton(
+              text: 'Create Reminder',
+              color: colors.primary,
+              icon: const Icon(Icons.add_location_alt_rounded, color: Colors.white, size: 20),
+              onPressed: () async {
+                final result = await context.push<bool>(AppRoutes.createReminder);
+                if (result == true && context.mounted) {
+                  context.read<ReminderBloc>().add(const ReminderEvent.loadReminders());
+                }
+              },
             ),
           ],
         ),

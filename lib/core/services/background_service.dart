@@ -302,15 +302,9 @@ void onStart(ServiceInstance service) async {
         database.reminders,
       )..where((t) => t.isEnabled.equals(true))).get();
 
-      final evalTime = DateTime.now();
       final currentActive = currentEnabled.where((r) {
         if (r.isTriggered) return false;
-        if (r.status == 'disabled' || r.status == 'completed') return false;
-        if (r.status == 'snoozed' &&
-            r.snoozedUntil != null &&
-            r.snoozedUntil!.isAfter(evalTime)) {
-          return false;
-        }
+        if (r.status == 'disabled' || r.status == 'completed' || r.status == 'snoozed') return false;
         return true;
       }).toList();
 

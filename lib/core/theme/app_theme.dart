@@ -60,7 +60,7 @@ class AppTheme {
         shadow: colors.black,
         scrim: colors.black,
       ),
-
+      dropdownMenuTheme: DropdownMenuThemeData(menuStyle: MenuStyle()),
       scaffoldBackgroundColor: colors.background,
 
       appBarTheme: AppBarTheme(

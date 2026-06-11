@@ -1,11 +1,13 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:injectable/injectable.dart';
 import 'package:go_router/go_router.dart';
+import 'package:get_it/get_it.dart';
 import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/routes/app_routes.dart';
 import 'package:reminders/core/services/alarm_service.dart';
+import 'package:reminders/core/services/alarm_scheduler_service.dart';
 import 'package:reminders/core/services/monitoring_coordinator.dart';
 import 'package:reminders/features/reminders/domain/repositories/reminder_repository.dart';
 import 'package:reminders/main.dart';
@@ -201,16 +203,15 @@ Future<void> _handleNotificationAction(String actionId, int reminderId) async {
           updatedAt: DateTime.now(),
         );
         await repo.updateReminder(updated);
+        try {
+          await getIt<AlarmSchedulerService>().cancelSnooze(reminderId);
+        } catch (_) {}
         break;
 
       case 'snooze_5':
-        final updated = reminder.copyWith(
-          status: 'snoozed',
-          isTriggered: false,
-          snoozedUntil: DateTime.now().add(const Duration(minutes: 5)),
-          updatedAt: DateTime.now(),
-        );
-        await repo.updateReminder(updated);
+        try {
+          await getIt<AlarmSchedulerService>().scheduleSnooze(reminderId, 5);
+        } catch (_) {}
         break;
 
       default:
@@ -233,6 +234,20 @@ Future<void> _handleNotificationAction(String actionId, int reminderId) async {
 }
 
 @pragma('vm:entry-point')
-void _onBackgroundNotificationTapped(NotificationResponse response) {
-  debugPrint('Background notification tapped: ${response.payload}');
+void _onBackgroundNotificationTapped(NotificationResponse response) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  debugPrint('Background notification tapped: actionId=${response.actionId}, payload=${response.payload}');
+
+  final actionId = response.actionId;
+  final payload = response.payload;
+  final reminderId = payload != null ? int.tryParse(payload) : null;
+
+  if (actionId != null && actionId.isNotEmpty && reminderId != null && reminderId > 0) {
+    if (!GetIt.instance.isRegistered<ReminderRepository>()) {
+      try {
+        await configureDependencies();
+      } catch (_) {}
+    }
+    await _handleNotificationAction(actionId, reminderId);
+  }
 }

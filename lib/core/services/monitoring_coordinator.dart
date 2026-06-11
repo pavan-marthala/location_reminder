@@ -35,7 +35,7 @@ class MonitoringCoordinatorImpl implements MonitoringCoordinator {
   Future<void> evaluateMonitoringState() async {
     final explicitlyEnabled = _settingsService.isMonitoringEnabled();
     final reminders = await _reminderRepository.getAllReminders();
-    final hasActiveReminder = reminders.any((r) => r.isEnabled && !r.isTriggered);
+    final hasActiveReminder = reminders.any((r) => r.isEnabled && !r.isTriggered && r.status != 'snoozed');
 
     final shouldBeRunning = explicitlyEnabled && hasActiveReminder;
 
