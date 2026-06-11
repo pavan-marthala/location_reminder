@@ -1,4 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:injectable/injectable.dart';
 import 'package:reminders/core/services/settings_service.dart';
@@ -55,6 +56,7 @@ class AlarmServiceImpl implements AlarmService {
     await _audioPlayer.setReleaseMode(ReleaseMode.loop);
     await _audioPlayer.play(AssetSource(cleanPath));
     _isPlaying = true;
+    debugPrint('[SNOOZE] Audio playback started');
   }
 
   @override

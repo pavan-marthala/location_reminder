@@ -1,5 +1,7 @@
 // ignore_for_file: depend_on_referenced_packages
 
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -8,7 +10,7 @@ import 'package:reminders/core/services/monitoring_coordinator.dart';
 import 'package:reminders/features/reminders/domain/repositories/reminder_repository.dart';
 
 abstract class AlarmSchedulerService {
-  Future<void> scheduleSnooze(int reminderId, int minutes);
+  Future<void> scheduleSnooze(int reminderId, int minutes, {bool? forceExact});
   Future<void> cancelSnooze(int reminderId);
 }
 
@@ -24,7 +26,7 @@ class AlarmSchedulerServiceImpl implements AlarmSchedulerService {
   }
 
   @override
-  Future<void> scheduleSnooze(int reminderId, int minutes) async {
+  Future<void> scheduleSnooze(int reminderId, int minutes, {bool? forceExact}) async {
     final reminder = await _reminderRepository.getReminderById(reminderId);
     if (reminder == null) return;
 
@@ -42,6 +44,18 @@ class AlarmSchedulerServiceImpl implements AlarmSchedulerService {
 
     // Schedule notification relative to UTC time
     final scheduledDate = tz.TZDateTime.now(tz.UTC).add(Duration(minutes: minutes));
+
+    debugPrint('[SNOOZE] Scheduling notification');
+    debugPrint('[SNOOZE] Current Time: $now');
+    debugPrint('[SNOOZE] Scheduled Time: ${now.add(Duration(minutes: minutes))} (UTC: $scheduledDate)');
+
+    bool useExact = true;
+    if (forceExact != null) {
+      useExact = forceExact;
+    } else if (Platform.isAndroid) {
+      final androidPlugin = _localNotifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      useExact = await androidPlugin?.canScheduleExactNotifications() ?? false;
+    }
 
     final androidDetails = const AndroidNotificationDetails(
       'alarm_channel',
@@ -74,15 +88,24 @@ class AlarmSchedulerServiceImpl implements AlarmSchedulerService {
       iOS: const DarwinNotificationDetails(),
     );
 
-    await _localNotifications.zonedSchedule(
-      id: reminderId,
-      title: 'Reminder Triggered (Snoozed)!',
-      body: 'You are near: ${reminder.title}',
-      scheduledDate: scheduledDate,
-      notificationDetails: details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      payload: reminderId.toString(),
-    );
+    final scheduleMode = useExact ? AndroidScheduleMode.exactAllowWhileIdle : AndroidScheduleMode.inexactAllowWhileIdle;
+
+    try {
+      await _localNotifications.zonedSchedule(
+        id: reminderId,
+        title: 'Reminder Triggered (Snoozed)!',
+        body: 'You are near: ${reminder.title}',
+        scheduledDate: scheduledDate,
+        notificationDetails: details,
+        androidScheduleMode: scheduleMode,
+        payload: reminderId.toString(),
+      );
+      debugPrint('[SNOOZE] Notification scheduled successfully');
+      debugPrint('[SNOOZE] Notification ID: $reminderId (Mode: ${scheduleMode.name})');
+    } catch (e) {
+      debugPrint('[SNOOZE] Scheduling failed');
+      debugPrint('[SNOOZE] Exception: $e');
+    }
 
     // Evaluate monitoring state (will stop location service if no other active monitoring reminders remain)
     await getIt<MonitoringCoordinator>().evaluateMonitoringState();

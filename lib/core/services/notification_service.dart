@@ -161,6 +161,11 @@ void _onNotificationResponse(NotificationResponse response) {
   final payload = response.payload;
   final reminderId = payload != null ? int.tryParse(payload) : null;
 
+  if (reminderId != null) {
+    debugPrint('[SNOOZE] Notification callback received');
+    debugPrint('[SNOOZE] Reminder ID: $reminderId');
+  }
+
   // Handle action buttons (dismiss / snooze from notification shade)
   if (actionId != null && actionId.isNotEmpty && reminderId != null && reminderId > 0) {
     _handleNotificationAction(actionId, reminderId);
@@ -209,6 +214,9 @@ Future<void> _handleNotificationAction(String actionId, int reminderId) async {
         break;
 
       case 'snooze_5':
+        debugPrint('[SNOOZE] User selected snooze');
+        debugPrint('[SNOOZE] Reminder ID: $reminderId');
+        debugPrint('[SNOOZE] Duration selected: 5 minutes');
         try {
           await getIt<AlarmSchedulerService>().scheduleSnooze(reminderId, 5);
         } catch (_) {}
@@ -241,6 +249,11 @@ void _onBackgroundNotificationTapped(NotificationResponse response) async {
   final actionId = response.actionId;
   final payload = response.payload;
   final reminderId = payload != null ? int.tryParse(payload) : null;
+
+  if (reminderId != null) {
+    debugPrint('[SNOOZE] Notification callback received');
+    debugPrint('[SNOOZE] Reminder ID: $reminderId');
+  }
 
   if (actionId != null && actionId.isNotEmpty && reminderId != null && reminderId > 0) {
     if (!GetIt.instance.isRegistered<ReminderRepository>()) {

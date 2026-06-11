@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
 import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/theme/app_theme.dart';
@@ -65,6 +67,7 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
       var reminder = await repo.getReminderById(widget.reminderId);
 
       if (reminder != null && reminder.status == 'snoozed') {
+        debugPrint('[SNOOZE] Alarm page opened from snooze');
         reminder = reminder.copyWith(
           status: 'triggered',
           isTriggered: true,
@@ -188,7 +191,91 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
   }
 
   Future<void> _onSnooze(int minutes) async {
+    debugPrint('[SNOOZE] User selected snooze');
+    debugPrint('[SNOOZE] Reminder ID: ${widget.reminderId}');
+    debugPrint('[SNOOZE] Duration selected: $minutes minutes');
+
     if (_isClosing) return;
+
+    // Check exact alarm permission on Android first
+    bool useExact = true;
+    if (Platform.isAndroid) {
+      final androidPlugin = getIt<FlutterLocalNotificationsPlugin>()
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      final canSchedule = await androidPlugin?.canScheduleExactNotifications() ?? false;
+      if (!canSchedule) {
+        if (mounted) {
+          final result = await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              title: const Text('Enable Precise Snooze Alarms'),
+              content: const Text(
+                'To ensure snoozed alarms ring exactly on time, Android requires permission to schedule precise alarms.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false), // Continue Anyway
+                  child: const Text('Continue Anyway'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true), // Enable Precise Alarms
+                  child: const Text('Enable Precise Alarms'),
+                ),
+              ],
+            ),
+          );
+
+          if (result == true) {
+            // Enable Precise Alarms
+            final observer = _ResumeDetector();
+            WidgetsBinding.instance.addObserver(observer);
+
+            await androidPlugin?.requestExactAlarmsPermission();
+
+            // Wait for app to pause (move to background settings screen) or timeout after 1 second
+            final didPause = await observer.onPause
+                .timeout(const Duration(seconds: 1), onTimeout: () => false)
+                .then((_) => true);
+
+            if (didPause) {
+              // Wait for user to return to the app
+              await observer.onResume;
+            }
+
+            WidgetsBinding.instance.removeObserver(observer);
+
+            // Re-check after returning
+            final finalCanSchedule = await androidPlugin?.canScheduleExactNotifications() ?? false;
+            if (finalCanSchedule) {
+              useExact = true;
+            } else {
+              useExact = false;
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Snooze timing may be delayed while the device is idle.'),
+                    duration: Duration(seconds: 4),
+                  ),
+                );
+              }
+            }
+          } else {
+            // Continue Anyway
+            useExact = false;
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Snooze timing may be delayed while the device is idle.'),
+                  duration: Duration(seconds: 4),
+                ),
+              );
+            }
+          }
+        }
+      }
+    }
+
     _isClosing = true;
 
     // Cancel watcher first to prevent reactive _autoClose race
@@ -204,7 +291,7 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
     }
 
     try {
-      await getIt<AlarmSchedulerService>().scheduleSnooze(widget.reminderId, minutes);
+      await getIt<AlarmSchedulerService>().scheduleSnooze(widget.reminderId, minutes, forceExact: useExact);
     } catch (_) {}
 
     if (mounted) {
@@ -477,5 +564,26 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
         ),
       ),
     );
+  }
+}
+
+class _ResumeDetector extends WidgetsBindingObserver {
+  final Completer<void> _resumeCompleter = Completer<void>();
+  final Completer<void> _pauseCompleter = Completer<void>();
+
+  Future<void> get onPause => _pauseCompleter.future;
+  Future<void> get onResume => _resumeCompleter.future;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      if (!_pauseCompleter.isCompleted) {
+        _pauseCompleter.complete();
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      if (!_resumeCompleter.isCompleted) {
+        _resumeCompleter.complete();
+      }
+    }
   }
 }
