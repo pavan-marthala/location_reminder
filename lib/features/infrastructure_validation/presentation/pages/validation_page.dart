@@ -8,6 +8,7 @@ import 'package:reminders/core/services/settings_service.dart';
 import 'package:reminders/core/theme/app_theme.dart';
 import 'package:reminders/core/utils/app_button.dart';
 import 'package:reminders/core/utils/app_toast.dart';
+import 'package:reminders/core/utils/sized_context.dart';
 import '../bloc/validation_bloc.dart';
 import '../bloc/validation_event.dart';
 import '../bloc/validation_state.dart';
@@ -45,7 +46,8 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
 
     // Smart Return: if user already completed onboarding but location permission
     // was revoked, directly start at Location Permission (Step 2, index 1).
-    if (settings.isOnboardingCompleted() && !blocState.isLocationPermissionGranted) {
+    if (settings.isOnboardingCompleted() &&
+        !blocState.isLocationPermissionGranted) {
       _currentStep = 1;
     } else {
       _currentStep = 0;
@@ -93,8 +95,10 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
       backgroundColor: colors.background,
       body: BlocListener<ValidationBloc, ValidationState>(
         listenWhen: (previous, current) =>
-            previous.isLocationPermissionGranted != current.isLocationPermissionGranted ||
-            previous.isNotificationPermissionGranted != current.isNotificationPermissionGranted ||
+            previous.isLocationPermissionGranted !=
+                current.isLocationPermissionGranted ||
+            previous.isNotificationPermissionGranted !=
+                current.isNotificationPermissionGranted ||
             previous.errorMessage != current.errorMessage,
         listener: (context, state) async {
           await _checkLocationPermissionStatus();
@@ -106,7 +110,8 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
           // Automatically advance if permissions are granted
           if (state.isLocationPermissionGranted && _currentStep == 1) {
             _goToPage(2);
-          } else if (state.isNotificationPermissionGranted && _currentStep == 2) {
+          } else if (state.isNotificationPermissionGranted &&
+              _currentStep == 2) {
             _goToPage(3);
           }
         },
@@ -134,7 +139,10 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
               left: 20,
               right: 20,
               child: Row(
-                children: List.generate(4, (index) => _buildProgressIndicator(index)),
+                children: List.generate(
+                  4,
+                  (index) => _buildProgressIndicator(index),
+                ),
               ),
             ),
           ],
@@ -157,8 +165,8 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
           color: isCompleted
               ? colors.primary
               : isActive
-                  ? colors.primary.withValues(alpha: 0.5)
-                  : colors.white.withValues(alpha: 0.35),
+              ? colors.primary.withValues(alpha: 0.5)
+              : colors.white.withValues(alpha: 0.35),
           borderRadius: BorderRadius.circular(3),
         ),
       ),
@@ -173,7 +181,8 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
       key: const ValueKey('step_welcome'),
       imagePath: 'assets/illustration_welcome.png',
       headline: 'Never Miss Your Stop Again',
-      description: 'Set a destination and get alerted automatically when you are near your stop, station, office, or any location.',
+      description:
+          'Set a destination and get alerted automatically when you are near your stop, station, office, or any location.',
       ctaButton: AppButton(
         text: 'Continue',
         color: colors.primary,
@@ -187,7 +196,8 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
     final colors = context.appColors;
     final typography = context.appTypography;
     final isDenied = _locationPermissionStatus == LocationPermission.denied;
-    final isPermanentlyDenied = _locationPermissionStatus == LocationPermission.deniedForever;
+    final isPermanentlyDenied =
+        _locationPermissionStatus == LocationPermission.deniedForever;
 
     Widget? errorWidget;
     if (isDenied || isPermanentlyDenied) {
@@ -221,7 +231,8 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
       key: const ValueKey('step_location'),
       imagePath: 'assets/illustration_location.png',
       headline: 'Location Access Required',
-      description: 'We monitor your location to detect when you are approaching your selected destination.',
+      description:
+          'We monitor your location to detect when you are approaching your selected destination.',
       perks: const [
         'Detect arrival near destination',
         'Trigger geofence alarms',
@@ -233,14 +244,18 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
               text: 'Open Settings',
               color: colors.primary,
               onPressed: () {
-                context.read<ValidationBloc>().add(const ValidationEvent.openAppSettings());
+                context.read<ValidationBloc>().add(
+                  const ValidationEvent.openAppSettings(),
+                );
               },
             )
           : AppButton(
               text: isDenied ? 'Try Again' : 'Allow Location Access',
               color: colors.primary,
               onPressed: () {
-                context.read<ValidationBloc>().add(const ValidationEvent.requestLocationPermission());
+                context.read<ValidationBloc>().add(
+                  const ValidationEvent.requestLocationPermission(),
+                );
               },
             ),
     );
@@ -255,7 +270,8 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
       key: const ValueKey('step_notification'),
       imagePath: 'assets/illustration_notification.png',
       headline: 'Stay Updated',
-      description: 'Notifications help us alert you when alarms trigger and provide important updates.',
+      description:
+          'Notifications help us alert you when alarms trigger and provide important updates.',
       perks: const [
         'Alarm notifications',
         'Reminder updates',
@@ -265,7 +281,9 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
         text: 'Allow Notifications',
         color: colors.primary,
         onPressed: () {
-          context.read<ValidationBloc>().add(const ValidationEvent.requestNotificationPermission());
+          context.read<ValidationBloc>().add(
+            const ValidationEvent.requestNotificationPermission(),
+          );
         },
       ),
       secondaryButton: TextButton(
@@ -289,7 +307,8 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
       key: const ValueKey('step_completion'),
       imagePath: 'assets/illustration_completion.png',
       headline: 'You’re Ready To Go',
-      description: 'Create your first destination reminder and never miss your stop again.',
+      description:
+          'Create your first destination reminder and never miss your stop again.',
       ctaButton: AppButton(
         text: 'Start Using App',
         color: colors.primary,
@@ -338,15 +357,12 @@ class _OnboardingPageTemplate extends StatelessWidget {
           top: 0,
           left: 0,
           right: 0,
-          height: MediaQuery.of(context).size.height * 0.72,
+          height: context.heightPx,
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0.0, end: 1.0),
             duration: const Duration(milliseconds: 600),
             builder: (context, opacityValue, child) {
-              return Opacity(
-                opacity: opacityValue,
-                child: child,
-              );
+              return Opacity(opacity: opacityValue, child: child);
             },
             child: Image.asset(
               imagePath,
@@ -365,11 +381,9 @@ class _OnboardingPageTemplate extends StatelessWidget {
                 colors: [
                   Colors.transparent,
                   colors.background.withValues(alpha: 0.15),
-                  colors.background.withValues(alpha: 0.65),
-                  colors.background.withValues(alpha: 0.95),
                   colors.background,
                 ],
-                stops: const [0.0, 0.40, 0.58, 0.78, 1.0],
+                stops: const [0.0, 0.40, 1.0],
               ),
             ),
           ),
@@ -423,7 +437,9 @@ class _OnboardingPageTemplate extends StatelessWidget {
                     if (perks != null && perks!.isNotEmpty) ...[
                       const SizedBox(height: 20),
                       Column(
-                        children: perks!.map((p) => _buildPerkItem(context, p)).toList(),
+                        children: perks!
+                            .map((p) => _buildPerkItem(context, p))
+                            .toList(),
                       ),
                     ],
                     if (errorWidget != null) ...[
