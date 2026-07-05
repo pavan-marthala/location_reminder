@@ -92,6 +92,10 @@ class _MyAppState extends State<MyApp> {
     // Listen to background service updates to launch Alarm Screen
     getIt<BackgroundService>().backgroundUpdates.listen((event) {
       if (event != null) {
+        debugPrint(
+        "[MAIN] Event received");
+
+        debugPrint(event.toString());
         // Trigger DB reactive watchers on any background isolate state changes
         try {
           final db = getIt<AppDatabase>();
@@ -102,6 +106,8 @@ class _MyAppState extends State<MyApp> {
           final id = event['reminderId'] as int?;
           final title = event['reminderTitle'] as String?;
           if (id != null) {
+            debugPrint(
+            "[MAIN] Opening AlarmPage");
             _goRouter.push(AppRoutes.alarm, extra: {
               'id': id,
               'title': title ?? 'Reminder',

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'package:reminders/core/di/injection.dart';
@@ -59,8 +60,12 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
     Emitter<ReminderState> emit,
   ) async {
     try {
+      debugPrint("[BLOC] Creating reminder...");
       await _createReminder(event.reminder);
+      debugPrint("[BLOC] Reminder inserted successfully.");
+      debugPrint("[BLOC] Calling evaluateMonitoringState()");
       await _monitoringCoordinator.evaluateMonitoringState();
+      debugPrint("[BLOC] evaluateMonitoringState() finished");
       // Reload the list after creating
       add(const ReminderEvent.loadReminders());
     } catch (e) {

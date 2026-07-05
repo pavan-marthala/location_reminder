@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:reminders/core/services/background_service.dart';
 import 'package:reminders/core/services/settings_service.dart';
@@ -33,23 +34,46 @@ class MonitoringCoordinatorImpl implements MonitoringCoordinator {
 
   @override
   Future<void> evaluateMonitoringState() async {
+    debugPrint("======================================");
+    debugPrint("[COORDINATOR] evaluateMonitoringState()");
     final explicitlyEnabled = _settingsService.isMonitoringEnabled();
     final reminders = await _reminderRepository.getAllReminders();
+    debugPrint("[COORDINATOR] Total reminders: ${reminders.length}");
+
+    for (final r in reminders) {
+      debugPrint(
+          "[COORDINATOR] "
+          "ID=${r.id} "
+          "Title=${r.title} "
+          "Enabled=${r.isEnabled} "
+          "Triggered=${r.isTriggered} "
+          "Status=${r.status}");
+    }
+
     final hasActiveReminder = reminders.any((r) => r.isEnabled && !r.isTriggered && r.status != 'snoozed');
 
     final shouldBeRunning = explicitlyEnabled && hasActiveReminder;
+    debugPrint("[COORDINATOR] explicitlyEnabled=$explicitlyEnabled");
+    debugPrint("[COORDINATOR] hasActiveReminder=$hasActiveReminder");
+    debugPrint("[COORDINATOR] shouldBeRunning=$shouldBeRunning");
 
+    debugPrint("[COORDINATOR] Checking service state...");
     final isRunning = await _backgroundService.isRunning();
+    debugPrint("[COORDINATOR] isRunning=$isRunning");
 
     if (shouldBeRunning) {
       if (!isRunning) {
+        debugPrint("[COORDINATOR] Calling startService()");
         await _backgroundService.startService();
       }
     } else {
       if (isRunning) {
+        debugPrint("[COORDINATOR] Calling stopService()");
         await _backgroundService.stopService();
       }
     }
+    debugPrint("[COORDINATOR] Evaluation finished");
+    debugPrint("======================================");
   }
 
   @override
