@@ -86,6 +86,8 @@ class MockBackgroundService implements BackgroundService {
   @override
   Future<bool> isRunning() async => false;
   @override
+  Future<void> refreshMonitoring() async {}
+  @override
   Stream<Map<String, dynamic>?> get backgroundUpdates => const Stream.empty();
 }
 

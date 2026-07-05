@@ -65,6 +65,10 @@ class MonitoringCoordinatorImpl implements MonitoringCoordinator {
       if (!isRunning) {
         debugPrint("[COORDINATOR] Calling startService()");
         await _backgroundService.startService();
+      } else {
+        debugPrint("======================================\n[COORDINATOR]\nRequesting refreshMonitoring()\n======================================");
+        await _backgroundService.refreshMonitoring();
+        debugPrint("[COORDINATOR]\nrefreshMonitoring() completed");
       }
     } else {
       if (isRunning) {

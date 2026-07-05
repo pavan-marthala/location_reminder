@@ -19,6 +19,7 @@ abstract class BackgroundService {
   Future<void> startService();
   Future<void> stopService();
   Future<bool> isRunning();
+  Future<void> refreshMonitoring();
   Stream<Map<String, dynamic>?> get backgroundUpdates;
 }
 
@@ -110,6 +111,19 @@ class BackgroundServiceImpl implements BackgroundService {
   Future<bool> isRunning() {
     return FlutterBackgroundService().isRunning();
   }
+
+  @override
+  Future<void> refreshMonitoring() async {
+    try {
+      final running = await isRunning();
+      debugPrint("======================================\n[MAIN BACKGROUND SERVICE]\nrefreshMonitoring() called\nService running: $running\nInvoking 'refreshMonitoring'\nTime: ${DateTime.now().toIso8601String()}\n======================================");
+      final service = FlutterBackgroundService();
+      service.invoke('refreshMonitoring');
+      debugPrint("[MAIN BACKGROUND SERVICE]\ninvoke('refreshMonitoring') completed");
+    } catch (e, stackTrace) {
+      debugPrint("[MAIN BACKGROUND SERVICE]\nERROR invoking refreshMonitoring\n$e\n$stackTrace");
+    }
+  }
 }
 
 @pragma('vm:entry-point')
@@ -117,6 +131,7 @@ void onStart(ServiceInstance service) async {
   debugPrint("======================================");
   debugPrint("[BACKGROUND] Isolate Started");
   DartPluginRegistrant.ensureInitialized();
+  geo.Position? lastKnownPosition;
 
   // Helper to notify main isolate and update foreground notification info
   void updateState(String state, {String? details}) async {
@@ -282,6 +297,7 @@ void onStart(ServiceInstance service) async {
         timeLimit: Duration(seconds: 8),
       ),
     );
+    lastKnownPosition = firstPosition;
     debugPrint(
       '[GEOPROCESSOR] FIRST_LOCATION_RECEIVED: Lat: ${firstPosition.latitude}, Lng: ${firstPosition.longitude} at ${DateTime.now().toIso8601String()}',
     );
@@ -290,6 +306,9 @@ void onStart(ServiceInstance service) async {
       '[GEOPROCESSOR] getCurrentPosition timed out or failed: $e. Falling back to last known position.',
     );
     firstPosition = await geo.Geolocator.getLastKnownPosition();
+    if (firstPosition != null) {
+      lastKnownPosition = firstPosition;
+    }
   }
 
   // Common position evaluation function
@@ -485,6 +504,73 @@ void onStart(ServiceInstance service) async {
       debugPrint("[GEOFENCE] Evaluation finished");
     }
   }
+
+  bool isRefreshing = false;
+  bool hasPendingRefresh = false;
+
+  Future<void> handleRefresh() async {
+    debugPrint("======================================\n[BACKGROUND]\nhandleRefresh()\nisRefreshing=$isRefreshing\nhasPendingRefresh=$hasPendingRefresh\n======================================");
+    if (isRefreshing) {
+      debugPrint("[BACKGROUND]\nAlready refreshing\nSetting hasPendingRefresh=true\nReturning");
+      hasPendingRefresh = true;
+      return;
+    }
+    isRefreshing = true;
+
+    do {
+      hasPendingRefresh = false;
+      try {
+        final cachedAvailable = lastKnownPosition != null;
+        debugPrint("[BACKGROUND]\nCached location available: $cachedAvailable");
+        geo.Position? position = lastKnownPosition;
+        if (position == null) {
+          debugPrint("No cached location\nRequesting current position...");
+          try {
+            position = await geo.Geolocator.getCurrentPosition(
+              locationSettings: const geo.LocationSettings(
+                accuracy: geo.LocationAccuracy.high,
+                timeLimit: Duration(seconds: 8),
+              ),
+            );
+            lastKnownPosition = position;
+          } catch (e) {
+            debugPrint('[BACKGROUND] Failed to get position for refresh: $e');
+            position = await geo.Geolocator.getLastKnownPosition();
+            if (position != null) {
+              lastKnownPosition = position;
+            }
+          }
+        } else {
+          debugPrint("Using cached location\nLat=${position.latitude}\nLng=${position.longitude}");
+        }
+
+        if (position != null) {
+          if (!cachedAvailable) {
+            debugPrint("Current position acquired\nLat=${position.latitude}\nLng=${position.longitude}");
+          }
+          try {
+            debugPrint("======================================\n[BACKGROUND]\nCalling evaluatePosition()\n======================================");
+            await evaluatePosition(position, isInitial: false);
+            debugPrint("======================================\n[BACKGROUND]\nevaluatePosition() completed\n======================================");
+          } catch (e, stackTrace) {
+            debugPrint("======================================\n[BACKGROUND]\nevaluatePosition FAILED\n$e\n$stackTrace\n======================================");
+            rethrow;
+          }
+        }
+      } catch (e) {
+        debugPrint('[BACKGROUND] Refresh handling error: $e');
+      }
+    } while (hasPendingRefresh);
+
+    isRefreshing = false;
+    debugPrint("======================================\n[BACKGROUND]\nhandleRefresh completed\nPendingRefresh=$hasPendingRefresh\n======================================");
+  }
+
+  debugPrint("======================================\n[BACKGROUND]\nrefreshMonitoring listener registered\n======================================");
+  service.on('refreshMonitoring').listen((event) async {
+    debugPrint("======================================\n[BACKGROUND]\nrefreshMonitoring EVENT RECEIVED\nTime: ${DateTime.now().toIso8601String()}\n======================================");
+    await handleRefresh();
+  });
 
   // Initial geofence evaluation (Step 4: FIRST_GEOFENCE_EVALUATION)
   if (firstPosition != null) {
