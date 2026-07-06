@@ -323,6 +323,7 @@ void onStart(ServiceInstance service) async {
   final serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
   if (!serviceEnabled) {
     updateState('Error', details: 'Location services are disabled');
+    service.stopSelf();
     return;
   }
 
@@ -330,6 +331,7 @@ void onStart(ServiceInstance service) async {
   if (permission == geo.LocationPermission.denied ||
       permission == geo.LocationPermission.deniedForever) {
     updateState('WaitingForPermissions');
+    service.stopSelf();
     return;
   }
 
