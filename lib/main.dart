@@ -32,7 +32,10 @@ void main() async {
   // Initialize Core Services during bootstrap to register channels and prevent crashes
   await getIt<NotificationService>().init();
   await getIt<BackgroundService>().init();
-  await getIt<MonitoringCoordinator>().evaluateMonitoringState();
+  await getIt<MonitoringCoordinator>().evaluateMonitoringState(
+    source: 'main',
+    reason: 'app_start',
+  );
   await getIt<MapboxService>().init();
 
   runApp(const MyApp());
@@ -106,12 +109,18 @@ class _MyAppState extends State<MyApp> {
           final id = event['reminderId'] as int?;
           final title = event['reminderTitle'] as String?;
           if (id != null) {
-            debugPrint(
-            "[MAIN] Opening AlarmPage");
-            _goRouter.push(AppRoutes.alarm, extra: {
-              'id': id,
-              'title': title ?? 'Reminder',
-            });
+            final routeState = _goRouter.routerDelegate.currentConfiguration;
+            final isAlreadyAlarm = routeState.routes.any((route) => 
+                route is GoRoute && route.path == AppRoutes.alarm);
+            if (isAlreadyAlarm) {
+              debugPrint("[MAIN] Already on AlarmPage, skipping push");
+            } else {
+              debugPrint("[MAIN] Opening AlarmPage");
+              _goRouter.push(AppRoutes.alarm, extra: {
+                'id': id,
+                'title': title ?? 'Reminder',
+              });
+            }
           }
         }
       }

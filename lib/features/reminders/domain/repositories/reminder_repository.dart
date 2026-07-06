@@ -9,4 +9,5 @@ abstract class ReminderRepository {
   Future<void> updateReminder(ReminderEntity reminder);
   Future<void> deleteReminder(int id);
   Future<void> toggleReminder(int id, bool isEnabled);
+  Future<int> reactivateExpiredSnoozes();
 }

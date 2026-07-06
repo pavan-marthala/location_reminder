@@ -102,4 +102,65 @@ void main() {
 
     await db.close();
   });
+
+  test('Simulate 10-second snooze and expiration flow', () async {
+    final db = AppDatabase(NativeDatabase.memory());
+    final datasource = ReminderLocalDatasourceImpl(db);
+    final repo = ReminderRepositoryImpl(datasource);
+
+    print('\n=== SNOOZE TEST: Creating and triggering reminder ===');
+    final r = ReminderEntity(
+      id: 39,
+      title: 'Yenni',
+      latitude: 1.0,
+      longitude: 1.0,
+      radiusMeters: 100.0,
+      alarmTone: 'daybreak',
+      createdAt: DateTime.now(),
+    );
+    final generatedId = await repo.createReminder(r);
+
+    // Trigger it
+    final triggerCompanion = RemindersCompanion(
+      id: Value(generatedId),
+      isTriggered: const Value(true),
+      status: const Value('triggered'),
+      triggeredAt: Value(DateTime.now()),
+      lastTriggeredAt: Value(DateTime.now()),
+      updatedAt: Value(DateTime.now()),
+    );
+    await datasource.updateReminder(triggerCompanion);
+
+    // Snooze it for 10 seconds (represented as duration in test)
+    print('\n=== SNOOZE TEST: Snoozing reminder for 10 seconds ===');
+    final now = DateTime.now();
+    final snoozeCompanion = RemindersCompanion(
+      id: Value(generatedId),
+      status: const Value('snoozed'),
+      isTriggered: const Value(false),
+      snoozedUntil: Value(now.add(const Duration(seconds: 10))),
+      updatedAt: Value(now),
+    );
+    await datasource.updateReminder(snoozeCompanion);
+
+    // Evaluate coordinator logic
+    print('\n=== SNOOZE TEST: Evaluating monitoring state (Should remain active due to pending snooze) ===');
+    final reminders = await repo.getAllReminders();
+    final hasActiveReminder = reminders.any((r) => r.isEnabled && !r.isTriggered && r.status != 'snoozed');
+    final hasPendingSnooze = reminders.any((r) => r.isEnabled && r.status == 'snoozed' && r.snoozedUntil != null && r.snoozedUntil!.isAfter(DateTime.now()));
+    final shouldBeRunning = hasActiveReminder || hasPendingSnooze;
+    print('  hasActiveReminder=$hasActiveReminder');
+    print('  hasPendingSnooze=$hasPendingSnooze');
+    print('  shouldBeRunning=$shouldBeRunning');
+
+    // Simulate waiting 11 seconds
+    print('\n=== SNOOZE TEST: Simulating snooze expiration (waiting 11 seconds) ===');
+    await Future.delayed(const Duration(seconds: 11));
+
+    // Reactivate
+    print('\n=== SNOOZE TEST: Reactivating expired snoozes ===');
+    await datasource.reactivateExpiredSnoozes();
+
+    await db.close();
+  });
 }

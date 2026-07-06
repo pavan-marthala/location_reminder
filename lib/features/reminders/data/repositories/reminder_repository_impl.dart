@@ -57,4 +57,9 @@ class ReminderRepositoryImpl implements ReminderRepository {
   Future<void> toggleReminder(int id, bool isEnabled) {
     return _datasource.toggleReminder(id, isEnabled);
   }
+
+  @override
+  Future<int> reactivateExpiredSnoozes() {
+    return _datasource.reactivateExpiredSnoozes();
+  }
 }

@@ -155,6 +155,8 @@ class NotificationServiceImpl implements NotificationService {
 
 /// Handles all notification responses — body taps AND action button taps.
 void _onNotificationResponse(NotificationResponse response) {
+  debugPrint('[ANDROID] Wake-up callback received');
+  debugPrint('[MONITORING] Wake received');
   debugPrint('Notification response: actionId=${response.actionId}, payload=${response.payload}');
 
   final actionId = response.actionId;
@@ -174,13 +176,28 @@ void _onNotificationResponse(NotificationResponse response) {
 
   // Default: body tap → navigate to AlarmPage
   if (reminderId != null) {
-    rootNavigatorKey.currentContext?.push(
-      AppRoutes.alarm,
-      extra: {
-        'id': reminderId,
-        'title': reminderId == 0 ? 'Test Alarm Sound' : 'Reminder',
-      },
-    );
+    final context = rootNavigatorKey.currentContext;
+    if (context != null) {
+      try {
+        final router = GoRouter.of(context);
+        final routeState = router.routerDelegate.currentConfiguration;
+        final isAlreadyAlarm = routeState.routes.any((route) => 
+            route is GoRoute && route.path == AppRoutes.alarm);
+        if (isAlreadyAlarm) {
+          debugPrint("[NOTIFICATION] Already on AlarmPage, skipping push");
+        } else {
+          context.push(
+            AppRoutes.alarm,
+            extra: {
+              'id': reminderId,
+              'title': reminderId == 0 ? 'Test Alarm Sound' : 'Reminder',
+            },
+          );
+        }
+      } catch (e) {
+        debugPrint('Error routing to alarm page: $e');
+      }
+    }
   }
 }
 
@@ -218,7 +235,15 @@ Future<void> _handleNotificationAction(String actionId, int reminderId) async {
         debugPrint('[SNOOZE] Reminder ID: $reminderId');
         debugPrint('[SNOOZE] Duration selected: 5 minutes');
         try {
-          await getIt<AlarmSchedulerService>().scheduleSnooze(reminderId, 5);
+          final now = DateTime.now();
+          final updated = reminder.copyWith(
+            status: 'snoozed',
+            isTriggered: false,
+            snoozedUntil: now.add(const Duration(minutes: 5)),
+            updatedAt: now,
+          );
+          await repo.updateReminder(updated);
+          await getIt<AlarmSchedulerService>().scheduleSnooze(reminderId, const Duration(minutes: 5));
         } catch (_) {}
         break;
 
@@ -229,7 +254,10 @@ Future<void> _handleNotificationAction(String actionId, int reminderId) async {
 
     // Re-evaluate monitoring (may stop service if no active reminders remain)
     try {
-      await getIt<MonitoringCoordinator>().evaluateMonitoringState();
+      await getIt<MonitoringCoordinator>().evaluateMonitoringState(
+        source: 'NotificationService',
+        reason: 'notification_action',
+      );
     } catch (_) {}
 
     // Cancel the notification itself
@@ -244,6 +272,8 @@ Future<void> _handleNotificationAction(String actionId, int reminderId) async {
 @pragma('vm:entry-point')
 void _onBackgroundNotificationTapped(NotificationResponse response) async {
   WidgetsFlutterBinding.ensureInitialized();
+  debugPrint('[ANDROID] Wake-up callback received');
+  debugPrint('[MONITORING] Wake received');
   debugPrint('Background notification tapped: actionId=${response.actionId}, payload=${response.payload}');
 
   final actionId = response.actionId;

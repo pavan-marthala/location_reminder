@@ -13,13 +13,14 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:reminders/core/database/app_database.dart';
+import 'package:reminders/features/reminders/data/datasources/reminder_local_datasource.dart';
 
 abstract class BackgroundService {
   Future<void> init();
   Future<void> startService();
   Future<void> stopService();
   Future<bool> isRunning();
-  Future<void> refreshMonitoring();
+  Future<void> refreshMonitoring({int? cycleId, String? source, String? reason});
   Stream<Map<String, dynamic>?> get backgroundUpdates;
 }
 
@@ -99,12 +100,6 @@ class BackgroundServiceImpl implements BackgroundService {
   Future<void> stopService() async {
     final service = FlutterBackgroundService();
     service.invoke('stopService');
-    _backgroundUpdatesController.add({
-      'status': 'stopped',
-      'readinessState': 'Stopped',
-      'activeCount': 0,
-      'time': DateTime.now().toIso8601String(),
-    });
   }
 
   @override
@@ -113,16 +108,71 @@ class BackgroundServiceImpl implements BackgroundService {
   }
 
   @override
-  Future<void> refreshMonitoring() async {
+  Future<void> refreshMonitoring({int? cycleId, String? source, String? reason}) async {
     try {
-      final running = await isRunning();
-      debugPrint("======================================\n[MAIN BACKGROUND SERVICE]\nrefreshMonitoring() called\nService running: $running\nInvoking 'refreshMonitoring'\nTime: ${DateTime.now().toIso8601String()}\n======================================");
+      final timeStr = DateTime.now().toIso8601String();
+      debugPrint(
+        '[TRACE]\n'
+        'refreshMonitoring()\n'
+        'id=${cycleId ?? -1}\n'
+        'source=${source ?? 'unknown'}\n'
+        'reason=${reason ?? 'unknown'}\n'
+        'time=$timeStr'
+      );
       final service = FlutterBackgroundService();
-      service.invoke('refreshMonitoring');
-      debugPrint("[MAIN BACKGROUND SERVICE]\ninvoke('refreshMonitoring') completed");
+      service.invoke('refreshMonitoring', {
+        'cycleId': cycleId,
+        'source': source,
+        'reason': reason,
+      });
     } catch (e, stackTrace) {
       debugPrint("[MAIN BACKGROUND SERVICE]\nERROR invoking refreshMonitoring\n$e\n$stackTrace");
     }
+  }
+}
+
+class SnoozeTimerManager {
+  final Map<int, Timer> _activeTimers = {};
+  final Future<void> Function() _onTimerExpired;
+
+  SnoozeTimerManager({required Future<void> Function() onTimerExpired})
+      : _onTimerExpired = onTimerExpired;
+
+  void syncTimers(List<ReminderData> enabledReminders) {
+    final now = DateTime.now();
+    final activeIds = <int>{};
+
+    for (final r in enabledReminders) {
+      if (r.status == 'snoozed' && r.snoozedUntil != null) {
+        if (r.snoozedUntil!.isAfter(now)) {
+          activeIds.add(r.id);
+          if (!_activeTimers.containsKey(r.id)) {
+            final duration = r.snoozedUntil!.difference(now);
+            debugPrint('[SNOOZE_MANAGER] Scheduling timer for reminder ${r.id} in $duration');
+            _activeTimers[r.id] = Timer(duration, () async {
+              debugPrint('[SNOOZE_MANAGER] Timer expired for reminder ${r.id}');
+              _activeTimers.remove(r.id);
+              await _onTimerExpired();
+            });
+          }
+        }
+      }
+    }
+
+    // Cancel any timers that are no longer in 'snoozed' status in the database
+    final removedIds = _activeTimers.keys.where((id) => !activeIds.contains(id)).toList();
+    for (final id in removedIds) {
+      debugPrint('[SNOOZE_MANAGER] Cancelling timer for reminder $id');
+      _activeTimers[id]?.cancel();
+      _activeTimers.remove(id);
+    }
+  }
+
+  void cancelAll() {
+    for (final timer in _activeTimers.values) {
+      timer.cancel();
+    }
+    _activeTimers.clear();
   }
 }
 
@@ -132,6 +182,10 @@ void onStart(ServiceInstance service) async {
   debugPrint("[BACKGROUND] Isolate Started");
   DartPluginRegistrant.ensureInitialized();
   geo.Position? lastKnownPosition;
+  late Future<void> Function() handleRefreshRef;
+  final snoozeTimerManager = SnoozeTimerManager(onTimerExpired: () async {
+    await handleRefreshRef();
+  });
 
   // Helper to notify main isolate and update foreground notification info
   void updateState(String state, {String? details}) async {
@@ -330,6 +384,12 @@ void onStart(ServiceInstance service) async {
     }
 
     try {
+      final datasource = ReminderLocalDatasourceImpl(database);
+      final reactivatedCount = await datasource.reactivateExpiredSnoozes();
+      if (reactivatedCount > 0) {
+        debugPrint('[SNOOZE] Isolate reactivated $reactivatedCount expired snoozed reminders.');
+      }
+
       final currentEnabled = await (database.select(
         database.reminders,
       )..where((t) => t.isEnabled.equals(true))).get();
@@ -344,6 +404,8 @@ void onStart(ServiceInstance service) async {
             "Triggered=${r.isTriggered} "
             "Status=${r.status}");
       }
+
+
 
       final currentActive = currentEnabled.where((r) {
         if (r.isTriggered) return false;
@@ -374,6 +436,7 @@ void onStart(ServiceInstance service) async {
       String? nearestReminderTitle;
 
       for (final reminder in currentActive) {
+        debugPrint('[GEOFENCE] Evaluating reminder ${reminder.id}');
         debugPrint(
             "[GEOFENCE] Evaluating "
             "${reminder.title}");
@@ -400,6 +463,7 @@ void onStart(ServiceInstance service) async {
         }
 
         if (distance <= reminder.radius) {
+          debugPrint('[GEOFENCE] Triggered reminder ${reminder.id}');
           debugPrint(
               "[GEOFENCE] TRIGGERED -> ${reminder.title}");
           // Trigger entry!
@@ -426,20 +490,6 @@ void onStart(ServiceInstance service) async {
             enableVibration: true,
             fullScreenIntent: true,
             category: AndroidNotificationCategory.alarm,
-            actions: <AndroidNotificationAction>[
-              const AndroidNotificationAction(
-                'dismiss',
-                'Dismiss',
-                showsUserInterface: false,
-                cancelNotification: true,
-              ),
-              const AndroidNotificationAction(
-                'snooze_5',
-                'Snooze 5 min',
-                showsUserInterface: false,
-                cancelNotification: true,
-              ),
-            ],
           );
           const iosDetails = DarwinNotificationDetails();
           final details = NotificationDetails(
@@ -566,14 +616,33 @@ void onStart(ServiceInstance service) async {
     debugPrint("======================================\n[BACKGROUND]\nhandleRefresh completed\nPendingRefresh=$hasPendingRefresh\n======================================");
   }
 
+  handleRefreshRef = handleRefresh;
+
   debugPrint("======================================\n[BACKGROUND]\nrefreshMonitoring listener registered\n======================================");
   service.on('refreshMonitoring').listen((event) async {
-    debugPrint("======================================\n[BACKGROUND]\nrefreshMonitoring EVENT RECEIVED\nTime: ${DateTime.now().toIso8601String()}\n======================================");
+    final Map<dynamic, dynamic> data = (event as Map<dynamic, dynamic>?) ?? {};
+    final cycleId = data['cycleId'] ?? -1;
+    final source = data['source'] ?? 'unknown';
+    final reason = data['reason'] ?? 'unknown';
+    debugPrint(
+      '[TRACE]\n'
+      'Background received refreshMonitoring()\n'
+      'id=$cycleId\n'
+      'source=$source\n'
+      'reason=$reason\n'
+      'time=${DateTime.now().toIso8601String()}'
+    );
+    final currentEnabled = await (database.select(database.reminders)
+      ..where((t) => t.isEnabled.equals(true))).get();
+    snoozeTimerManager.syncTimers(currentEnabled);
     await handleRefresh();
   });
 
   // Initial geofence evaluation (Step 4: FIRST_GEOFENCE_EVALUATION)
   if (firstPosition != null) {
+    final currentEnabled = await (database.select(database.reminders)
+      ..where((t) => t.isEnabled.equals(true))).get();
+    snoozeTimerManager.syncTimers(currentEnabled);
     await evaluatePosition(firstPosition, isInitial: true);
   }
 

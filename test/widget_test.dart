@@ -86,7 +86,7 @@ class MockBackgroundService implements BackgroundService {
   @override
   Future<bool> isRunning() async => false;
   @override
-  Future<void> refreshMonitoring() async {}
+  Future<void> refreshMonitoring({int? cycleId, String? source, String? reason}) async {}
   @override
   Stream<Map<String, dynamic>?> get backgroundUpdates => const Stream.empty();
 }
@@ -134,7 +134,7 @@ class MockMonitoringCoordinator implements MonitoringCoordinator {
   bool _monitoringEnabled = true;
 
   @override
-  Future<void> evaluateMonitoringState() async {}
+  Future<void> evaluateMonitoringState({String source = 'unknown', String reason = 'unknown'}) async {}
 
   @override
   Future<void> setMonitoringEnabled(bool enabled) async {

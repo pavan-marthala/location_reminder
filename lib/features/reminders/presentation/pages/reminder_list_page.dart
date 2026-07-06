@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/routes/app_routes.dart';
 import 'package:reminders/core/theme/app_theme.dart';
-import 'package:reminders/core/utils/app_button.dart';
 import 'package:reminders/core/utils/app_toast.dart';
 import '../bloc/reminder_bloc.dart';
 import '../bloc/reminder_event.dart';
@@ -62,8 +61,7 @@ class _ReminderListView extends StatelessWidget {
                           icon: const Icon(Icons.settings_rounded),
                           tooltip: 'Settings',
                           color: colors.textTertiary,
-                          onPressed: () =>
-                              context.push(AppRoutes.settings),
+                          onPressed: () => context.push(AppRoutes.settings),
                         ),
                       ],
                     ),
@@ -82,15 +80,13 @@ class _ReminderListView extends StatelessWidget {
                     return state.when(
                       initial: () => const SizedBox.shrink(),
                       loading: () => Center(
-                        child: CircularProgressIndicator(
-                          color: colors.primary,
-                        ),
+                        child: CircularProgressIndicator(color: colors.primary),
                       ),
                       loaded: (reminders) => RefreshIndicator(
                         onRefresh: () async {
-                          context
-                              .read<ReminderBloc>()
-                              .add(const ReminderEvent.loadReminders());
+                          context.read<ReminderBloc>().add(
+                            const ReminderEvent.loadReminders(),
+                          );
                         },
                         color: colors.primary,
                         child: ListView.separated(
@@ -104,18 +100,18 @@ class _ReminderListView extends StatelessWidget {
                               reminder: reminder,
                               onToggle: (enabled) {
                                 context.read<ReminderBloc>().add(
-                                      ReminderEvent.toggleReminder(
-                                        id: reminder.id!,
-                                        isEnabled: enabled,
-                                      ),
-                                    );
+                                  ReminderEvent.toggleReminder(
+                                    id: reminder.id!,
+                                    isEnabled: enabled,
+                                  ),
+                                );
                               },
                               onDelete: () {
                                 context.read<ReminderBloc>().add(
-                                      ReminderEvent.deleteReminder(
-                                        id: reminder.id!,
-                                      ),
-                                    );
+                                  ReminderEvent.deleteReminder(
+                                    id: reminder.id!,
+                                  ),
+                                );
                                 showSuccessToast(
                                   message: '${reminder.title} deleted',
                                 );
@@ -127,8 +123,8 @@ class _ReminderListView extends StatelessWidget {
                                 );
                                 if (result == true && context.mounted) {
                                   context.read<ReminderBloc>().add(
-                                        const ReminderEvent.loadReminders(),
-                                      );
+                                    const ReminderEvent.loadReminders(),
+                                  );
                                 }
                               },
                             );
@@ -142,8 +138,11 @@ class _ReminderListView extends StatelessWidget {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.error_outline_rounded,
-                                  size: 48, color: colors.error),
+                              Icon(
+                                Icons.error_outline_rounded,
+                                size: 48,
+                                color: colors.error,
+                              ),
                               const SizedBox(height: 16),
                               Text(
                                 message,
@@ -168,9 +167,9 @@ class _ReminderListView extends StatelessWidget {
         onPressed: () async {
           final result = await context.push<bool>(AppRoutes.createReminder);
           if (result == true && context.mounted) {
-            context
-                .read<ReminderBloc>()
-                .add(const ReminderEvent.loadReminders());
+            context.read<ReminderBloc>().add(
+              const ReminderEvent.loadReminders(),
+            );
           }
         },
         backgroundColor: colors.primary,
@@ -236,19 +235,19 @@ class _ReminderListView extends StatelessWidget {
                 height: 1.5,
               ),
             ),
-            const SizedBox(height: 28),
-            // Custom CTA Button
-            AppButton(
-              text: 'Create Reminder',
-              color: colors.primary,
-              icon: const Icon(Icons.add_location_alt_rounded, color: Colors.white, size: 20),
-              onPressed: () async {
-                final result = await context.push<bool>(AppRoutes.createReminder);
-                if (result == true && context.mounted) {
-                  context.read<ReminderBloc>().add(const ReminderEvent.loadReminders());
-                }
-              },
-            ),
+            // const SizedBox(height: 28),
+            // // Custom CTA Button
+            // AppButton(
+            //   text: 'Create Reminder',
+            //   color: colors.primary,
+            //   icon: const Icon(Icons.add_location_alt_rounded, color: Colors.white, size: 20),
+            //   onPressed: () async {
+            //     final result = await context.push<bool>(AppRoutes.createReminder);
+            //     if (result == true && context.mounted) {
+            //       context.read<ReminderBloc>().add(const ReminderEvent.loadReminders());
+            //     }
+            //   },
+            // ),
           ],
         ),
       ),

@@ -52,7 +52,9 @@ class AlarmServiceImpl implements AlarmService {
     if (_isPlaying) return;
 
     final assetPath = customPath ?? _settingsService.getSelectedAlarmTonePath();
-    final cleanPath = assetPath.startsWith('assets/') ? assetPath.substring(7) : assetPath;
+    final cleanPath = assetPath.startsWith('assets/')
+        ? assetPath.substring(7)
+        : assetPath;
     await _audioPlayer.setReleaseMode(ReleaseMode.loop);
     await _audioPlayer.play(AssetSource(cleanPath));
     _isPlaying = true;

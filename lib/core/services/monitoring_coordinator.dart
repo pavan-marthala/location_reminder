@@ -3,9 +3,12 @@ import 'package:injectable/injectable.dart';
 import 'package:reminders/core/services/background_service.dart';
 import 'package:reminders/core/services/settings_service.dart';
 import 'package:reminders/features/reminders/domain/repositories/reminder_repository.dart';
+import 'package:reminders/features/reminders/domain/entities/reminder_entity.dart';
+
+int _monitoringCycleCounter = 0;
 
 abstract class MonitoringCoordinator {
-  Future<void> evaluateMonitoringState();
+  Future<void> evaluateMonitoringState({String source = 'unknown', String reason = 'unknown'});
   Future<void> setMonitoringEnabled(bool enabled);
   bool isMonitoringEnabled();
 }
@@ -25,21 +28,64 @@ class MonitoringCoordinatorImpl implements MonitoringCoordinator {
     _backgroundService.backgroundUpdates.listen((event) {
       if (event != null &&
           (event['status'] == 'triggered' ||
-           event['action'] == 'triggered' ||
-           event['status'] == 'check')) {
-        evaluateMonitoringState();
+           event['action'] == 'triggered')) {
+        evaluateMonitoringState(
+          source: 'backgroundUpdatesListener',
+          reason: 'status_triggered',
+        );
       }
     });
   }
 
   @override
-  Future<void> evaluateMonitoringState() async {
+  Future<void> evaluateMonitoringState({String source = 'unknown', String reason = 'unknown'}) async {
+    final cycleId = ++_monitoringCycleCounter;
+    final timeStr = DateTime.now().toIso8601String();
+    debugPrint(
+      '[TRACE]\n'
+      'evaluateMonitoringState()\n'
+      'id=$cycleId\n'
+      'source=$source\n'
+      'reason=$reason\n'
+      'time=$timeStr'
+    );
+
+    await _reactivateExpiredSnoozes();
+
     debugPrint("======================================");
     debugPrint("[COORDINATOR] evaluateMonitoringState()");
     final explicitlyEnabled = _settingsService.isMonitoringEnabled();
     final reminders = await _reminderRepository.getAllReminders();
     debugPrint("[COORDINATOR] Total reminders: ${reminders.length}");
 
+    _logReminders(reminders);
+
+    final shouldBeRunning = _calculateMonitoringState(reminders, explicitlyEnabled);
+
+    debugPrint("[COORDINATOR] Checking service state...");
+    final isRunning = await _backgroundService.isRunning();
+    debugPrint("[COORDINATOR] isRunning=$isRunning");
+
+    await _applyServiceLifecycle(
+      shouldBeRunning: shouldBeRunning,
+      isRunning: isRunning,
+      cycleId: cycleId,
+      source: source,
+      reason: reason,
+    );
+
+    debugPrint("[COORDINATOR] Evaluation finished");
+    debugPrint("======================================");
+  }
+
+  Future<void> _reactivateExpiredSnoozes() async {
+    final reactivatedCount = await _reminderRepository.reactivateExpiredSnoozes();
+    if (reactivatedCount > 0) {
+      debugPrint('[SNOOZE] Reactivated $reactivatedCount expired snoozed reminders.');
+    }
+  }
+
+  void _logReminders(List<ReminderEntity> reminders) {
     for (final r in reminders) {
       debugPrint(
           "[COORDINATOR] "
@@ -49,26 +95,37 @@ class MonitoringCoordinatorImpl implements MonitoringCoordinator {
           "Triggered=${r.isTriggered} "
           "Status=${r.status}");
     }
+  }
 
+  bool _calculateMonitoringState(List<ReminderEntity> reminders, bool explicitlyEnabled) {
     final hasActiveReminder = reminders.any((r) => r.isEnabled && !r.isTriggered && r.status != 'snoozed');
+    final hasPendingSnooze = reminders.any((r) => r.isEnabled && r.status == 'snoozed' && r.snoozedUntil != null && r.snoozedUntil!.isAfter(DateTime.now()));
 
-    final shouldBeRunning = explicitlyEnabled && hasActiveReminder;
+    final shouldBeRunning = explicitlyEnabled && (hasActiveReminder || hasPendingSnooze);
     debugPrint("[COORDINATOR] explicitlyEnabled=$explicitlyEnabled");
     debugPrint("[COORDINATOR] hasActiveReminder=$hasActiveReminder");
+    debugPrint("[COORDINATOR] hasPendingSnooze=$hasPendingSnooze");
     debugPrint("[COORDINATOR] shouldBeRunning=$shouldBeRunning");
+    return shouldBeRunning;
+  }
 
-    debugPrint("[COORDINATOR] Checking service state...");
-    final isRunning = await _backgroundService.isRunning();
-    debugPrint("[COORDINATOR] isRunning=$isRunning");
-
+  Future<void> _applyServiceLifecycle({
+    required bool shouldBeRunning,
+    required bool isRunning,
+    required int cycleId,
+    required String source,
+    required String reason,
+  }) async {
     if (shouldBeRunning) {
       if (!isRunning) {
         debugPrint("[COORDINATOR] Calling startService()");
         await _backgroundService.startService();
       } else {
-        debugPrint("======================================\n[COORDINATOR]\nRequesting refreshMonitoring()\n======================================");
-        await _backgroundService.refreshMonitoring();
-        debugPrint("[COORDINATOR]\nrefreshMonitoring() completed");
+        await _backgroundService.refreshMonitoring(
+          cycleId: cycleId,
+          source: source,
+          reason: reason,
+        );
       }
     } else {
       if (isRunning) {
@@ -76,14 +133,15 @@ class MonitoringCoordinatorImpl implements MonitoringCoordinator {
         await _backgroundService.stopService();
       }
     }
-    debugPrint("[COORDINATOR] Evaluation finished");
-    debugPrint("======================================");
   }
 
   @override
   Future<void> setMonitoringEnabled(bool enabled) async {
     await _settingsService.saveMonitoringEnabled(enabled);
-    await evaluateMonitoringState();
+    await evaluateMonitoringState(
+      source: 'setMonitoringEnabled',
+      reason: enabled ? 'enabled' : 'disabled',
+    );
   }
 
   @override
