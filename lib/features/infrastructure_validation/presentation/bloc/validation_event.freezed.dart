@@ -30,6 +30,7 @@ mixin _$ValidationEvent {
     required TResult Function(Map<String, dynamic> data) updateBackgroundTick,
     required TResult Function(String path) changeAlarmTone,
     required TResult Function(bool enabled) toggleMonitoring,
+    required TResult Function(bool enabled) toggleVibration,
     required TResult Function() openAppSettings,
   }) =>
       throw _privateConstructorUsedError;
@@ -47,6 +48,7 @@ mixin _$ValidationEvent {
     TResult? Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult? Function(String path)? changeAlarmTone,
     TResult? Function(bool enabled)? toggleMonitoring,
+    TResult? Function(bool enabled)? toggleVibration,
     TResult? Function()? openAppSettings,
   }) =>
       throw _privateConstructorUsedError;
@@ -64,6 +66,7 @@ mixin _$ValidationEvent {
     TResult Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult Function(String path)? changeAlarmTone,
     TResult Function(bool enabled)? toggleMonitoring,
+    TResult Function(bool enabled)? toggleVibration,
     TResult Function()? openAppSettings,
     required TResult orElse(),
   }) =>
@@ -86,6 +89,7 @@ mixin _$ValidationEvent {
     required TResult Function(UpdateBackgroundTick value) updateBackgroundTick,
     required TResult Function(ChangeAlarmTone value) changeAlarmTone,
     required TResult Function(ToggleMonitoring value) toggleMonitoring,
+    required TResult Function(ToggleVibration value) toggleVibration,
     required TResult Function(OpenAppSettings value) openAppSettings,
   }) =>
       throw _privateConstructorUsedError;
@@ -105,6 +109,7 @@ mixin _$ValidationEvent {
     TResult? Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult? Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult? Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult? Function(ToggleVibration value)? toggleVibration,
     TResult? Function(OpenAppSettings value)? openAppSettings,
   }) =>
       throw _privateConstructorUsedError;
@@ -124,6 +129,7 @@ mixin _$ValidationEvent {
     TResult Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult Function(ToggleVibration value)? toggleVibration,
     TResult Function(OpenAppSettings value)? openAppSettings,
     required TResult orElse(),
   }) =>
@@ -198,6 +204,7 @@ class _$InitializeImpl implements Initialize {
     required TResult Function(Map<String, dynamic> data) updateBackgroundTick,
     required TResult Function(String path) changeAlarmTone,
     required TResult Function(bool enabled) toggleMonitoring,
+    required TResult Function(bool enabled) toggleVibration,
     required TResult Function() openAppSettings,
   }) {
     return initialize();
@@ -218,6 +225,7 @@ class _$InitializeImpl implements Initialize {
     TResult? Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult? Function(String path)? changeAlarmTone,
     TResult? Function(bool enabled)? toggleMonitoring,
+    TResult? Function(bool enabled)? toggleVibration,
     TResult? Function()? openAppSettings,
   }) {
     return initialize?.call();
@@ -238,6 +246,7 @@ class _$InitializeImpl implements Initialize {
     TResult Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult Function(String path)? changeAlarmTone,
     TResult Function(bool enabled)? toggleMonitoring,
+    TResult Function(bool enabled)? toggleVibration,
     TResult Function()? openAppSettings,
     required TResult orElse(),
   }) {
@@ -266,6 +275,7 @@ class _$InitializeImpl implements Initialize {
     required TResult Function(UpdateBackgroundTick value) updateBackgroundTick,
     required TResult Function(ChangeAlarmTone value) changeAlarmTone,
     required TResult Function(ToggleMonitoring value) toggleMonitoring,
+    required TResult Function(ToggleVibration value) toggleVibration,
     required TResult Function(OpenAppSettings value) openAppSettings,
   }) {
     return initialize(this);
@@ -288,6 +298,7 @@ class _$InitializeImpl implements Initialize {
     TResult? Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult? Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult? Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult? Function(ToggleVibration value)? toggleVibration,
     TResult? Function(OpenAppSettings value)? openAppSettings,
   }) {
     return initialize?.call(this);
@@ -310,6 +321,7 @@ class _$InitializeImpl implements Initialize {
     TResult Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult Function(ToggleVibration value)? toggleVibration,
     TResult Function(OpenAppSettings value)? openAppSettings,
     required TResult orElse(),
   }) {
@@ -379,6 +391,7 @@ class _$RequestNotificationPermissionImpl
     required TResult Function(Map<String, dynamic> data) updateBackgroundTick,
     required TResult Function(String path) changeAlarmTone,
     required TResult Function(bool enabled) toggleMonitoring,
+    required TResult Function(bool enabled) toggleVibration,
     required TResult Function() openAppSettings,
   }) {
     return requestNotificationPermission();
@@ -399,6 +412,7 @@ class _$RequestNotificationPermissionImpl
     TResult? Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult? Function(String path)? changeAlarmTone,
     TResult? Function(bool enabled)? toggleMonitoring,
+    TResult? Function(bool enabled)? toggleVibration,
     TResult? Function()? openAppSettings,
   }) {
     return requestNotificationPermission?.call();
@@ -419,6 +433,7 @@ class _$RequestNotificationPermissionImpl
     TResult Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult Function(String path)? changeAlarmTone,
     TResult Function(bool enabled)? toggleMonitoring,
+    TResult Function(bool enabled)? toggleVibration,
     TResult Function()? openAppSettings,
     required TResult orElse(),
   }) {
@@ -447,6 +462,7 @@ class _$RequestNotificationPermissionImpl
     required TResult Function(UpdateBackgroundTick value) updateBackgroundTick,
     required TResult Function(ChangeAlarmTone value) changeAlarmTone,
     required TResult Function(ToggleMonitoring value) toggleMonitoring,
+    required TResult Function(ToggleVibration value) toggleVibration,
     required TResult Function(OpenAppSettings value) openAppSettings,
   }) {
     return requestNotificationPermission(this);
@@ -469,6 +485,7 @@ class _$RequestNotificationPermissionImpl
     TResult? Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult? Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult? Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult? Function(ToggleVibration value)? toggleVibration,
     TResult? Function(OpenAppSettings value)? openAppSettings,
   }) {
     return requestNotificationPermission?.call(this);
@@ -491,6 +508,7 @@ class _$RequestNotificationPermissionImpl
     TResult Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult Function(ToggleVibration value)? toggleVibration,
     TResult Function(OpenAppSettings value)? openAppSettings,
     required TResult orElse(),
   }) {
@@ -559,6 +577,7 @@ class _$TriggerTestNotificationImpl implements TriggerTestNotification {
     required TResult Function(Map<String, dynamic> data) updateBackgroundTick,
     required TResult Function(String path) changeAlarmTone,
     required TResult Function(bool enabled) toggleMonitoring,
+    required TResult Function(bool enabled) toggleVibration,
     required TResult Function() openAppSettings,
   }) {
     return triggerTestNotification();
@@ -579,6 +598,7 @@ class _$TriggerTestNotificationImpl implements TriggerTestNotification {
     TResult? Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult? Function(String path)? changeAlarmTone,
     TResult? Function(bool enabled)? toggleMonitoring,
+    TResult? Function(bool enabled)? toggleVibration,
     TResult? Function()? openAppSettings,
   }) {
     return triggerTestNotification?.call();
@@ -599,6 +619,7 @@ class _$TriggerTestNotificationImpl implements TriggerTestNotification {
     TResult Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult Function(String path)? changeAlarmTone,
     TResult Function(bool enabled)? toggleMonitoring,
+    TResult Function(bool enabled)? toggleVibration,
     TResult Function()? openAppSettings,
     required TResult orElse(),
   }) {
@@ -627,6 +648,7 @@ class _$TriggerTestNotificationImpl implements TriggerTestNotification {
     required TResult Function(UpdateBackgroundTick value) updateBackgroundTick,
     required TResult Function(ChangeAlarmTone value) changeAlarmTone,
     required TResult Function(ToggleMonitoring value) toggleMonitoring,
+    required TResult Function(ToggleVibration value) toggleVibration,
     required TResult Function(OpenAppSettings value) openAppSettings,
   }) {
     return triggerTestNotification(this);
@@ -649,6 +671,7 @@ class _$TriggerTestNotificationImpl implements TriggerTestNotification {
     TResult? Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult? Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult? Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult? Function(ToggleVibration value)? toggleVibration,
     TResult? Function(OpenAppSettings value)? openAppSettings,
   }) {
     return triggerTestNotification?.call(this);
@@ -671,6 +694,7 @@ class _$TriggerTestNotificationImpl implements TriggerTestNotification {
     TResult Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult Function(ToggleVibration value)? toggleVibration,
     TResult Function(OpenAppSettings value)? openAppSettings,
     required TResult orElse(),
   }) {
@@ -738,6 +762,7 @@ class _$RequestLocationPermissionImpl implements RequestLocationPermission {
     required TResult Function(Map<String, dynamic> data) updateBackgroundTick,
     required TResult Function(String path) changeAlarmTone,
     required TResult Function(bool enabled) toggleMonitoring,
+    required TResult Function(bool enabled) toggleVibration,
     required TResult Function() openAppSettings,
   }) {
     return requestLocationPermission();
@@ -758,6 +783,7 @@ class _$RequestLocationPermissionImpl implements RequestLocationPermission {
     TResult? Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult? Function(String path)? changeAlarmTone,
     TResult? Function(bool enabled)? toggleMonitoring,
+    TResult? Function(bool enabled)? toggleVibration,
     TResult? Function()? openAppSettings,
   }) {
     return requestLocationPermission?.call();
@@ -778,6 +804,7 @@ class _$RequestLocationPermissionImpl implements RequestLocationPermission {
     TResult Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult Function(String path)? changeAlarmTone,
     TResult Function(bool enabled)? toggleMonitoring,
+    TResult Function(bool enabled)? toggleVibration,
     TResult Function()? openAppSettings,
     required TResult orElse(),
   }) {
@@ -806,6 +833,7 @@ class _$RequestLocationPermissionImpl implements RequestLocationPermission {
     required TResult Function(UpdateBackgroundTick value) updateBackgroundTick,
     required TResult Function(ChangeAlarmTone value) changeAlarmTone,
     required TResult Function(ToggleMonitoring value) toggleMonitoring,
+    required TResult Function(ToggleVibration value) toggleVibration,
     required TResult Function(OpenAppSettings value) openAppSettings,
   }) {
     return requestLocationPermission(this);
@@ -828,6 +856,7 @@ class _$RequestLocationPermissionImpl implements RequestLocationPermission {
     TResult? Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult? Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult? Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult? Function(ToggleVibration value)? toggleVibration,
     TResult? Function(OpenAppSettings value)? openAppSettings,
   }) {
     return requestLocationPermission?.call(this);
@@ -850,6 +879,7 @@ class _$RequestLocationPermissionImpl implements RequestLocationPermission {
     TResult Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult Function(ToggleVibration value)? toggleVibration,
     TResult Function(OpenAppSettings value)? openAppSettings,
     required TResult orElse(),
   }) {
@@ -915,6 +945,7 @@ class _$FetchCurrentLocationImpl implements FetchCurrentLocation {
     required TResult Function(Map<String, dynamic> data) updateBackgroundTick,
     required TResult Function(String path) changeAlarmTone,
     required TResult Function(bool enabled) toggleMonitoring,
+    required TResult Function(bool enabled) toggleVibration,
     required TResult Function() openAppSettings,
   }) {
     return fetchCurrentLocation();
@@ -935,6 +966,7 @@ class _$FetchCurrentLocationImpl implements FetchCurrentLocation {
     TResult? Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult? Function(String path)? changeAlarmTone,
     TResult? Function(bool enabled)? toggleMonitoring,
+    TResult? Function(bool enabled)? toggleVibration,
     TResult? Function()? openAppSettings,
   }) {
     return fetchCurrentLocation?.call();
@@ -955,6 +987,7 @@ class _$FetchCurrentLocationImpl implements FetchCurrentLocation {
     TResult Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult Function(String path)? changeAlarmTone,
     TResult Function(bool enabled)? toggleMonitoring,
+    TResult Function(bool enabled)? toggleVibration,
     TResult Function()? openAppSettings,
     required TResult orElse(),
   }) {
@@ -983,6 +1016,7 @@ class _$FetchCurrentLocationImpl implements FetchCurrentLocation {
     required TResult Function(UpdateBackgroundTick value) updateBackgroundTick,
     required TResult Function(ChangeAlarmTone value) changeAlarmTone,
     required TResult Function(ToggleMonitoring value) toggleMonitoring,
+    required TResult Function(ToggleVibration value) toggleVibration,
     required TResult Function(OpenAppSettings value) openAppSettings,
   }) {
     return fetchCurrentLocation(this);
@@ -1005,6 +1039,7 @@ class _$FetchCurrentLocationImpl implements FetchCurrentLocation {
     TResult? Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult? Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult? Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult? Function(ToggleVibration value)? toggleVibration,
     TResult? Function(OpenAppSettings value)? openAppSettings,
   }) {
     return fetchCurrentLocation?.call(this);
@@ -1027,6 +1062,7 @@ class _$FetchCurrentLocationImpl implements FetchCurrentLocation {
     TResult Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult Function(ToggleVibration value)? toggleVibration,
     TResult Function(OpenAppSettings value)? openAppSettings,
     required TResult orElse(),
   }) {
@@ -1092,6 +1128,7 @@ class _$ToggleLocationStreamImpl implements ToggleLocationStream {
     required TResult Function(Map<String, dynamic> data) updateBackgroundTick,
     required TResult Function(String path) changeAlarmTone,
     required TResult Function(bool enabled) toggleMonitoring,
+    required TResult Function(bool enabled) toggleVibration,
     required TResult Function() openAppSettings,
   }) {
     return toggleLocationStream();
@@ -1112,6 +1149,7 @@ class _$ToggleLocationStreamImpl implements ToggleLocationStream {
     TResult? Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult? Function(String path)? changeAlarmTone,
     TResult? Function(bool enabled)? toggleMonitoring,
+    TResult? Function(bool enabled)? toggleVibration,
     TResult? Function()? openAppSettings,
   }) {
     return toggleLocationStream?.call();
@@ -1132,6 +1170,7 @@ class _$ToggleLocationStreamImpl implements ToggleLocationStream {
     TResult Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult Function(String path)? changeAlarmTone,
     TResult Function(bool enabled)? toggleMonitoring,
+    TResult Function(bool enabled)? toggleVibration,
     TResult Function()? openAppSettings,
     required TResult orElse(),
   }) {
@@ -1160,6 +1199,7 @@ class _$ToggleLocationStreamImpl implements ToggleLocationStream {
     required TResult Function(UpdateBackgroundTick value) updateBackgroundTick,
     required TResult Function(ChangeAlarmTone value) changeAlarmTone,
     required TResult Function(ToggleMonitoring value) toggleMonitoring,
+    required TResult Function(ToggleVibration value) toggleVibration,
     required TResult Function(OpenAppSettings value) openAppSettings,
   }) {
     return toggleLocationStream(this);
@@ -1182,6 +1222,7 @@ class _$ToggleLocationStreamImpl implements ToggleLocationStream {
     TResult? Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult? Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult? Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult? Function(ToggleVibration value)? toggleVibration,
     TResult? Function(OpenAppSettings value)? openAppSettings,
   }) {
     return toggleLocationStream?.call(this);
@@ -1204,6 +1245,7 @@ class _$ToggleLocationStreamImpl implements ToggleLocationStream {
     TResult Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult Function(ToggleVibration value)? toggleVibration,
     TResult Function(OpenAppSettings value)? openAppSettings,
     required TResult orElse(),
   }) {
@@ -1268,6 +1310,7 @@ class _$StartAlarmImpl implements StartAlarm {
     required TResult Function(Map<String, dynamic> data) updateBackgroundTick,
     required TResult Function(String path) changeAlarmTone,
     required TResult Function(bool enabled) toggleMonitoring,
+    required TResult Function(bool enabled) toggleVibration,
     required TResult Function() openAppSettings,
   }) {
     return startAlarm();
@@ -1288,6 +1331,7 @@ class _$StartAlarmImpl implements StartAlarm {
     TResult? Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult? Function(String path)? changeAlarmTone,
     TResult? Function(bool enabled)? toggleMonitoring,
+    TResult? Function(bool enabled)? toggleVibration,
     TResult? Function()? openAppSettings,
   }) {
     return startAlarm?.call();
@@ -1308,6 +1352,7 @@ class _$StartAlarmImpl implements StartAlarm {
     TResult Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult Function(String path)? changeAlarmTone,
     TResult Function(bool enabled)? toggleMonitoring,
+    TResult Function(bool enabled)? toggleVibration,
     TResult Function()? openAppSettings,
     required TResult orElse(),
   }) {
@@ -1336,6 +1381,7 @@ class _$StartAlarmImpl implements StartAlarm {
     required TResult Function(UpdateBackgroundTick value) updateBackgroundTick,
     required TResult Function(ChangeAlarmTone value) changeAlarmTone,
     required TResult Function(ToggleMonitoring value) toggleMonitoring,
+    required TResult Function(ToggleVibration value) toggleVibration,
     required TResult Function(OpenAppSettings value) openAppSettings,
   }) {
     return startAlarm(this);
@@ -1358,6 +1404,7 @@ class _$StartAlarmImpl implements StartAlarm {
     TResult? Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult? Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult? Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult? Function(ToggleVibration value)? toggleVibration,
     TResult? Function(OpenAppSettings value)? openAppSettings,
   }) {
     return startAlarm?.call(this);
@@ -1380,6 +1427,7 @@ class _$StartAlarmImpl implements StartAlarm {
     TResult Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult Function(ToggleVibration value)? toggleVibration,
     TResult Function(OpenAppSettings value)? openAppSettings,
     required TResult orElse(),
   }) {
@@ -1444,6 +1492,7 @@ class _$StopAlarmImpl implements StopAlarm {
     required TResult Function(Map<String, dynamic> data) updateBackgroundTick,
     required TResult Function(String path) changeAlarmTone,
     required TResult Function(bool enabled) toggleMonitoring,
+    required TResult Function(bool enabled) toggleVibration,
     required TResult Function() openAppSettings,
   }) {
     return stopAlarm();
@@ -1464,6 +1513,7 @@ class _$StopAlarmImpl implements StopAlarm {
     TResult? Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult? Function(String path)? changeAlarmTone,
     TResult? Function(bool enabled)? toggleMonitoring,
+    TResult? Function(bool enabled)? toggleVibration,
     TResult? Function()? openAppSettings,
   }) {
     return stopAlarm?.call();
@@ -1484,6 +1534,7 @@ class _$StopAlarmImpl implements StopAlarm {
     TResult Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult Function(String path)? changeAlarmTone,
     TResult Function(bool enabled)? toggleMonitoring,
+    TResult Function(bool enabled)? toggleVibration,
     TResult Function()? openAppSettings,
     required TResult orElse(),
   }) {
@@ -1512,6 +1563,7 @@ class _$StopAlarmImpl implements StopAlarm {
     required TResult Function(UpdateBackgroundTick value) updateBackgroundTick,
     required TResult Function(ChangeAlarmTone value) changeAlarmTone,
     required TResult Function(ToggleMonitoring value) toggleMonitoring,
+    required TResult Function(ToggleVibration value) toggleVibration,
     required TResult Function(OpenAppSettings value) openAppSettings,
   }) {
     return stopAlarm(this);
@@ -1534,6 +1586,7 @@ class _$StopAlarmImpl implements StopAlarm {
     TResult? Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult? Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult? Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult? Function(ToggleVibration value)? toggleVibration,
     TResult? Function(OpenAppSettings value)? openAppSettings,
   }) {
     return stopAlarm?.call(this);
@@ -1556,6 +1609,7 @@ class _$StopAlarmImpl implements StopAlarm {
     TResult Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult Function(ToggleVibration value)? toggleVibration,
     TResult Function(OpenAppSettings value)? openAppSettings,
     required TResult orElse(),
   }) {
@@ -1623,6 +1677,7 @@ class _$ToggleBackgroundServiceImpl implements ToggleBackgroundService {
     required TResult Function(Map<String, dynamic> data) updateBackgroundTick,
     required TResult Function(String path) changeAlarmTone,
     required TResult Function(bool enabled) toggleMonitoring,
+    required TResult Function(bool enabled) toggleVibration,
     required TResult Function() openAppSettings,
   }) {
     return toggleBackgroundService();
@@ -1643,6 +1698,7 @@ class _$ToggleBackgroundServiceImpl implements ToggleBackgroundService {
     TResult? Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult? Function(String path)? changeAlarmTone,
     TResult? Function(bool enabled)? toggleMonitoring,
+    TResult? Function(bool enabled)? toggleVibration,
     TResult? Function()? openAppSettings,
   }) {
     return toggleBackgroundService?.call();
@@ -1663,6 +1719,7 @@ class _$ToggleBackgroundServiceImpl implements ToggleBackgroundService {
     TResult Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult Function(String path)? changeAlarmTone,
     TResult Function(bool enabled)? toggleMonitoring,
+    TResult Function(bool enabled)? toggleVibration,
     TResult Function()? openAppSettings,
     required TResult orElse(),
   }) {
@@ -1691,6 +1748,7 @@ class _$ToggleBackgroundServiceImpl implements ToggleBackgroundService {
     required TResult Function(UpdateBackgroundTick value) updateBackgroundTick,
     required TResult Function(ChangeAlarmTone value) changeAlarmTone,
     required TResult Function(ToggleMonitoring value) toggleMonitoring,
+    required TResult Function(ToggleVibration value) toggleVibration,
     required TResult Function(OpenAppSettings value) openAppSettings,
   }) {
     return toggleBackgroundService(this);
@@ -1713,6 +1771,7 @@ class _$ToggleBackgroundServiceImpl implements ToggleBackgroundService {
     TResult? Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult? Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult? Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult? Function(ToggleVibration value)? toggleVibration,
     TResult? Function(OpenAppSettings value)? openAppSettings,
   }) {
     return toggleBackgroundService?.call(this);
@@ -1735,6 +1794,7 @@ class _$ToggleBackgroundServiceImpl implements ToggleBackgroundService {
     TResult Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult Function(ToggleVibration value)? toggleVibration,
     TResult Function(OpenAppSettings value)? openAppSettings,
     required TResult orElse(),
   }) {
@@ -1834,6 +1894,7 @@ class _$UpdateBackgroundTickImpl implements UpdateBackgroundTick {
     required TResult Function(Map<String, dynamic> data) updateBackgroundTick,
     required TResult Function(String path) changeAlarmTone,
     required TResult Function(bool enabled) toggleMonitoring,
+    required TResult Function(bool enabled) toggleVibration,
     required TResult Function() openAppSettings,
   }) {
     return updateBackgroundTick(data);
@@ -1854,6 +1915,7 @@ class _$UpdateBackgroundTickImpl implements UpdateBackgroundTick {
     TResult? Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult? Function(String path)? changeAlarmTone,
     TResult? Function(bool enabled)? toggleMonitoring,
+    TResult? Function(bool enabled)? toggleVibration,
     TResult? Function()? openAppSettings,
   }) {
     return updateBackgroundTick?.call(data);
@@ -1874,6 +1936,7 @@ class _$UpdateBackgroundTickImpl implements UpdateBackgroundTick {
     TResult Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult Function(String path)? changeAlarmTone,
     TResult Function(bool enabled)? toggleMonitoring,
+    TResult Function(bool enabled)? toggleVibration,
     TResult Function()? openAppSettings,
     required TResult orElse(),
   }) {
@@ -1902,6 +1965,7 @@ class _$UpdateBackgroundTickImpl implements UpdateBackgroundTick {
     required TResult Function(UpdateBackgroundTick value) updateBackgroundTick,
     required TResult Function(ChangeAlarmTone value) changeAlarmTone,
     required TResult Function(ToggleMonitoring value) toggleMonitoring,
+    required TResult Function(ToggleVibration value) toggleVibration,
     required TResult Function(OpenAppSettings value) openAppSettings,
   }) {
     return updateBackgroundTick(this);
@@ -1924,6 +1988,7 @@ class _$UpdateBackgroundTickImpl implements UpdateBackgroundTick {
     TResult? Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult? Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult? Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult? Function(ToggleVibration value)? toggleVibration,
     TResult? Function(OpenAppSettings value)? openAppSettings,
   }) {
     return updateBackgroundTick?.call(this);
@@ -1946,6 +2011,7 @@ class _$UpdateBackgroundTickImpl implements UpdateBackgroundTick {
     TResult Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult Function(ToggleVibration value)? toggleVibration,
     TResult Function(OpenAppSettings value)? openAppSettings,
     required TResult orElse(),
   }) {
@@ -2043,6 +2109,7 @@ class _$ChangeAlarmToneImpl implements ChangeAlarmTone {
     required TResult Function(Map<String, dynamic> data) updateBackgroundTick,
     required TResult Function(String path) changeAlarmTone,
     required TResult Function(bool enabled) toggleMonitoring,
+    required TResult Function(bool enabled) toggleVibration,
     required TResult Function() openAppSettings,
   }) {
     return changeAlarmTone(path);
@@ -2063,6 +2130,7 @@ class _$ChangeAlarmToneImpl implements ChangeAlarmTone {
     TResult? Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult? Function(String path)? changeAlarmTone,
     TResult? Function(bool enabled)? toggleMonitoring,
+    TResult? Function(bool enabled)? toggleVibration,
     TResult? Function()? openAppSettings,
   }) {
     return changeAlarmTone?.call(path);
@@ -2083,6 +2151,7 @@ class _$ChangeAlarmToneImpl implements ChangeAlarmTone {
     TResult Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult Function(String path)? changeAlarmTone,
     TResult Function(bool enabled)? toggleMonitoring,
+    TResult Function(bool enabled)? toggleVibration,
     TResult Function()? openAppSettings,
     required TResult orElse(),
   }) {
@@ -2111,6 +2180,7 @@ class _$ChangeAlarmToneImpl implements ChangeAlarmTone {
     required TResult Function(UpdateBackgroundTick value) updateBackgroundTick,
     required TResult Function(ChangeAlarmTone value) changeAlarmTone,
     required TResult Function(ToggleMonitoring value) toggleMonitoring,
+    required TResult Function(ToggleVibration value) toggleVibration,
     required TResult Function(OpenAppSettings value) openAppSettings,
   }) {
     return changeAlarmTone(this);
@@ -2133,6 +2203,7 @@ class _$ChangeAlarmToneImpl implements ChangeAlarmTone {
     TResult? Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult? Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult? Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult? Function(ToggleVibration value)? toggleVibration,
     TResult? Function(OpenAppSettings value)? openAppSettings,
   }) {
     return changeAlarmTone?.call(this);
@@ -2155,6 +2226,7 @@ class _$ChangeAlarmToneImpl implements ChangeAlarmTone {
     TResult Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult Function(ToggleVibration value)? toggleVibration,
     TResult Function(OpenAppSettings value)? openAppSettings,
     required TResult orElse(),
   }) {
@@ -2252,6 +2324,7 @@ class _$ToggleMonitoringImpl implements ToggleMonitoring {
     required TResult Function(Map<String, dynamic> data) updateBackgroundTick,
     required TResult Function(String path) changeAlarmTone,
     required TResult Function(bool enabled) toggleMonitoring,
+    required TResult Function(bool enabled) toggleVibration,
     required TResult Function() openAppSettings,
   }) {
     return toggleMonitoring(enabled);
@@ -2272,6 +2345,7 @@ class _$ToggleMonitoringImpl implements ToggleMonitoring {
     TResult? Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult? Function(String path)? changeAlarmTone,
     TResult? Function(bool enabled)? toggleMonitoring,
+    TResult? Function(bool enabled)? toggleVibration,
     TResult? Function()? openAppSettings,
   }) {
     return toggleMonitoring?.call(enabled);
@@ -2292,6 +2366,7 @@ class _$ToggleMonitoringImpl implements ToggleMonitoring {
     TResult Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult Function(String path)? changeAlarmTone,
     TResult Function(bool enabled)? toggleMonitoring,
+    TResult Function(bool enabled)? toggleVibration,
     TResult Function()? openAppSettings,
     required TResult orElse(),
   }) {
@@ -2320,6 +2395,7 @@ class _$ToggleMonitoringImpl implements ToggleMonitoring {
     required TResult Function(UpdateBackgroundTick value) updateBackgroundTick,
     required TResult Function(ChangeAlarmTone value) changeAlarmTone,
     required TResult Function(ToggleMonitoring value) toggleMonitoring,
+    required TResult Function(ToggleVibration value) toggleVibration,
     required TResult Function(OpenAppSettings value) openAppSettings,
   }) {
     return toggleMonitoring(this);
@@ -2342,6 +2418,7 @@ class _$ToggleMonitoringImpl implements ToggleMonitoring {
     TResult? Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult? Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult? Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult? Function(ToggleVibration value)? toggleVibration,
     TResult? Function(OpenAppSettings value)? openAppSettings,
   }) {
     return toggleMonitoring?.call(this);
@@ -2364,6 +2441,7 @@ class _$ToggleMonitoringImpl implements ToggleMonitoring {
     TResult Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult Function(ToggleVibration value)? toggleVibration,
     TResult Function(OpenAppSettings value)? openAppSettings,
     required TResult orElse(),
   }) {
@@ -2381,6 +2459,221 @@ abstract class ToggleMonitoring implements ValidationEvent {
   bool get enabled;
   @JsonKey(ignore: true)
   _$$ToggleMonitoringImplCopyWith<_$ToggleMonitoringImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$ToggleVibrationImplCopyWith<$Res> {
+  factory _$$ToggleVibrationImplCopyWith(_$ToggleVibrationImpl value,
+          $Res Function(_$ToggleVibrationImpl) then) =
+      __$$ToggleVibrationImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({bool enabled});
+}
+
+/// @nodoc
+class __$$ToggleVibrationImplCopyWithImpl<$Res>
+    extends _$ValidationEventCopyWithImpl<$Res, _$ToggleVibrationImpl>
+    implements _$$ToggleVibrationImplCopyWith<$Res> {
+  __$$ToggleVibrationImplCopyWithImpl(
+      _$ToggleVibrationImpl _value, $Res Function(_$ToggleVibrationImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? enabled = null,
+  }) {
+    return _then(_$ToggleVibrationImpl(
+      enabled: null == enabled
+          ? _value.enabled
+          : enabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$ToggleVibrationImpl implements ToggleVibration {
+  const _$ToggleVibrationImpl({required this.enabled});
+
+  @override
+  final bool enabled;
+
+  @override
+  String toString() {
+    return 'ValidationEvent.toggleVibration(enabled: $enabled)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ToggleVibrationImpl &&
+            (identical(other.enabled, enabled) || other.enabled == enabled));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, enabled);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ToggleVibrationImplCopyWith<_$ToggleVibrationImpl> get copyWith =>
+      __$$ToggleVibrationImplCopyWithImpl<_$ToggleVibrationImpl>(
+          this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() initialize,
+    required TResult Function() requestNotificationPermission,
+    required TResult Function() triggerTestNotification,
+    required TResult Function() requestLocationPermission,
+    required TResult Function() fetchCurrentLocation,
+    required TResult Function() toggleLocationStream,
+    required TResult Function() startAlarm,
+    required TResult Function() stopAlarm,
+    required TResult Function() toggleBackgroundService,
+    required TResult Function(Map<String, dynamic> data) updateBackgroundTick,
+    required TResult Function(String path) changeAlarmTone,
+    required TResult Function(bool enabled) toggleMonitoring,
+    required TResult Function(bool enabled) toggleVibration,
+    required TResult Function() openAppSettings,
+  }) {
+    return toggleVibration(enabled);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? initialize,
+    TResult? Function()? requestNotificationPermission,
+    TResult? Function()? triggerTestNotification,
+    TResult? Function()? requestLocationPermission,
+    TResult? Function()? fetchCurrentLocation,
+    TResult? Function()? toggleLocationStream,
+    TResult? Function()? startAlarm,
+    TResult? Function()? stopAlarm,
+    TResult? Function()? toggleBackgroundService,
+    TResult? Function(Map<String, dynamic> data)? updateBackgroundTick,
+    TResult? Function(String path)? changeAlarmTone,
+    TResult? Function(bool enabled)? toggleMonitoring,
+    TResult? Function(bool enabled)? toggleVibration,
+    TResult? Function()? openAppSettings,
+  }) {
+    return toggleVibration?.call(enabled);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? initialize,
+    TResult Function()? requestNotificationPermission,
+    TResult Function()? triggerTestNotification,
+    TResult Function()? requestLocationPermission,
+    TResult Function()? fetchCurrentLocation,
+    TResult Function()? toggleLocationStream,
+    TResult Function()? startAlarm,
+    TResult Function()? stopAlarm,
+    TResult Function()? toggleBackgroundService,
+    TResult Function(Map<String, dynamic> data)? updateBackgroundTick,
+    TResult Function(String path)? changeAlarmTone,
+    TResult Function(bool enabled)? toggleMonitoring,
+    TResult Function(bool enabled)? toggleVibration,
+    TResult Function()? openAppSettings,
+    required TResult orElse(),
+  }) {
+    if (toggleVibration != null) {
+      return toggleVibration(enabled);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(Initialize value) initialize,
+    required TResult Function(RequestNotificationPermission value)
+        requestNotificationPermission,
+    required TResult Function(TriggerTestNotification value)
+        triggerTestNotification,
+    required TResult Function(RequestLocationPermission value)
+        requestLocationPermission,
+    required TResult Function(FetchCurrentLocation value) fetchCurrentLocation,
+    required TResult Function(ToggleLocationStream value) toggleLocationStream,
+    required TResult Function(StartAlarm value) startAlarm,
+    required TResult Function(StopAlarm value) stopAlarm,
+    required TResult Function(ToggleBackgroundService value)
+        toggleBackgroundService,
+    required TResult Function(UpdateBackgroundTick value) updateBackgroundTick,
+    required TResult Function(ChangeAlarmTone value) changeAlarmTone,
+    required TResult Function(ToggleMonitoring value) toggleMonitoring,
+    required TResult Function(ToggleVibration value) toggleVibration,
+    required TResult Function(OpenAppSettings value) openAppSettings,
+  }) {
+    return toggleVibration(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(Initialize value)? initialize,
+    TResult? Function(RequestNotificationPermission value)?
+        requestNotificationPermission,
+    TResult? Function(TriggerTestNotification value)? triggerTestNotification,
+    TResult? Function(RequestLocationPermission value)?
+        requestLocationPermission,
+    TResult? Function(FetchCurrentLocation value)? fetchCurrentLocation,
+    TResult? Function(ToggleLocationStream value)? toggleLocationStream,
+    TResult? Function(StartAlarm value)? startAlarm,
+    TResult? Function(StopAlarm value)? stopAlarm,
+    TResult? Function(ToggleBackgroundService value)? toggleBackgroundService,
+    TResult? Function(UpdateBackgroundTick value)? updateBackgroundTick,
+    TResult? Function(ChangeAlarmTone value)? changeAlarmTone,
+    TResult? Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult? Function(ToggleVibration value)? toggleVibration,
+    TResult? Function(OpenAppSettings value)? openAppSettings,
+  }) {
+    return toggleVibration?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(Initialize value)? initialize,
+    TResult Function(RequestNotificationPermission value)?
+        requestNotificationPermission,
+    TResult Function(TriggerTestNotification value)? triggerTestNotification,
+    TResult Function(RequestLocationPermission value)?
+        requestLocationPermission,
+    TResult Function(FetchCurrentLocation value)? fetchCurrentLocation,
+    TResult Function(ToggleLocationStream value)? toggleLocationStream,
+    TResult Function(StartAlarm value)? startAlarm,
+    TResult Function(StopAlarm value)? stopAlarm,
+    TResult Function(ToggleBackgroundService value)? toggleBackgroundService,
+    TResult Function(UpdateBackgroundTick value)? updateBackgroundTick,
+    TResult Function(ChangeAlarmTone value)? changeAlarmTone,
+    TResult Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult Function(ToggleVibration value)? toggleVibration,
+    TResult Function(OpenAppSettings value)? openAppSettings,
+    required TResult orElse(),
+  }) {
+    if (toggleVibration != null) {
+      return toggleVibration(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class ToggleVibration implements ValidationEvent {
+  const factory ToggleVibration({required final bool enabled}) =
+      _$ToggleVibrationImpl;
+
+  bool get enabled;
+  @JsonKey(ignore: true)
+  _$$ToggleVibrationImplCopyWith<_$ToggleVibrationImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
@@ -2434,6 +2727,7 @@ class _$OpenAppSettingsImpl implements OpenAppSettings {
     required TResult Function(Map<String, dynamic> data) updateBackgroundTick,
     required TResult Function(String path) changeAlarmTone,
     required TResult Function(bool enabled) toggleMonitoring,
+    required TResult Function(bool enabled) toggleVibration,
     required TResult Function() openAppSettings,
   }) {
     return openAppSettings();
@@ -2454,6 +2748,7 @@ class _$OpenAppSettingsImpl implements OpenAppSettings {
     TResult? Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult? Function(String path)? changeAlarmTone,
     TResult? Function(bool enabled)? toggleMonitoring,
+    TResult? Function(bool enabled)? toggleVibration,
     TResult? Function()? openAppSettings,
   }) {
     return openAppSettings?.call();
@@ -2474,6 +2769,7 @@ class _$OpenAppSettingsImpl implements OpenAppSettings {
     TResult Function(Map<String, dynamic> data)? updateBackgroundTick,
     TResult Function(String path)? changeAlarmTone,
     TResult Function(bool enabled)? toggleMonitoring,
+    TResult Function(bool enabled)? toggleVibration,
     TResult Function()? openAppSettings,
     required TResult orElse(),
   }) {
@@ -2502,6 +2798,7 @@ class _$OpenAppSettingsImpl implements OpenAppSettings {
     required TResult Function(UpdateBackgroundTick value) updateBackgroundTick,
     required TResult Function(ChangeAlarmTone value) changeAlarmTone,
     required TResult Function(ToggleMonitoring value) toggleMonitoring,
+    required TResult Function(ToggleVibration value) toggleVibration,
     required TResult Function(OpenAppSettings value) openAppSettings,
   }) {
     return openAppSettings(this);
@@ -2524,6 +2821,7 @@ class _$OpenAppSettingsImpl implements OpenAppSettings {
     TResult? Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult? Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult? Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult? Function(ToggleVibration value)? toggleVibration,
     TResult? Function(OpenAppSettings value)? openAppSettings,
   }) {
     return openAppSettings?.call(this);
@@ -2546,6 +2844,7 @@ class _$OpenAppSettingsImpl implements OpenAppSettings {
     TResult Function(UpdateBackgroundTick value)? updateBackgroundTick,
     TResult Function(ChangeAlarmTone value)? changeAlarmTone,
     TResult Function(ToggleMonitoring value)? toggleMonitoring,
+    TResult Function(ToggleVibration value)? toggleVibration,
     TResult Function(OpenAppSettings value)? openAppSettings,
     required TResult orElse(),
   }) {

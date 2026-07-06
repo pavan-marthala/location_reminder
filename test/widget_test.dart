@@ -128,6 +128,16 @@ class MockSettingsService implements SettingsService {
 
   @override
   bool isOnboardingCompleted() => _onboardingCompleted;
+
+  bool _vibrationEnabled = true;
+
+  @override
+  Future<void> saveVibrationEnabled(bool enabled) async {
+    _vibrationEnabled = enabled;
+  }
+
+  @override
+  bool isVibrationEnabled() => _vibrationEnabled;
 }
 
 class MockMonitoringCoordinator implements MonitoringCoordinator {

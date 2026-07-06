@@ -26,9 +26,11 @@ mixin _$ValidationState {
   bool get isBackgroundLocationPermissionGranted =>
       throw _privateConstructorUsedError;
   bool get isMonitoringEnabled => throw _privateConstructorUsedError;
+  bool get isVibrationEnabled => throw _privateConstructorUsedError;
   String? get selectedAlarmTone => throw _privateConstructorUsedError;
   String? get currentCoordinates => throw _privateConstructorUsedError;
   String? get latestBackgroundTick => throw _privateConstructorUsedError;
+  String? get backgroundReadinessState => throw _privateConstructorUsedError;
   String? get errorMessage => throw _privateConstructorUsedError;
   bool get isLoading => throw _privateConstructorUsedError;
 
@@ -52,9 +54,11 @@ abstract class $ValidationStateCopyWith<$Res> {
       bool isLocationPermissionGranted,
       bool isBackgroundLocationPermissionGranted,
       bool isMonitoringEnabled,
+      bool isVibrationEnabled,
       String? selectedAlarmTone,
       String? currentCoordinates,
       String? latestBackgroundTick,
+      String? backgroundReadinessState,
       String? errorMessage,
       bool isLoading});
 }
@@ -80,9 +84,11 @@ class _$ValidationStateCopyWithImpl<$Res, $Val extends ValidationState>
     Object? isLocationPermissionGranted = null,
     Object? isBackgroundLocationPermissionGranted = null,
     Object? isMonitoringEnabled = null,
+    Object? isVibrationEnabled = null,
     Object? selectedAlarmTone = freezed,
     Object? currentCoordinates = freezed,
     Object? latestBackgroundTick = freezed,
+    Object? backgroundReadinessState = freezed,
     Object? errorMessage = freezed,
     Object? isLoading = null,
   }) {
@@ -120,6 +126,10 @@ class _$ValidationStateCopyWithImpl<$Res, $Val extends ValidationState>
           ? _value.isMonitoringEnabled
           : isMonitoringEnabled // ignore: cast_nullable_to_non_nullable
               as bool,
+      isVibrationEnabled: null == isVibrationEnabled
+          ? _value.isVibrationEnabled
+          : isVibrationEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
       selectedAlarmTone: freezed == selectedAlarmTone
           ? _value.selectedAlarmTone
           : selectedAlarmTone // ignore: cast_nullable_to_non_nullable
@@ -131,6 +141,10 @@ class _$ValidationStateCopyWithImpl<$Res, $Val extends ValidationState>
       latestBackgroundTick: freezed == latestBackgroundTick
           ? _value.latestBackgroundTick
           : latestBackgroundTick // ignore: cast_nullable_to_non_nullable
+              as String?,
+      backgroundReadinessState: freezed == backgroundReadinessState
+          ? _value.backgroundReadinessState
+          : backgroundReadinessState // ignore: cast_nullable_to_non_nullable
               as String?,
       errorMessage: freezed == errorMessage
           ? _value.errorMessage
@@ -161,9 +175,11 @@ abstract class _$$ValidationStateImplCopyWith<$Res>
       bool isLocationPermissionGranted,
       bool isBackgroundLocationPermissionGranted,
       bool isMonitoringEnabled,
+      bool isVibrationEnabled,
       String? selectedAlarmTone,
       String? currentCoordinates,
       String? latestBackgroundTick,
+      String? backgroundReadinessState,
       String? errorMessage,
       bool isLoading});
 }
@@ -187,9 +203,11 @@ class __$$ValidationStateImplCopyWithImpl<$Res>
     Object? isLocationPermissionGranted = null,
     Object? isBackgroundLocationPermissionGranted = null,
     Object? isMonitoringEnabled = null,
+    Object? isVibrationEnabled = null,
     Object? selectedAlarmTone = freezed,
     Object? currentCoordinates = freezed,
     Object? latestBackgroundTick = freezed,
+    Object? backgroundReadinessState = freezed,
     Object? errorMessage = freezed,
     Object? isLoading = null,
   }) {
@@ -227,6 +245,10 @@ class __$$ValidationStateImplCopyWithImpl<$Res>
           ? _value.isMonitoringEnabled
           : isMonitoringEnabled // ignore: cast_nullable_to_non_nullable
               as bool,
+      isVibrationEnabled: null == isVibrationEnabled
+          ? _value.isVibrationEnabled
+          : isVibrationEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
       selectedAlarmTone: freezed == selectedAlarmTone
           ? _value.selectedAlarmTone
           : selectedAlarmTone // ignore: cast_nullable_to_non_nullable
@@ -238,6 +260,10 @@ class __$$ValidationStateImplCopyWithImpl<$Res>
       latestBackgroundTick: freezed == latestBackgroundTick
           ? _value.latestBackgroundTick
           : latestBackgroundTick // ignore: cast_nullable_to_non_nullable
+              as String?,
+      backgroundReadinessState: freezed == backgroundReadinessState
+          ? _value.backgroundReadinessState
+          : backgroundReadinessState // ignore: cast_nullable_to_non_nullable
               as String?,
       errorMessage: freezed == errorMessage
           ? _value.errorMessage
@@ -263,9 +289,11 @@ class _$ValidationStateImpl implements _ValidationState {
       this.isLocationPermissionGranted = false,
       this.isBackgroundLocationPermissionGranted = false,
       this.isMonitoringEnabled = true,
+      this.isVibrationEnabled = true,
       this.selectedAlarmTone,
       this.currentCoordinates,
       this.latestBackgroundTick,
+      this.backgroundReadinessState,
       this.errorMessage,
       this.isLoading = false});
 
@@ -294,11 +322,16 @@ class _$ValidationStateImpl implements _ValidationState {
   @JsonKey()
   final bool isMonitoringEnabled;
   @override
+  @JsonKey()
+  final bool isVibrationEnabled;
+  @override
   final String? selectedAlarmTone;
   @override
   final String? currentCoordinates;
   @override
   final String? latestBackgroundTick;
+  @override
+  final String? backgroundReadinessState;
   @override
   final String? errorMessage;
   @override
@@ -307,7 +340,7 @@ class _$ValidationStateImpl implements _ValidationState {
 
   @override
   String toString() {
-    return 'ValidationState(isInitialized: $isInitialized, isAlarmPlaying: $isAlarmPlaying, isBackgroundServiceRunning: $isBackgroundServiceRunning, isLocationStreamActive: $isLocationStreamActive, isNotificationPermissionGranted: $isNotificationPermissionGranted, isLocationPermissionGranted: $isLocationPermissionGranted, isBackgroundLocationPermissionGranted: $isBackgroundLocationPermissionGranted, isMonitoringEnabled: $isMonitoringEnabled, selectedAlarmTone: $selectedAlarmTone, currentCoordinates: $currentCoordinates, latestBackgroundTick: $latestBackgroundTick, errorMessage: $errorMessage, isLoading: $isLoading)';
+    return 'ValidationState(isInitialized: $isInitialized, isAlarmPlaying: $isAlarmPlaying, isBackgroundServiceRunning: $isBackgroundServiceRunning, isLocationStreamActive: $isLocationStreamActive, isNotificationPermissionGranted: $isNotificationPermissionGranted, isLocationPermissionGranted: $isLocationPermissionGranted, isBackgroundLocationPermissionGranted: $isBackgroundLocationPermissionGranted, isMonitoringEnabled: $isMonitoringEnabled, isVibrationEnabled: $isVibrationEnabled, selectedAlarmTone: $selectedAlarmTone, currentCoordinates: $currentCoordinates, latestBackgroundTick: $latestBackgroundTick, backgroundReadinessState: $backgroundReadinessState, errorMessage: $errorMessage, isLoading: $isLoading)';
   }
 
   @override
@@ -328,8 +361,7 @@ class _$ValidationStateImpl implements _ValidationState {
                     isNotificationPermissionGranted) ||
                 other.isNotificationPermissionGranted ==
                     isNotificationPermissionGranted) &&
-            (identical(other.isLocationPermissionGranted,
-                    isLocationPermissionGranted) ||
+            (identical(other.isLocationPermissionGranted, isLocationPermissionGranted) ||
                 other.isLocationPermissionGranted ==
                     isLocationPermissionGranted) &&
             (identical(other.isBackgroundLocationPermissionGranted,
@@ -338,12 +370,16 @@ class _$ValidationStateImpl implements _ValidationState {
                     isBackgroundLocationPermissionGranted) &&
             (identical(other.isMonitoringEnabled, isMonitoringEnabled) ||
                 other.isMonitoringEnabled == isMonitoringEnabled) &&
+            (identical(other.isVibrationEnabled, isVibrationEnabled) ||
+                other.isVibrationEnabled == isVibrationEnabled) &&
             (identical(other.selectedAlarmTone, selectedAlarmTone) ||
                 other.selectedAlarmTone == selectedAlarmTone) &&
             (identical(other.currentCoordinates, currentCoordinates) ||
                 other.currentCoordinates == currentCoordinates) &&
             (identical(other.latestBackgroundTick, latestBackgroundTick) ||
                 other.latestBackgroundTick == latestBackgroundTick) &&
+            (identical(other.backgroundReadinessState, backgroundReadinessState) ||
+                other.backgroundReadinessState == backgroundReadinessState) &&
             (identical(other.errorMessage, errorMessage) ||
                 other.errorMessage == errorMessage) &&
             (identical(other.isLoading, isLoading) ||
@@ -361,9 +397,11 @@ class _$ValidationStateImpl implements _ValidationState {
       isLocationPermissionGranted,
       isBackgroundLocationPermissionGranted,
       isMonitoringEnabled,
+      isVibrationEnabled,
       selectedAlarmTone,
       currentCoordinates,
       latestBackgroundTick,
+      backgroundReadinessState,
       errorMessage,
       isLoading);
 
@@ -385,9 +423,11 @@ abstract class _ValidationState implements ValidationState {
       final bool isLocationPermissionGranted,
       final bool isBackgroundLocationPermissionGranted,
       final bool isMonitoringEnabled,
+      final bool isVibrationEnabled,
       final String? selectedAlarmTone,
       final String? currentCoordinates,
       final String? latestBackgroundTick,
+      final String? backgroundReadinessState,
       final String? errorMessage,
       final bool isLoading}) = _$ValidationStateImpl;
 
@@ -408,11 +448,15 @@ abstract class _ValidationState implements ValidationState {
   @override
   bool get isMonitoringEnabled;
   @override
+  bool get isVibrationEnabled;
+  @override
   String? get selectedAlarmTone;
   @override
   String? get currentCoordinates;
   @override
   String? get latestBackgroundTick;
+  @override
+  String? get backgroundReadinessState;
   @override
   String? get errorMessage;
   @override

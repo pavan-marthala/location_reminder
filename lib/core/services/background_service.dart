@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 import 'dart:ui';
 import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -479,6 +480,9 @@ void onStart(ServiceInstance service) async {
             ),
           );
 
+          final prefs = await SharedPreferences.getInstance();
+          final vibrate = prefs.getBool('vibration_enabled') ?? true;
+
           final androidDetails = AndroidNotificationDetails(
             'alarm_channel',
             'Alarms & Reminders',
@@ -487,7 +491,7 @@ void onStart(ServiceInstance service) async {
             importance: Importance.max,
             priority: Priority.high,
             playSound: false, // UI Alarm Screen owns audio playback
-            enableVibration: true,
+            enableVibration: vibrate,
             fullScreenIntent: true,
             category: AndroidNotificationCategory.alarm,
           );

@@ -51,7 +51,7 @@ class AlarmServiceImpl implements AlarmService {
   Future<void> playAlarm([String? customPath]) async {
     if (_isPlaying) return;
 
-    final assetPath = customPath ?? _settingsService.getSelectedAlarmTonePath();
+    final assetPath = _settingsService.getSelectedAlarmTonePath();
     final cleanPath = assetPath.startsWith('assets/')
         ? assetPath.substring(7)
         : assetPath;

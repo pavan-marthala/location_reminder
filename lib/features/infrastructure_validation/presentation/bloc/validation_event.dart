@@ -26,5 +26,8 @@ class ValidationEvent with _$ValidationEvent {
   const factory ValidationEvent.toggleMonitoring({
     required bool enabled,
   }) = ToggleMonitoring;
+  const factory ValidationEvent.toggleVibration({
+    required bool enabled,
+  }) = ToggleVibration;
   const factory ValidationEvent.openAppSettings() = OpenAppSettings;
 }

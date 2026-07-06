@@ -46,6 +46,7 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
     on<UpdateBackgroundTick>(_onUpdateBackgroundTick);
     on<ChangeAlarmTone>(_onChangeAlarmTone);
     on<ToggleMonitoring>(_onToggleMonitoring);
+    on<ToggleVibration>(_onToggleVibration);
     on<OpenAppSettings>(_onOpenAppSettings);
   }
 
@@ -69,6 +70,7 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
       final bgLocGranted = locPerm == LocationPermission.always;
       final alarmTone = _settingsService.getSelectedAlarmTonePath();
       final monitoringEnabled = _monitoringCoordinator.isMonitoringEnabled();
+      final vibrationEnabled = _settingsService.isVibrationEnabled();
 
       // Listen to background service events
       await _backgroundSubscription?.cancel();
@@ -88,6 +90,7 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
           isLocationPermissionGranted: locGranted,
           isBackgroundLocationPermissionGranted: bgLocGranted,
           isMonitoringEnabled: monitoringEnabled,
+          isVibrationEnabled: vibrationEnabled,
           selectedAlarmTone: alarmTone,
           isLoading: false,
         ),
@@ -311,22 +314,25 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
     UpdateBackgroundTick event,
     Emitter<ValidationState> emit,
   ) {
+    final status = event.data['status'] as String?;
+    final readinessState = event.data['readinessState'] as String?;
     final timeStr = event.data['time'] as String?;
+
+    String? formattedTick = state.latestBackgroundTick;
     if (timeStr != null) {
       final parsed = DateTime.tryParse(timeStr);
       if (parsed != null) {
         final formattedTime =
             '${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}:${parsed.second.toString().padLeft(2, '0')}';
-        emit(
-          state.copyWith(
-            latestBackgroundTick: 'Check received at $formattedTime',
-            isBackgroundServiceRunning: true,
-          ),
-        );
-        return;
+        formattedTick = 'Check received at $formattedTime';
       }
     }
-    emit(state.copyWith(isBackgroundServiceRunning: true));
+
+    emit(state.copyWith(
+      isBackgroundServiceRunning: true,
+      latestBackgroundTick: formattedTick,
+      backgroundReadinessState: readinessState ?? state.backgroundReadinessState,
+    ));
   }
 
   Future<void> _onChangeAlarmTone(
@@ -356,6 +362,21 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
       ));
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Failed to toggle monitoring: $e'));
+    }
+  }
+
+  Future<void> _onToggleVibration(
+    ToggleVibration event,
+    Emitter<ValidationState> emit,
+  ) async {
+    emit(state.copyWith(errorMessage: null));
+    try {
+      await _settingsService.saveVibrationEnabled(event.enabled);
+      emit(state.copyWith(
+        isVibrationEnabled: event.enabled,
+      ));
+    } catch (e) {
+      emit(state.copyWith(errorMessage: 'Failed to toggle vibration: $e'));
     }
   }
 

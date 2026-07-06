@@ -1,6 +1,8 @@
 import 'dart:developer';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:reminders/core/theme/app_theme.dart';
 import 'package:reminders/core/utils/app_button.dart';
 import 'package:reminders/core/utils/app_toast.dart';
@@ -31,10 +33,12 @@ class _SettingsPageView extends StatelessWidget {
   String _getAlarmToneName(String? path) {
     if (path == null) return 'Daybreak';
     if (path.contains('Daybreak')) return 'Daybreak';
-    if (path.contains('SlowMorning') || path.contains('Slow_Morning'))
+    if (path.contains('SlowMorning') || path.contains('Slow_Morning')) {
       return 'Slow Morning';
-    if (path.contains('Earth_Day') || path.contains('EarthDay'))
+    }
+    if (path.contains('Earth_Day') || path.contains('EarthDay')) {
       return 'Earth Day';
+    }
     return path.split('/').last;
   }
 
@@ -72,6 +76,31 @@ class _SettingsPageView extends StatelessWidget {
               );
             }
 
+            // Expose monitoring status
+            String monitoringStatus = 'Disabled';
+            IconData statusIcon = Icons.remove_circle_outline_rounded;
+            Color statusColor = colors.textTertiary;
+
+            if (!state.isMonitoringEnabled) {
+              monitoringStatus = 'Disabled';
+              statusIcon = Icons.remove_circle_outline_rounded;
+              statusColor = colors.textTertiary;
+            } else if (!state.isBackgroundServiceRunning) {
+              monitoringStatus = 'Stopped';
+              statusIcon = Icons.pause_circle_filled_rounded;
+              statusColor = colors.textTertiary;
+            } else {
+              if (state.backgroundReadinessState == 'WaitingForLocation') {
+                monitoringStatus = 'Waiting for GPS';
+                statusIcon = Icons.gps_not_fixed_rounded;
+                statusColor = colors.warning;
+              } else {
+                monitoringStatus = 'Running';
+                statusIcon = Icons.play_circle_fill_rounded;
+                statusColor = colors.success;
+              }
+            }
+
             return SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -101,15 +130,6 @@ class _SettingsPageView extends StatelessWidget {
                               const ValidationEvent.requestLocationPermission(),
                             ),
                           ),
-                          const Divider(),
-                          _buildPermissionRow(
-                            context,
-                            'Background Location',
-                            state.isBackgroundLocationPermissionGranted,
-                            onAction: () => context.read<ValidationBloc>().add(
-                              const ValidationEvent.requestLocationPermission(),
-                            ),
-                          ),
                           const SizedBox(height: 16),
                           AppButton(
                             width: double.infinity,
@@ -127,8 +147,8 @@ class _SettingsPageView extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
 
-                  // 2. Alarm Settings
-                  _buildSectionHeader(context, 'Alarm Settings'),
+                  // 2. Notifications Section
+                  _buildSectionHeader(context, 'Notifications'),
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
@@ -136,15 +156,15 @@ class _SettingsPageView extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Selected Alarm Tone',
+                            'Alarm Tone',
                             style: typography.bodyMedium.copyWith(
                               color: colors.textSecondary,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
-                            initialValue:
-                                state.selectedAlarmTone != null &&
+                            value: state.selectedAlarmTone != null &&
                                     availableTones.any(
                                       (element) =>
                                           element['path'] ==
@@ -167,7 +187,6 @@ class _SettingsPageView extends StatelessWidget {
                                 vertical: 8,
                               ),
                               filled: false,
-
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(color: colors.border),
@@ -188,6 +207,30 @@ class _SettingsPageView extends StatelessWidget {
                             },
                           ),
                           const SizedBox(height: 16),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              'Vibration',
+                              style: typography.bodyLarge.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Text(
+                              'Vibrate when alarms trigger',
+                              style: typography.bodySmall.copyWith(
+                                color: colors.textTertiary,
+                              ),
+                            ),
+                            value: state.isVibrationEnabled,
+                            activeThumbColor: colors.primary,
+                            onChanged: (val) {
+                              context.read<ValidationBloc>().add(
+                                ValidationEvent.toggleVibration(enabled: val),
+                              );
+                            },
+                          ),
+                          const Divider(),
+                          const SizedBox(height: 8),
                           Row(
                             children: [
                               Expanded(
@@ -216,7 +259,7 @@ class _SettingsPageView extends StatelessWidget {
                   const SizedBox(height: 20),
 
                   // 3. Monitoring Settings
-                  _buildSectionHeader(context, 'Monitoring Settings'),
+                  _buildSectionHeader(context, 'Monitoring'),
                   Card(
                     child: Column(
                       children: [
@@ -247,12 +290,8 @@ class _SettingsPageView extends StatelessWidget {
                           child: Row(
                             children: [
                               Icon(
-                                state.isBackgroundServiceRunning
-                                    ? Icons.play_circle_fill_rounded
-                                    : Icons.pause_circle_filled_rounded,
-                                color: state.isBackgroundServiceRunning
-                                    ? colors.success
-                                    : colors.textTertiary,
+                                statusIcon,
+                                color: statusColor,
                                 size: 24,
                               ),
                               const SizedBox(width: 12),
@@ -261,15 +300,13 @@ class _SettingsPageView extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Background Service Status',
+                                      'Status',
                                       style: typography.bodyMedium.copyWith(
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                     Text(
-                                      state.isBackgroundServiceRunning
-                                          ? 'Running and ready'
-                                          : 'Stopped',
+                                      monitoringStatus,
                                       style: typography.bodySmall.copyWith(
                                         color: colors.textTertiary,
                                       ),
@@ -280,29 +317,114 @@ class _SettingsPageView extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const Divider(height: 1),
-                        ListTile(
-                          title: Text(
-                            'Developer Tools',
-                            style: typography.bodyLarge.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          subtitle: Text(
-                            'Expose coordinates, distance, geofences, and evaluation logs',
-                            style: typography.bodySmall.copyWith(
-                              color: colors.textTertiary,
-                            ),
-                          ),
-                          trailing: const Icon(Icons.chevron_right_rounded),
-                          onTap: () {
-                            context.push(AppRoutes.developerTools);
-                          },
-                        ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 20),
+
+                  // 4. About Section
+                  _buildSectionHeader(context, 'About'),
+                  Card(
+                    child: FutureBuilder<PackageInfo>(
+                      future: PackageInfo.fromPlatform(),
+                      builder: (context, snapshot) {
+                        final version = snapshot.data?.version ?? '1.0.0';
+                        final buildNumber = snapshot.data?.buildNumber ?? '1';
+
+                        return Column(
+                          children: [
+                            ListTile(
+                              title: Text(
+                                'App Version',
+                                style: typography.bodyLarge.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              trailing: Text(
+                                version,
+                                style: typography.bodyMedium.copyWith(
+                                  color: colors.textSecondary,
+                                ),
+                              ),
+                            ),
+                            const Divider(height: 1),
+                            ListTile(
+                              title: Text(
+                                'Build Number',
+                                style: typography.bodyLarge.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              trailing: Text(
+                                buildNumber,
+                                style: typography.bodyMedium.copyWith(
+                                  color: colors.textSecondary,
+                                ),
+                              ),
+                            ),
+                            const Divider(height: 1),
+                            ListTile(
+                              title: Text(
+                                'Privacy Policy',
+                                style: typography.bodyLarge.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              trailing: const Icon(Icons.chevron_right_rounded),
+                              onTap: () {
+                                showSuccessToast(
+                                  message: 'Privacy Policy placeholder tapped.',
+                                );
+                              },
+                            ),
+                            const Divider(height: 1),
+                            ListTile(
+                              title: Text(
+                                'Open Source Licenses',
+                                style: typography.bodyLarge.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              trailing: const Icon(Icons.chevron_right_rounded),
+                              onTap: () {
+                                showLicensePage(
+                                  context: context,
+                                  applicationName: 'Location Reminder',
+                                );
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 5. Developer Tools (kDebugMode only)
+                  if (kDebugMode) ...[
+                    _buildSectionHeader(context, 'Developer Tools'),
+                    Card(
+                      child: ListTile(
+                        title: Text(
+                          'Developer Tools',
+                          style: typography.bodyLarge.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Expose coordinates, distance, geofences, and evaluation logs',
+                          style: typography.bodySmall.copyWith(
+                            color: colors.textTertiary,
+                          ),
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () {
+                          context.push(AppRoutes.developerTools);
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                 ],
               ),
             );

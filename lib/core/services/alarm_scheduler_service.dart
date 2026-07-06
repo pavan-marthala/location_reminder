@@ -7,6 +7,7 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/services/monitoring_coordinator.dart';
+import 'package:reminders/core/services/settings_service.dart';
 import 'package:reminders/features/reminders/domain/repositories/reminder_repository.dart';
 
 abstract class AlarmSchedulerService {
@@ -21,10 +22,12 @@ abstract class AlarmSchedulerService {
 class AlarmSchedulerServiceImpl implements AlarmSchedulerService {
   final FlutterLocalNotificationsPlugin _localNotifications;
   final ReminderRepository _reminderRepository;
+  final SettingsService _settingsService;
 
   AlarmSchedulerServiceImpl(
     this._localNotifications,
     this._reminderRepository,
+    this._settingsService,
   ) {
     tz.initializeTimeZones();
   }
@@ -63,7 +66,8 @@ class AlarmSchedulerServiceImpl implements AlarmSchedulerService {
     debugPrint('[SNOOZE] Android mechanism: ${scheduleMode.name}');
     debugPrint('[SNOOZE] Alarm ID (Request Code): $reminderId');
 
-    final androidDetails = const AndroidNotificationDetails(
+    final vibrate = _settingsService.isVibrationEnabled();
+    final androidDetails = AndroidNotificationDetails(
       'alarm_channel',
       'Alarms & Reminders',
       channelDescription:
@@ -71,7 +75,7 @@ class AlarmSchedulerServiceImpl implements AlarmSchedulerService {
       importance: Importance.max,
       priority: Priority.high,
       playSound: false, // Audio played by AlarmPage
-      enableVibration: true,
+      enableVibration: vibrate,
       fullScreenIntent: true,
       category: AndroidNotificationCategory.alarm,
     );
