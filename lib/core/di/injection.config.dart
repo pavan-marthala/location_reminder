@@ -24,17 +24,17 @@ import '../../features/reminders/data/repositories/reminder_repository_impl.dart
 import '../../features/reminders/domain/repositories/reminder_repository.dart'
     as _i10;
 import '../../features/reminders/domain/usecases/create_reminder_usecase.dart'
-    as _i21;
+    as _i22;
 import '../../features/reminders/domain/usecases/delete_reminder_usecase.dart'
     as _i17;
 import '../../features/reminders/domain/usecases/get_all_reminders_usecase.dart'
-    as _i19;
+    as _i20;
 import '../../features/reminders/domain/usecases/get_reminder_by_id_usecase.dart'
     as _i18;
 import '../../features/reminders/domain/usecases/update_reminder_usecase.dart'
-    as _i20;
+    as _i21;
 import '../../features/reminders/domain/usecases/watch_all_reminders_usecase.dart'
-    as _i22;
+    as _i19;
 import '../../features/reminders/presentation/bloc/reminder_bloc.dart' as _i25;
 import '../database/app_database.dart' as _i4;
 import '../services/alarm_service.dart' as _i23;
@@ -96,14 +96,14 @@ extension GetItInjectableX on _i1.GetIt {
         () => _i17.DeleteReminderUseCase(gh<_i10.ReminderRepository>()));
     gh.factory<_i18.GetReminderByIdUseCase>(
         () => _i18.GetReminderByIdUseCase(gh<_i10.ReminderRepository>()));
-    gh.factory<_i19.GetAllRemindersUseCase>(
-        () => _i19.GetAllRemindersUseCase(gh<_i10.ReminderRepository>()));
-    gh.factory<_i20.UpdateReminderUseCase>(
-        () => _i20.UpdateReminderUseCase(gh<_i10.ReminderRepository>()));
-    gh.factory<_i21.CreateReminderUseCase>(
-        () => _i21.CreateReminderUseCase(gh<_i10.ReminderRepository>()));
-    gh.factory<_i22.WatchAllRemindersUseCase>(
-        () => _i22.WatchAllRemindersUseCase(gh<_i10.ReminderRepository>()));
+    gh.factory<_i19.WatchAllRemindersUseCase>(
+        () => _i19.WatchAllRemindersUseCase(gh<_i10.ReminderRepository>()));
+    gh.factory<_i20.GetAllRemindersUseCase>(
+        () => _i20.GetAllRemindersUseCase(gh<_i10.ReminderRepository>()));
+    gh.factory<_i21.UpdateReminderUseCase>(
+        () => _i21.UpdateReminderUseCase(gh<_i10.ReminderRepository>()));
+    gh.factory<_i22.CreateReminderUseCase>(
+        () => _i22.CreateReminderUseCase(gh<_i10.ReminderRepository>()));
     gh.lazySingleton<_i23.AlarmService>(() => _i23.AlarmServiceImpl(
           gh<_i6.AudioPlayer>(),
           gh<_i12.SettingsService>(),
@@ -111,9 +111,9 @@ extension GetItInjectableX on _i1.GetIt {
     gh.lazySingleton<_i24.AppRoutingNotifier>(
         () => _i24.AppRoutingNotifier(gh<_i16.PermissionValidationService>()));
     gh.factory<_i25.ReminderBloc>(() => _i25.ReminderBloc(
-          gh<_i22.WatchAllRemindersUseCase>(),
-          gh<_i21.CreateReminderUseCase>(),
-          gh<_i20.UpdateReminderUseCase>(),
+          gh<_i19.WatchAllRemindersUseCase>(),
+          gh<_i22.CreateReminderUseCase>(),
+          gh<_i21.UpdateReminderUseCase>(),
           gh<_i17.DeleteReminderUseCase>(),
           gh<_i15.MonitoringCoordinator>(),
         ));

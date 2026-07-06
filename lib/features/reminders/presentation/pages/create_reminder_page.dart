@@ -105,6 +105,18 @@ class _CreateReminderPageState extends State<CreateReminderPage> {
             updatedAt: DateTime.now(),
           );
 
+    debugPrint('''
+==========================
+[REMINDER] SAVE REQUEST
+
+Title: ${_titleController.text}
+Latitude: $_selectedLat
+Longitude: $_selectedLng
+Radius: $_selectedRadius
+
+==========================
+''');
+
     final bloc = getIt<ReminderBloc>();
     if (widget.reminderToEdit == null) {
       bloc.add(ReminderEvent.createReminder(reminder: reminder));

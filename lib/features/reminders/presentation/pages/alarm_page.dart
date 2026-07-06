@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
 import 'package:reminders/core/di/injection.dart';
@@ -77,7 +78,10 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
         );
         await repo.updateReminder(reminder);
         try {
-          await getIt<MonitoringCoordinator>().evaluateMonitoringState();
+          await getIt<MonitoringCoordinator>().evaluateMonitoringState(
+            source: 'AlarmPage',
+            reason: 'onDismiss_load',
+          );
         } catch (_) {}
       }
 
@@ -183,17 +187,20 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
     try {
       await getIt<AlarmSchedulerService>().cancelSnooze(widget.reminderId);
     } catch (_) {}
-    await getIt<MonitoringCoordinator>().evaluateMonitoringState();
+    await getIt<MonitoringCoordinator>().evaluateMonitoringState(
+      source: 'AlarmPage',
+      reason: 'onDismiss_click',
+    );
 
     if (mounted) {
       context.pop(true);
     }
   }
 
-  Future<void> _onSnooze(int minutes) async {
+  Future<void> _onSnooze(Duration duration) async {
     debugPrint('[SNOOZE] User selected snooze');
     debugPrint('[SNOOZE] Reminder ID: ${widget.reminderId}');
-    debugPrint('[SNOOZE] Duration selected: $minutes minutes');
+    debugPrint('[SNOOZE] Duration selected: $duration');
 
     if (_isClosing) return;
 
@@ -291,7 +298,15 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
     }
 
     try {
-      await getIt<AlarmSchedulerService>().scheduleSnooze(widget.reminderId, minutes, forceExact: useExact);
+      final now = DateTime.now();
+      final updated = _reminder!.copyWith(
+        status: 'snoozed',
+        isTriggered: false,
+        snoozedUntil: now.add(duration),
+        updatedAt: now,
+      );
+      await getIt<ReminderRepository>().updateReminder(updated);
+      await getIt<AlarmSchedulerService>().scheduleSnooze(widget.reminderId, duration, forceExact: useExact);
     } catch (_) {}
 
     if (mounted) {
@@ -508,12 +523,23 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
                                     textAlign: TextAlign.center,
                                   ),
                                   const SizedBox(height: 24),
+                                  if (kDebugMode) ...[
+                                    ListTile(
+                                      leading: Icon(Icons.snooze_rounded, color: colors.primary),
+                                      title: Text('Snooze for 10 Seconds (Debug)', style: TextStyle(color: colors.textPrimary)),
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                        _onSnooze(const Duration(seconds: 10));
+                                      },
+                                    ),
+                                    const Divider(),
+                                  ],
                                   ListTile(
                                     leading: Icon(Icons.snooze_rounded, color: colors.primary),
                                     title: Text('Snooze for 2 Minutes', style: TextStyle(color: colors.textPrimary)),
                                     onTap: () {
                                       Navigator.pop(context);
-                                      _onSnooze(2);
+                                      _onSnooze(const Duration(minutes: 2));
                                     },
                                   ),
                                   const Divider(),
@@ -522,7 +548,7 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
                                     title: Text('Snooze for 5 Minutes', style: TextStyle(color: colors.textPrimary)),
                                     onTap: () {
                                       Navigator.pop(context);
-                                      _onSnooze(5);
+                                      _onSnooze(const Duration(minutes: 5));
                                     },
                                   ),
                                   const Divider(),
@@ -531,7 +557,7 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
                                     title: Text('Snooze for 10 Minutes', style: TextStyle(color: colors.textPrimary)),
                                     onTap: () {
                                       Navigator.pop(context);
-                                      _onSnooze(10);
+                                      _onSnooze(const Duration(minutes: 10));
                                     },
                                   ),
                                 ],

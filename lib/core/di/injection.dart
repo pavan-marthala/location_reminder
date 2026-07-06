@@ -13,7 +13,7 @@ final GetIt getIt = GetIt.instance;
 Future<void> configureDependencies() async {
   await getIt.init();
   getIt.registerLazySingleton<AlarmSchedulerService>(
-    () => AlarmSchedulerServiceImpl(getIt(), getIt()),
+    () => AlarmSchedulerServiceImpl(getIt(), getIt(), getIt()),
   );
 }
 

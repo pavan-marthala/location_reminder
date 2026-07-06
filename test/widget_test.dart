@@ -86,6 +86,8 @@ class MockBackgroundService implements BackgroundService {
   @override
   Future<bool> isRunning() async => false;
   @override
+  Future<void> refreshMonitoring({int? cycleId, String? source, String? reason}) async {}
+  @override
   Stream<Map<String, dynamic>?> get backgroundUpdates => const Stream.empty();
 }
 
@@ -126,13 +128,23 @@ class MockSettingsService implements SettingsService {
 
   @override
   bool isOnboardingCompleted() => _onboardingCompleted;
+
+  bool _vibrationEnabled = true;
+
+  @override
+  Future<void> saveVibrationEnabled(bool enabled) async {
+    _vibrationEnabled = enabled;
+  }
+
+  @override
+  bool isVibrationEnabled() => _vibrationEnabled;
 }
 
 class MockMonitoringCoordinator implements MonitoringCoordinator {
   bool _monitoringEnabled = true;
 
   @override
-  Future<void> evaluateMonitoringState() async {}
+  Future<void> evaluateMonitoringState({String source = 'unknown', String reason = 'unknown'}) async {}
 
   @override
   Future<void> setMonitoringEnabled(bool enabled) async {

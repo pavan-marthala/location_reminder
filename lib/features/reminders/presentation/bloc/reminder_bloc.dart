@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'package:reminders/core/di/injection.dart';
@@ -59,8 +60,15 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
     Emitter<ReminderState> emit,
   ) async {
     try {
+      debugPrint("[BLOC] Creating reminder...");
       await _createReminder(event.reminder);
-      await _monitoringCoordinator.evaluateMonitoringState();
+      debugPrint("[BLOC] Reminder inserted successfully.");
+      debugPrint("[BLOC] Calling evaluateMonitoringState()");
+      await _monitoringCoordinator.evaluateMonitoringState(
+        source: 'ReminderBloc',
+        reason: 'createReminder',
+      );
+      debugPrint("[BLOC] evaluateMonitoringState() finished");
       // Reload the list after creating
       add(const ReminderEvent.loadReminders());
     } catch (e) {
@@ -74,7 +82,10 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
   ) async {
     try {
       await _updateReminder(event.reminder);
-      await _monitoringCoordinator.evaluateMonitoringState();
+      await _monitoringCoordinator.evaluateMonitoringState(
+        source: 'ReminderBloc',
+        reason: 'updateReminder',
+      );
       add(const ReminderEvent.loadReminders());
     } catch (e) {
       emit(ReminderState.error(message: 'Failed to update reminder: $e'));
@@ -90,7 +101,10 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
       try {
         await getIt<AlarmSchedulerService>().cancelSnooze(event.id);
       } catch (_) {}
-      await _monitoringCoordinator.evaluateMonitoringState();
+      await _monitoringCoordinator.evaluateMonitoringState(
+        source: 'ReminderBloc',
+        reason: 'deleteReminder',
+      );
       add(const ReminderEvent.loadReminders());
     } catch (e) {
       emit(ReminderState.error(message: 'Failed to delete reminder: $e'));
@@ -132,7 +146,10 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
           await getIt<AlarmSchedulerService>().cancelSnooze(event.id);
         } catch (_) {}
       }
-      await _monitoringCoordinator.evaluateMonitoringState();
+      await _monitoringCoordinator.evaluateMonitoringState(
+        source: 'ReminderBloc',
+        reason: 'toggleReminder',
+      );
     } catch (e) {
       emit(ReminderState.error(message: 'Failed to toggle reminder: $e'));
       // Reload to get consistent state

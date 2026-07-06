@@ -9,6 +9,8 @@ abstract class SettingsService {
   bool isMonitoringEnabled();
   Future<void> setOnboardingCompleted(bool completed);
   bool isOnboardingCompleted();
+  Future<void> saveVibrationEnabled(bool enabled);
+  bool isVibrationEnabled();
 }
 
 @LazySingleton(as: SettingsService)
@@ -17,6 +19,7 @@ class SettingsServiceImpl implements SettingsService {
   static const String _keyAlarmTonePath = 'selected_alarm_tone_path';
   static const String _keyMonitoringEnabled = 'monitoring_enabled';
   static const String _keyOnboardingCompleted = 'onboarding_completed';
+  static const String _keyVibrationEnabled = 'vibration_enabled';
 
   SettingsServiceImpl(this._prefs);
 
@@ -27,9 +30,7 @@ class SettingsServiceImpl implements SettingsService {
 
   @override
   String getSelectedAlarmTonePath() {
-    // Strip 'assets/' prefix since AssetSource expects path relative to assets/
-    final fullPath = _prefs.getString(_keyAlarmTonePath) ?? Assets.audioDaybreak;
-    return fullPath.startsWith('assets/') ? fullPath.substring(7) : fullPath;
+    return _prefs.getString(_keyAlarmTonePath) ?? Assets.audioDaybreak;
   }
 
   @override
@@ -50,5 +51,15 @@ class SettingsServiceImpl implements SettingsService {
   @override
   bool isOnboardingCompleted() {
     return _prefs.getBool(_keyOnboardingCompleted) ?? false;
+  }
+
+  @override
+  Future<void> saveVibrationEnabled(bool enabled) async {
+    await _prefs.setBool(_keyVibrationEnabled, enabled);
+  }
+
+  @override
+  bool isVibrationEnabled() {
+    return _prefs.getBool(_keyVibrationEnabled) ?? true;
   }
 }

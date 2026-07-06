@@ -13,9 +13,11 @@ class ValidationState with _$ValidationState {
     @Default(false) bool isLocationPermissionGranted,
     @Default(false) bool isBackgroundLocationPermissionGranted,
     @Default(true) bool isMonitoringEnabled,
+    @Default(true) bool isVibrationEnabled,
     String? selectedAlarmTone,
     String? currentCoordinates,
     String? latestBackgroundTick,
+    String? backgroundReadinessState,
     String? errorMessage,
     @Default(false) bool isLoading,
   }) = _ValidationState;
