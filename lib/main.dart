@@ -95,8 +95,7 @@ class _MyAppState extends State<MyApp> {
     // Listen to background service updates to launch Alarm Screen
     getIt<BackgroundService>().backgroundUpdates.listen((event) {
       if (event != null) {
-        debugPrint(
-        "[MAIN] Event received");
+        debugPrint("[MAIN] Event received");
 
         debugPrint(event.toString());
         // Trigger DB reactive watchers on any background isolate state changes
@@ -110,16 +109,17 @@ class _MyAppState extends State<MyApp> {
           final title = event['reminderTitle'] as String?;
           if (id != null) {
             final routeState = _goRouter.routerDelegate.currentConfiguration;
-            final isAlreadyAlarm = routeState.routes.any((route) => 
-                route is GoRoute && route.path == AppRoutes.alarm);
+            final isAlreadyAlarm = routeState.routes.any(
+              (route) => route is GoRoute && route.path == AppRoutes.alarm,
+            );
             if (isAlreadyAlarm) {
               debugPrint("[MAIN] Already on AlarmPage, skipping push");
             } else {
               debugPrint("[MAIN] Opening AlarmPage");
-              _goRouter.push(AppRoutes.alarm, extra: {
-                'id': id,
-                'title': title ?? 'Reminder',
-              });
+              _goRouter.push(
+                AppRoutes.alarm,
+                extra: {'id': id, 'title': title ?? 'Reminder'},
+              );
             }
           }
         }

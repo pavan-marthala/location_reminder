@@ -61,6 +61,7 @@ class _CreateReminderPageState extends State<CreateReminderPage> {
         'latitude': _selectedLat,
         'longitude': _selectedLng,
         'radiusMeters': _selectedRadius,
+        'id': widget.reminderToEdit?.id,
       },
     );
 

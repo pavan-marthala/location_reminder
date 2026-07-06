@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -9,19 +10,168 @@ import 'package:reminders/core/theme/app_theme.dart';
 import 'package:reminders/core/utils/app_button.dart';
 import 'package:reminders/core/utils/app_toast.dart';
 import 'package:reminders/features/reminders/domain/entities/location_selection_result.dart';
+import 'package:reminders/features/reminders/domain/entities/reminder_entity.dart';
+import 'package:reminders/features/reminders/domain/repositories/reminder_repository.dart';
 import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/services/mapbox_service.dart';
+
+class NearbyGeofenceRenderer {
+  final MapboxMap mapboxMap;
+  final PointAnnotationManager nearbyPointManager;
+  final Uint8List markerBytes;
+  final Uint8List circleBytes;
+  final int? excludeId;
+
+  final Set<int> _activeNearbyIds = {};
+  final Map<String, ReminderEntity> annotationToReminder = {};
+
+  NearbyGeofenceRenderer({
+    required this.mapboxMap,
+    required this.nearbyPointManager,
+    required this.markerBytes,
+    required this.circleBytes,
+    this.excludeId,
+  });
+
+  Future<void> updateNearby({
+    required List<ReminderEntity> allReminders,
+    required double centerLat,
+    required double centerLng,
+    required double searchRadiusKm,
+    required int limit,
+  }) async {
+    // 1. Filter reminders within search radius
+    final filtered = allReminders.where((r) {
+      if (excludeId != null && r.id == excludeId) return false;
+      final distance = geo.Geolocator.distanceBetween(
+        centerLat,
+        centerLng,
+        r.latitude,
+        r.longitude,
+      );
+      return distance <= searchRadiusKm * 1000;
+    }).toList();
+
+    // 2. Sort by distance ascending
+    filtered.sort((a, b) {
+      final distA = geo.Geolocator.distanceBetween(centerLat, centerLng, a.latitude, a.longitude);
+      final distB = geo.Geolocator.distanceBetween(centerLat, centerLng, b.latitude, b.longitude);
+      return distA.compareTo(distB);
+    });
+
+    // 3. Limit to top N closest reminders
+    final nearby = filtered.take(limit).toList();
+    final nearbyIds = nearby.map((r) => r.id!).toSet();
+
+    // 4. Identify expired nearby geofences and remove them from Mapbox style layers
+    final idsToRemove = _activeNearbyIds.difference(nearbyIds);
+    final style = mapboxMap.style;
+
+    for (final id in idsToRemove) {
+      final layerId = 'geofence-layer-$id';
+      final sourceId = 'geofence-source-$id';
+      try {
+        if (await style.styleLayerExists(layerId)) {
+          await style.removeStyleLayer(layerId);
+        }
+        if (await style.styleSourceExists(sourceId)) {
+          await style.removeStyleSource(sourceId);
+        }
+      } catch (e) {
+        debugPrint('Error cleaning up nearby geofence: $e');
+      }
+      _activeNearbyIds.remove(id);
+    }
+
+    // 5. Clean up existing annotations
+    await nearbyPointManager.deleteAll();
+    annotationToReminder.clear();
+
+    // 6. Draw each nearby reminder geofence circle (ImageSource + RasterLayer) & marker
+    for (final r in nearby) {
+      final id = r.id!;
+      final sourceId = 'geofence-source-$id';
+      final layerId = 'geofence-layer-$id';
+
+      const double earthRadius = 6378137.0;
+      final double latOffset = (r.radiusMeters / earthRadius) * (180.0 / pi);
+      final double latRad = r.latitude * pi / 180.0;
+      final double lngOffset = (r.radiusMeters / (earthRadius * cos(latRad))) * (180.0 / pi);
+
+      final List<List<double>> coordinates = [
+        [r.longitude - lngOffset, r.latitude + latOffset],
+        [r.longitude + lngOffset, r.latitude + latOffset],
+        [r.longitude + lngOffset, r.latitude - latOffset],
+        [r.longitude - lngOffset, r.latitude - latOffset],
+      ];
+
+      try {
+        final existsSource = await style.styleSourceExists(sourceId);
+        if (!existsSource) {
+          final source = ImageSource(id: sourceId, coordinates: coordinates);
+          await style.addSource(source);
+          final mbxImage = MbxImage(width: 512, height: 512, data: circleBytes);
+          await style.updateStyleImageSourceImage(sourceId, mbxImage);
+        } else {
+          await style.setStyleSourceProperty(sourceId, 'coordinates', coordinates);
+        }
+
+        final existsLayer = await style.styleLayerExists(layerId);
+        if (!existsLayer) {
+          final layer = RasterLayer(id: layerId, sourceId: sourceId);
+          // Place below main geofence layer to preserve active styling hierarchy
+          await style.addLayerAt(layer, LayerPosition(below: 'geofence-raster-layer'));
+        }
+      } catch (e) {
+        debugPrint('Error rendering nearby geofence raster for ID $id: $e');
+      }
+
+      // Add point marker
+      final opt = PointAnnotationOptions(
+        geometry: Point(coordinates: Position(r.longitude, r.latitude)),
+        image: markerBytes,
+        iconAnchor: IconAnchor.CENTER,
+      );
+      final annot = await nearbyPointManager.create(opt);
+      annotationToReminder[annot.id] = r;
+      _activeNearbyIds.add(id);
+    }
+  }
+
+  Future<void> clearAll() async {
+    try {
+      final style = mapboxMap.style;
+      for (final id in _activeNearbyIds) {
+        final layerId = 'geofence-layer-$id';
+        final sourceId = 'geofence-source-$id';
+        try {
+          if (await style.styleLayerExists(layerId)) {
+            await style.removeStyleLayer(layerId);
+          }
+          if (await style.styleSourceExists(sourceId)) {
+            await style.removeStyleSource(sourceId);
+          }
+        } catch (_) {}
+      }
+      _activeNearbyIds.clear();
+      annotationToReminder.clear();
+      await nearbyPointManager.deleteAll();
+    } catch (_) {}
+  }
+}
 
 class LocationPickerPage extends StatefulWidget {
   final double? initialLatitude;
   final double? initialLongitude;
   final double? initialRadiusMeters;
+  final int? editingReminderId;
 
   const LocationPickerPage({
     super.key,
     this.initialLatitude,
     this.initialLongitude,
     this.initialRadiusMeters,
+    this.editingReminderId,
   });
 
   @override
@@ -34,6 +184,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   PointAnnotationManager? _handlePointManager;
 
   PointAnnotation? _handleAnnotation;
+  NearbyGeofenceRenderer? _nearbyRenderer;
 
   double? _centerLat;
   double? _centerLng;
@@ -44,8 +195,23 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   Uint8List? _handleMarkerBytes;
   Uint8List? _handleMarkerDraggingBytes;
   Uint8List? _circleRasterBytes;
+  Uint8List? _nearbyMarkerBytes;
+  Uint8List? _nearbyCircleBytes;
 
   late final ValueNotifier<double> _radiusMetersNotifier;
+
+  // Search enhancement variables
+  late final TextEditingController _searchController;
+  late final FocusNode _searchFocusNode;
+  List<MapboxPrediction> _predictions = [];
+  bool _isSearching = false;
+  String? _searchError;
+  Timer? _debounceTimer;
+
+  // Nearby reminders variables
+  List<ReminderEntity> _allReminders = [];
+  static const double _nearbySearchRadiusKm = 5.0; // 5 km configurable constant
+  static const int _nearbyRenderLimit = 15; // rendering queue limit constant
 
   @override
   void initState() {
@@ -54,12 +220,99 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     _centerLng = widget.initialLongitude;
     _radiusMeters = widget.initialRadiusMeters ?? 200.0;
     _radiusMetersNotifier = ValueNotifier<double>(_radiusMeters);
+    _searchController = TextEditingController();
+    _searchFocusNode = FocusNode();
+    _loadAllReminders();
   }
 
   @override
   void dispose() {
     _radiusMetersNotifier.dispose();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadAllReminders() async {
+    try {
+      final repository = getIt<ReminderRepository>();
+      _allReminders = await repository.getAllReminders();
+      _updateNearbyMarkers();
+    } catch (e) {
+      debugPrint('Failed to load existing reminders: $e');
+    }
+  }
+
+  void _onSearchChanged(String query) {
+    _debounceTimer?.cancel();
+    if (query.trim().length < 3) {
+      setState(() {
+        _predictions = [];
+        _isSearching = false;
+        _searchError = null;
+      });
+      return;
+    }
+
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+      setState(() {
+        _isSearching = true;
+        _searchError = null;
+      });
+      try {
+        final results = await getIt<MapboxService>().searchPlaces(query);
+        if (mounted) {
+          setState(() {
+            _predictions = results;
+            _isSearching = false;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _isSearching = false;
+            _searchError = 'Search failed. Check your internet connection.';
+          });
+        }
+      }
+    });
+  }
+
+  Future<void> _onPredictionSelected(MapboxPrediction prediction) async {
+    // Dismiss suggestions list & keyboard
+    setState(() {
+      _predictions = [];
+      _searchController.text = prediction.name;
+    });
+    _searchFocusNode.unfocus();
+
+    // 1. Animate camera
+    if (_mapboxMap != null) {
+      await _mapboxMap!.flyTo(
+        CameraOptions(
+          center: Point(coordinates: Position(prediction.longitude, prediction.latitude)),
+          zoom: _getZoomLevelForRadius(_radiusMeters),
+        ),
+        MapAnimationOptions(duration: 900),
+      );
+    }
+
+    // 2. Update center latitude/longitude
+    setState(() {
+      _centerLat = prediction.latitude;
+      _centerLng = prediction.longitude;
+    });
+
+    // 3. Move center marker, radius handle, redraw geofence circles
+    await _drawCircleAndHandle();
+
+    // 4. Refresh displayed address (reverse geocoding to sync metadata)
+    setState(() => _isLoadingLocation = true);
+    try {
+      await getIt<MapboxService>().reverseGeocode(_centerLat!, _centerLng!);
+    } catch (_) {}
+    setState(() => _isLoadingLocation = false);
   }
 
   Future<void> _loadMarkerIcons() async {
@@ -67,6 +320,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     _handleMarkerBytes = await _createCircularHandleBytes(dragging: false);
     _handleMarkerDraggingBytes = await _createCircularHandleBytes(dragging: true);
     _circleRasterBytes = await _createCircleRasterBytes();
+    _nearbyMarkerBytes = await _createNearbyMarkerBytes();
+    _nearbyCircleBytes = await _createNearbyCircleRasterBytes();
   }
 
   Future<Uint8List> _createCenterMarkerBytes() async {
@@ -77,35 +332,58 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     final double cx = width / 2;
     final double cy = height / 2;
 
-    // 1. Soft outer shadow for elevation
     final Paint shadowPaint = Paint()
       ..color = Colors.black.withValues(alpha: 0.25)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6.0);
     canvas.drawCircle(Offset(cx, cy + 2.0), 30.0, shadowPaint);
 
-    // 2. Translucent outer blue accuracy/pulse ring
     final Paint haloPaint = Paint()
       ..color = const Color(0xFF00B0FF).withValues(alpha: 0.16)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(cx, cy), 28.0, haloPaint);
 
-    // 3. Crisp white concentric border ring
     final Paint borderPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(cx, cy), 16.0, borderPaint);
 
-    // 4. Vibrant blue core circle
     final Paint corePaint = Paint()
       ..color = const Color(0xFF00B0FF)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(cx, cy), 12.0, corePaint);
 
-    // 5. Light-source reflection highlight on the blue core
     final Paint highlightPaint = Paint()
       ..color = Colors.white.withValues(alpha: 0.45)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(cx - 3.0, cy - 3.0), 3.5, highlightPaint);
+
+    final ui.Image image = await recorder.endRecording().toImage(width.toInt(), height.toInt());
+    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
+  }
+
+  Future<Uint8List> _createNearbyMarkerBytes() async {
+    final ui.PictureRecorder recorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(recorder);
+    const double width = 96.0;
+    const double height = 96.0;
+    final double cx = width / 2;
+    final double cy = height / 2;
+
+    final Paint shadowPaint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.15)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0);
+    canvas.drawCircle(Offset(cx, cy + 1.5), 18.0, shadowPaint);
+
+    final Paint borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(cx, cy), 14.0, borderPaint);
+
+    final Paint corePaint = Paint()
+      ..color = Colors.indigo
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(cx, cy), 10.0, corePaint);
 
     final ui.Image image = await recorder.endRecording().toImage(width.toInt(), height.toInt());
     final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
@@ -120,30 +398,24 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     final double cx = width / 2;
     final double cy = height / 2;
 
-    // Google Maps-style circular drag handle
-    // Base circle radius is 20.0. When dragging, it scales up to 25.0.
     final double radius = dragging ? 25.0 : 20.0;
 
-    // 1. Soft outer drop shadow for elevation
     final Paint shadowPaint = Paint()
       ..color = Colors.black.withValues(alpha: dragging ? 0.35 : 0.25)
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, dragging ? 8.0 : 4.0);
     canvas.drawCircle(Offset(cx, cy + (dragging ? 3.0 : 1.5)), radius, shadowPaint);
 
-    // 2. Base white fill
     final Paint fillPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(cx, cy), radius, fillPaint);
 
-    // 3. Vibrant blue border
     final Paint borderPaint = Paint()
       ..color = const Color(0xFF00B0FF)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.0;
     canvas.drawCircle(Offset(cx, cy), radius, borderPaint);
 
-    // 4. Subtle inner light highlight
     final Paint innerHighlight = Paint()
       ..color = Colors.white.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
@@ -161,23 +433,20 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     const double size = 512.0;
     final double cx = size / 2;
     final double cy = size / 2;
-    // We leave a 16px margin for the soft glow, so radius is 240px
     const double radius = 240.0;
 
-    // 1. Soft Blue Radial Gradient Fill (80-90% Map Visibility)
     final Paint fillPaint = Paint()
       ..shader = ui.Gradient.radial(
         Offset(cx, cy),
         radius,
         [
-          const Color(0xFF00B0FF).withValues(alpha: 0.03), // Lighter center (97% visibility)
-          const Color(0xFF00B0FF).withValues(alpha: 0.20), // Darker edge (80% visibility)
+          const Color(0xFF00B0FF).withValues(alpha: 0.03),
+          const Color(0xFF00B0FF).withValues(alpha: 0.20),
         ],
       )
       ..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(cx, cy), radius, fillPaint);
 
-    // 2. Outer Blue Soft Glow (Thick, highly blurred)
     final Paint glowPaint = Paint()
       ..color = const Color(0xFF00B0FF).withValues(alpha: 0.35)
       ..style = PaintingStyle.stroke
@@ -185,19 +454,41 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6.0);
     _drawDashedCircle(canvas, Offset(cx, cy), radius, glowPaint);
 
-    // 3. Blue Base Border
     final Paint baseBorderPaint = Paint()
       ..color = const Color(0xFF00B0FF).withValues(alpha: 0.8)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.0;
     _drawDashedCircle(canvas, Offset(cx, cy), radius, baseBorderPaint);
 
-    // 4. White Highlight Stroke (Crisp inner reflection)
     final Paint highlightPaint = Paint()
       ..color = Colors.white.withValues(alpha: 0.9)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
     _drawDashedCircle(canvas, Offset(cx, cy), radius, highlightPaint);
+
+    final ui.Image image = await recorder.endRecording().toImage(size.toInt(), size.toInt());
+    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
+  }
+
+  Future<Uint8List> _createNearbyCircleRasterBytes() async {
+    final ui.PictureRecorder recorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(recorder);
+    const double size = 512.0;
+    final double cx = size / 2;
+    final double cy = size / 2;
+    const double radius = 240.0;
+
+    final Paint fillPaint = Paint()
+      ..color = const Color(0xFFFF9800).withValues(alpha: 0.08)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(cx, cy), radius, fillPaint);
+
+    final Paint borderPaint = Paint()
+      ..color = const Color(0xFFFF9800).withValues(alpha: 0.4)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+    canvas.drawCircle(Offset(cx, cy), radius, borderPaint);
 
     final ui.Image image = await recorder.endRecording().toImage(size.toInt(), size.toInt());
     final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
@@ -223,10 +514,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
 
   Future<void> _onMapCreated(MapboxMap mapboxMap) async {
     _mapboxMap = mapboxMap;
-
     await _loadMarkerIcons();
 
-    // Enable location component (shows user location indicator)
     try {
       await mapboxMap.location.updateSettings(
         LocationComponentSettings(
@@ -238,11 +527,29 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       debugPrint('Failed to enable Mapbox location component: $e');
     }
 
-    // Initialize Annotation Managers
     _centerPointManager = await mapboxMap.annotations.createPointAnnotationManager();
     _handlePointManager = await mapboxMap.annotations.createPointAnnotationManager();
+    final nearbyPointManager = await mapboxMap.annotations.createPointAnnotationManager();
 
-    // Listen to handle dragging natively
+    if (_nearbyMarkerBytes != null && _nearbyCircleBytes != null) {
+      _nearbyRenderer = NearbyGeofenceRenderer(
+        mapboxMap: mapboxMap,
+        nearbyPointManager: nearbyPointManager,
+        markerBytes: _nearbyMarkerBytes!,
+        circleBytes: _nearbyCircleBytes!,
+        excludeId: widget.editingReminderId,
+      );
+
+      nearbyPointManager.tapEvents(onTap: (annotation) {
+        if (_nearbyRenderer != null) {
+          final reminder = _nearbyRenderer!.annotationToReminder[annotation.id];
+          if (reminder != null) {
+            _showReminderInfoPopup(reminder);
+          }
+        }
+      });
+    }
+
     _handlePointManager!.dragEvents(
       onBegin: (annotation) {
         if (_handleAnnotation != null && _handleMarkerDraggingBytes != null) {
@@ -263,11 +570,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         );
 
         final clamped = distance.clamp(100.0, 10000.0);
-        
         _radiusMeters = clamped;
         _radiusMetersNotifier.value = clamped;
 
-        // Calculate bearing and snap handle exactly to clamped circumference
         final bearingRad = _calculateBearing(
           _centerLat!,
           _centerLng!,
@@ -276,26 +581,23 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         );
         final snappedPos = _getPositionAlongBearing(_centerLat!, _centerLng!, _radiusMeters, bearingRad);
 
-        // Update geometries in memory
         _handleAnnotation!.geometry = Point(coordinates: snappedPos);
         if (_handleMarkerDraggingBytes != null) {
           _handleAnnotation!.image = _handleMarkerDraggingBytes;
         }
 
-        // Calculate bounding box for geofence circle
         const double earthRadius = 6378137.0;
         final double latOffset = (_radiusMeters / earthRadius) * (180.0 / pi);
         final double latRad = _centerLat! * pi / 180.0;
         final double lngOffset = (_radiusMeters / (earthRadius * cos(latRad))) * (180.0 / pi);
 
         final List<List<double>> coordinates = [
-          [_centerLng! - lngOffset, _centerLat! + latOffset], // top-left
-          [_centerLng! + lngOffset, _centerLat! + latOffset], // top-right
-          [_centerLng! + lngOffset, _centerLat! - latOffset], // bottom-right
-          [_centerLng! - lngOffset, _centerLat! - latOffset], // bottom-left
+          [_centerLng! - lngOffset, _centerLat! + latOffset],
+          [_centerLng! + lngOffset, _centerLat! + latOffset],
+          [_centerLng! + lngOffset, _centerLat! - latOffset],
+          [_centerLng! - lngOffset, _centerLat! - latOffset],
         ];
 
-        // Concurrently update native handle and geofence coordinates
         Future.wait([
           _handlePointManager!.update(_handleAnnotation!),
           mapboxMap.style.setStyleSourceProperty('geofence-image-source', 'coordinates', coordinates),
@@ -309,7 +611,6 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       },
     );
 
-    // If we have an existing location, load and zoom to it
     if (_centerLat != null && _centerLng != null) {
       await _drawCircleAndHandle();
       await _mapboxMap!.setCamera(
@@ -319,7 +620,6 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         ),
       );
     } else {
-      // Otherwise zoom to current user position
       _zoomToUserLocation();
     }
   }
@@ -332,13 +632,23 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
           accuracy: geo.LocationAccuracy.high,
         ),
       );
-      if (mounted && _mapboxMap != null) {
-        await _mapboxMap!.setCamera(
-          CameraOptions(
-            center: Point(coordinates: Position(position.longitude, position.latitude)),
-            zoom: 14.0,
-          ),
-        );
+      if (mounted) {
+        setState(() {
+          // If no coordinate has been selected, set the initial center to the user's current location
+          if (_centerLat == null || _centerLng == null) {
+            _centerLat = position.latitude;
+            _centerLng = position.longitude;
+          }
+        });
+        if (_mapboxMap != null) {
+          await _mapboxMap!.setCamera(
+            CameraOptions(
+              center: Point(coordinates: Position(position.longitude, position.latitude)),
+              zoom: 14.0,
+            ),
+          );
+        }
+        await _drawCircleAndHandle();
       }
     } catch (e) {
       showErrorToast(message: 'Failed to fetch current location');
@@ -381,10 +691,119 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     return _getPositionAlongBearing(latitude, longitude, radiusMeters, pi / 2);
   }
 
+  Future<void> _updateNearbyMarkers() async {
+    if (_centerLat == null || _centerLng == null || _nearbyRenderer == null) return;
+
+    await _nearbyRenderer!.updateNearby(
+      allReminders: _allReminders,
+      centerLat: _centerLat!,
+      centerLng: _centerLng!,
+      searchRadiusKm: _nearbySearchRadiusKm,
+      limit: _nearbyRenderLimit,
+    );
+  }
+
+  void _showReminderInfoPopup(ReminderEntity reminder) {
+    final colors = context.appColors;
+    final typography = context.appTypography;
+
+    final distance = geo.Geolocator.distanceBetween(
+      _centerLat ?? reminder.latitude,
+      _centerLng ?? reminder.longitude,
+      reminder.latitude,
+      reminder.longitude,
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: colors.card,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.notifications_active_outlined, color: colors.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  reminder.title,
+                  style: typography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildPopupRow(context, Icons.place_outlined, 'Distance', _formatDistance(distance)),
+              const SizedBox(height: 8),
+              _buildPopupRow(context, Icons.radar, 'Geofence Radius', '${reminder.radiusMeters.round()} m'),
+              const SizedBox(height: 8),
+              _buildPopupRow(
+                context,
+                Icons.info_outline,
+                'Status',
+                reminder.status.toUpperCase(),
+                valueColor: reminder.isEnabled ? colors.primary : colors.textSecondary,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Close', style: TextStyle(color: colors.primary)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPopupRow(BuildContext context, IconData icon, String label, String value, {Color? valueColor}) {
+    final colors = context.appColors;
+    final typography = context.appTypography;
+
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: colors.textTertiary),
+        const SizedBox(width: 8),
+        Text('$label: ', style: typography.bodyMedium.copyWith(color: colors.textSecondary)),
+        Expanded(
+          child: Text(
+            value,
+            style: typography.bodyMedium.copyWith(
+              fontWeight: FontWeight.bold,
+              color: valueColor ?? colors.textPrimary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatDistance(double meters) {
+    if (meters >= 1000) {
+      return '${(meters / 1000).toStringAsFixed(1)} km';
+    } else {
+      return '${meters.round()} m';
+    }
+  }
+
+  String _formatRadius(double meters) {
+    if (meters >= 1000) {
+      return 'Radius: ${(meters / 1000).toStringAsFixed(1)} km';
+    } else {
+      return 'Radius: ${meters.round()} m';
+    }
+  }
+
   Future<void> _drawCircleAndHandle() async {
     if (_centerLat == null || _centerLng == null) return;
 
-    // 1. Draw Center Annotation (Native Ground Anchor Marker)
     if (_centerPointManager != null && _centerMarkerBytes != null) {
       await _centerPointManager!.deleteAll();
       await _centerPointManager!.create(
@@ -397,29 +816,28 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     }
 
     await _drawCircleAndHandleOnly();
+    await _updateNearbyMarkers();
   }
 
   Future<void> _drawCircleAndHandleOnly() async {
     if (_centerLat == null || _centerLng == null || _mapboxMap == null) return;
 
     final style = _mapboxMap!.style;
-    final sourceId = 'geofence-image-source';
-    final layerId = 'geofence-raster-layer';
+    const sourceId = 'geofence-image-source';
+    const layerId = 'geofence-raster-layer';
 
-    // Calculate geofence bounding box
     const double earthRadius = 6378137.0;
     final double latOffset = (_radiusMeters / earthRadius) * (180.0 / pi);
     final double latRad = _centerLat! * pi / 180.0;
     final double lngOffset = (_radiusMeters / (earthRadius * cos(latRad))) * (180.0 / pi);
 
     final List<List<double>> coordinates = [
-      [_centerLng! - lngOffset, _centerLat! + latOffset], // top-left
-      [_centerLng! + lngOffset, _centerLat! + latOffset], // top-right
-      [_centerLng! + lngOffset, _centerLat! - latOffset], // bottom-right
-      [_centerLng! - lngOffset, _centerLat! - latOffset], // bottom-left
+      [_centerLng! - lngOffset, _centerLat! + latOffset],
+      [_centerLng! + lngOffset, _centerLat! + latOffset],
+      [_centerLng! + lngOffset, _centerLat! - latOffset],
+      [_centerLng! - lngOffset, _centerLat! - latOffset],
     ];
 
-    // Add or update the native ImageSource
     final existsSource = await style.styleSourceExists(sourceId);
     if (!existsSource) {
       final source = ImageSource(
@@ -436,7 +854,6 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       await style.setStyleSourceProperty(sourceId, 'coordinates', coordinates);
     }
 
-    // Add RasterLayer if it doesn't exist, placing it below map symbol/label layers
     final existsLayer = await style.styleLayerExists(layerId);
     if (!existsLayer) {
       String? firstSymbolId;
@@ -464,7 +881,6 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       }
     }
 
-    // 3. Draw Draggable Handle Annotation (Draggable Circle)
     if (_handlePointManager != null && _handleMarkerBytes != null) {
       await _handlePointManager!.deleteAll();
       final handlePos = _getHandlePosition(_centerLat!, _centerLng!, _radiusMeters);
@@ -486,14 +902,6 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       _centerLng = pos.lng.toDouble();
     });
     _drawCircleAndHandle();
-  }
-
-  String _formatRadius(double meters) {
-    if (meters >= 1000) {
-      return 'Radius: ${(meters / 1000).toStringAsFixed(1)} km';
-    } else {
-      return 'Radius: ${meters.round()} m';
-    }
   }
 
   Future<void> _onConfirm() async {
@@ -572,10 +980,10 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
             },
           ),
 
-          // Instruction Overlay if no location is selected yet
-          if (_centerLat == null)
+          // Instruction Overlay if no location is selected yet (and not searching)
+          if (_centerLat == null && _predictions.isEmpty && !_isSearching)
             Positioned(
-              top: 16,
+              top: 80,
               left: 16,
               right: 16,
               child: Container(
@@ -606,6 +1014,133 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                 ),
               ),
             ),
+
+          // Search Field Overlay
+          Positioned(
+            top: 16,
+            left: 16,
+            right: 16,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: colors.card,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: colors.border),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    style: typography.bodyMedium,
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: (val) {
+                      _onSearchChanged(val);
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Search places...',
+                      prefixIcon: Icon(Icons.search, color: colors.textTertiary),
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_searchController.text.isNotEmpty)
+                            IconButton(
+                              icon: const Icon(Icons.clear_rounded),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {
+                                  _predictions = [];
+                                  _searchError = null;
+                                });
+                                _onSearchChanged('');
+                              },
+                            ),
+                        ],
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    ),
+                    onChanged: _onSearchChanged,
+                  ),
+                ),
+                if (_isSearching || _predictions.isNotEmpty || _searchError != null || (_searchController.text.trim().length >= 3 && _predictions.isEmpty)) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 280),
+                    decoration: BoxDecoration(
+                      color: colors.card,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: colors.border),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (_isSearching)
+                              const Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: Center(
+                                  child: LinearProgressIndicator(),
+                                ),
+                              ),
+                            if (_searchError != null)
+                              Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Text(
+                                  _searchError!,
+                                  style: typography.bodyMedium.copyWith(color: colors.error),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            if (!_isSearching && _searchError == null && _searchController.text.trim().length >= 3 && _predictions.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Text(
+                                  'No results found.',
+                                  style: typography.bodyMedium.copyWith(color: colors.textSecondary),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ..._predictions.map((p) {
+                              return ListTile(
+                                leading: Icon(Icons.location_on_rounded, color: colors.primary),
+                                title: Text(
+                                  p.name,
+                                  style: typography.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                                subtitle: Text(
+                                  p.address,
+                                  style: typography.bodySmall.copyWith(color: colors.textSecondary),
+                                ),
+                                onTap: () => _onPredictionSelected(p),
+                              );
+                            }).toList(),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
 
           // Bottom Control Panel
           Positioned(

@@ -382,27 +382,12 @@ class _ReminderListViewState extends State<_ReminderListView> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              height: 220,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: colors.card.withValues(alpha: isDark ? 0.3 : 0.6),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: colors.border.withValues(alpha: 0.5)),
-                boxShadow: [
-                  BoxShadow(
-                    color: colors.black.withValues(alpha: isDark ? 0.15 : 0.04),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: Image.asset(
-                  'assets/illustration_empty.png',
-                  fit: BoxFit.contain,
-                ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Image.asset(
+                'assets/illustration_empty.png',
+                height: 240,
+                fit: BoxFit.contain,
               ),
             ),
             const SizedBox(height: 32),
