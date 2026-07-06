@@ -25,6 +25,8 @@ mixin _$ReminderEvent {
     required TResult Function(int id, bool isEnabled) toggleReminder,
     required TResult Function(List<ReminderEntity> reminders) remindersUpdated,
     required TResult Function(String message) remindersError,
+    required TResult Function(String query) changeSearchQuery,
+    required TResult Function(SortOption option) changeSortOption,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -36,6 +38,8 @@ mixin _$ReminderEvent {
     TResult? Function(int id, bool isEnabled)? toggleReminder,
     TResult? Function(List<ReminderEntity> reminders)? remindersUpdated,
     TResult? Function(String message)? remindersError,
+    TResult? Function(String query)? changeSearchQuery,
+    TResult? Function(SortOption option)? changeSortOption,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -47,6 +51,8 @@ mixin _$ReminderEvent {
     TResult Function(int id, bool isEnabled)? toggleReminder,
     TResult Function(List<ReminderEntity> reminders)? remindersUpdated,
     TResult Function(String message)? remindersError,
+    TResult Function(String query)? changeSearchQuery,
+    TResult Function(SortOption option)? changeSortOption,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -59,6 +65,8 @@ mixin _$ReminderEvent {
     required TResult Function(ToggleReminder value) toggleReminder,
     required TResult Function(RemindersUpdated value) remindersUpdated,
     required TResult Function(RemindersError value) remindersError,
+    required TResult Function(ChangeSearchQuery value) changeSearchQuery,
+    required TResult Function(ChangeSortOption value) changeSortOption,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -70,6 +78,8 @@ mixin _$ReminderEvent {
     TResult? Function(ToggleReminder value)? toggleReminder,
     TResult? Function(RemindersUpdated value)? remindersUpdated,
     TResult? Function(RemindersError value)? remindersError,
+    TResult? Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult? Function(ChangeSortOption value)? changeSortOption,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -81,6 +91,8 @@ mixin _$ReminderEvent {
     TResult Function(ToggleReminder value)? toggleReminder,
     TResult Function(RemindersUpdated value)? remindersUpdated,
     TResult Function(RemindersError value)? remindersError,
+    TResult Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult Function(ChangeSortOption value)? changeSortOption,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -149,6 +161,8 @@ class _$LoadRemindersImpl implements LoadReminders {
     required TResult Function(int id, bool isEnabled) toggleReminder,
     required TResult Function(List<ReminderEntity> reminders) remindersUpdated,
     required TResult Function(String message) remindersError,
+    required TResult Function(String query) changeSearchQuery,
+    required TResult Function(SortOption option) changeSortOption,
   }) {
     return loadReminders();
   }
@@ -163,6 +177,8 @@ class _$LoadRemindersImpl implements LoadReminders {
     TResult? Function(int id, bool isEnabled)? toggleReminder,
     TResult? Function(List<ReminderEntity> reminders)? remindersUpdated,
     TResult? Function(String message)? remindersError,
+    TResult? Function(String query)? changeSearchQuery,
+    TResult? Function(SortOption option)? changeSortOption,
   }) {
     return loadReminders?.call();
   }
@@ -177,6 +193,8 @@ class _$LoadRemindersImpl implements LoadReminders {
     TResult Function(int id, bool isEnabled)? toggleReminder,
     TResult Function(List<ReminderEntity> reminders)? remindersUpdated,
     TResult Function(String message)? remindersError,
+    TResult Function(String query)? changeSearchQuery,
+    TResult Function(SortOption option)? changeSortOption,
     required TResult orElse(),
   }) {
     if (loadReminders != null) {
@@ -195,6 +213,8 @@ class _$LoadRemindersImpl implements LoadReminders {
     required TResult Function(ToggleReminder value) toggleReminder,
     required TResult Function(RemindersUpdated value) remindersUpdated,
     required TResult Function(RemindersError value) remindersError,
+    required TResult Function(ChangeSearchQuery value) changeSearchQuery,
+    required TResult Function(ChangeSortOption value) changeSortOption,
   }) {
     return loadReminders(this);
   }
@@ -209,6 +229,8 @@ class _$LoadRemindersImpl implements LoadReminders {
     TResult? Function(ToggleReminder value)? toggleReminder,
     TResult? Function(RemindersUpdated value)? remindersUpdated,
     TResult? Function(RemindersError value)? remindersError,
+    TResult? Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult? Function(ChangeSortOption value)? changeSortOption,
   }) {
     return loadReminders?.call(this);
   }
@@ -223,6 +245,8 @@ class _$LoadRemindersImpl implements LoadReminders {
     TResult Function(ToggleReminder value)? toggleReminder,
     TResult Function(RemindersUpdated value)? remindersUpdated,
     TResult Function(RemindersError value)? remindersError,
+    TResult Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult Function(ChangeSortOption value)? changeSortOption,
     required TResult orElse(),
   }) {
     if (loadReminders != null) {
@@ -319,6 +343,8 @@ class _$CreateReminderImpl implements CreateReminder {
     required TResult Function(int id, bool isEnabled) toggleReminder,
     required TResult Function(List<ReminderEntity> reminders) remindersUpdated,
     required TResult Function(String message) remindersError,
+    required TResult Function(String query) changeSearchQuery,
+    required TResult Function(SortOption option) changeSortOption,
   }) {
     return createReminder(reminder);
   }
@@ -333,6 +359,8 @@ class _$CreateReminderImpl implements CreateReminder {
     TResult? Function(int id, bool isEnabled)? toggleReminder,
     TResult? Function(List<ReminderEntity> reminders)? remindersUpdated,
     TResult? Function(String message)? remindersError,
+    TResult? Function(String query)? changeSearchQuery,
+    TResult? Function(SortOption option)? changeSortOption,
   }) {
     return createReminder?.call(reminder);
   }
@@ -347,6 +375,8 @@ class _$CreateReminderImpl implements CreateReminder {
     TResult Function(int id, bool isEnabled)? toggleReminder,
     TResult Function(List<ReminderEntity> reminders)? remindersUpdated,
     TResult Function(String message)? remindersError,
+    TResult Function(String query)? changeSearchQuery,
+    TResult Function(SortOption option)? changeSortOption,
     required TResult orElse(),
   }) {
     if (createReminder != null) {
@@ -365,6 +395,8 @@ class _$CreateReminderImpl implements CreateReminder {
     required TResult Function(ToggleReminder value) toggleReminder,
     required TResult Function(RemindersUpdated value) remindersUpdated,
     required TResult Function(RemindersError value) remindersError,
+    required TResult Function(ChangeSearchQuery value) changeSearchQuery,
+    required TResult Function(ChangeSortOption value) changeSortOption,
   }) {
     return createReminder(this);
   }
@@ -379,6 +411,8 @@ class _$CreateReminderImpl implements CreateReminder {
     TResult? Function(ToggleReminder value)? toggleReminder,
     TResult? Function(RemindersUpdated value)? remindersUpdated,
     TResult? Function(RemindersError value)? remindersError,
+    TResult? Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult? Function(ChangeSortOption value)? changeSortOption,
   }) {
     return createReminder?.call(this);
   }
@@ -393,6 +427,8 @@ class _$CreateReminderImpl implements CreateReminder {
     TResult Function(ToggleReminder value)? toggleReminder,
     TResult Function(RemindersUpdated value)? remindersUpdated,
     TResult Function(RemindersError value)? remindersError,
+    TResult Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult Function(ChangeSortOption value)? changeSortOption,
     required TResult orElse(),
   }) {
     if (createReminder != null) {
@@ -495,6 +531,8 @@ class _$UpdateReminderImpl implements UpdateReminder {
     required TResult Function(int id, bool isEnabled) toggleReminder,
     required TResult Function(List<ReminderEntity> reminders) remindersUpdated,
     required TResult Function(String message) remindersError,
+    required TResult Function(String query) changeSearchQuery,
+    required TResult Function(SortOption option) changeSortOption,
   }) {
     return updateReminder(reminder);
   }
@@ -509,6 +547,8 @@ class _$UpdateReminderImpl implements UpdateReminder {
     TResult? Function(int id, bool isEnabled)? toggleReminder,
     TResult? Function(List<ReminderEntity> reminders)? remindersUpdated,
     TResult? Function(String message)? remindersError,
+    TResult? Function(String query)? changeSearchQuery,
+    TResult? Function(SortOption option)? changeSortOption,
   }) {
     return updateReminder?.call(reminder);
   }
@@ -523,6 +563,8 @@ class _$UpdateReminderImpl implements UpdateReminder {
     TResult Function(int id, bool isEnabled)? toggleReminder,
     TResult Function(List<ReminderEntity> reminders)? remindersUpdated,
     TResult Function(String message)? remindersError,
+    TResult Function(String query)? changeSearchQuery,
+    TResult Function(SortOption option)? changeSortOption,
     required TResult orElse(),
   }) {
     if (updateReminder != null) {
@@ -541,6 +583,8 @@ class _$UpdateReminderImpl implements UpdateReminder {
     required TResult Function(ToggleReminder value) toggleReminder,
     required TResult Function(RemindersUpdated value) remindersUpdated,
     required TResult Function(RemindersError value) remindersError,
+    required TResult Function(ChangeSearchQuery value) changeSearchQuery,
+    required TResult Function(ChangeSortOption value) changeSortOption,
   }) {
     return updateReminder(this);
   }
@@ -555,6 +599,8 @@ class _$UpdateReminderImpl implements UpdateReminder {
     TResult? Function(ToggleReminder value)? toggleReminder,
     TResult? Function(RemindersUpdated value)? remindersUpdated,
     TResult? Function(RemindersError value)? remindersError,
+    TResult? Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult? Function(ChangeSortOption value)? changeSortOption,
   }) {
     return updateReminder?.call(this);
   }
@@ -569,6 +615,8 @@ class _$UpdateReminderImpl implements UpdateReminder {
     TResult Function(ToggleReminder value)? toggleReminder,
     TResult Function(RemindersUpdated value)? remindersUpdated,
     TResult Function(RemindersError value)? remindersError,
+    TResult Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult Function(ChangeSortOption value)? changeSortOption,
     required TResult orElse(),
   }) {
     if (updateReminder != null) {
@@ -660,6 +708,8 @@ class _$DeleteReminderImpl implements DeleteReminder {
     required TResult Function(int id, bool isEnabled) toggleReminder,
     required TResult Function(List<ReminderEntity> reminders) remindersUpdated,
     required TResult Function(String message) remindersError,
+    required TResult Function(String query) changeSearchQuery,
+    required TResult Function(SortOption option) changeSortOption,
   }) {
     return deleteReminder(id);
   }
@@ -674,6 +724,8 @@ class _$DeleteReminderImpl implements DeleteReminder {
     TResult? Function(int id, bool isEnabled)? toggleReminder,
     TResult? Function(List<ReminderEntity> reminders)? remindersUpdated,
     TResult? Function(String message)? remindersError,
+    TResult? Function(String query)? changeSearchQuery,
+    TResult? Function(SortOption option)? changeSortOption,
   }) {
     return deleteReminder?.call(id);
   }
@@ -688,6 +740,8 @@ class _$DeleteReminderImpl implements DeleteReminder {
     TResult Function(int id, bool isEnabled)? toggleReminder,
     TResult Function(List<ReminderEntity> reminders)? remindersUpdated,
     TResult Function(String message)? remindersError,
+    TResult Function(String query)? changeSearchQuery,
+    TResult Function(SortOption option)? changeSortOption,
     required TResult orElse(),
   }) {
     if (deleteReminder != null) {
@@ -706,6 +760,8 @@ class _$DeleteReminderImpl implements DeleteReminder {
     required TResult Function(ToggleReminder value) toggleReminder,
     required TResult Function(RemindersUpdated value) remindersUpdated,
     required TResult Function(RemindersError value) remindersError,
+    required TResult Function(ChangeSearchQuery value) changeSearchQuery,
+    required TResult Function(ChangeSortOption value) changeSortOption,
   }) {
     return deleteReminder(this);
   }
@@ -720,6 +776,8 @@ class _$DeleteReminderImpl implements DeleteReminder {
     TResult? Function(ToggleReminder value)? toggleReminder,
     TResult? Function(RemindersUpdated value)? remindersUpdated,
     TResult? Function(RemindersError value)? remindersError,
+    TResult? Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult? Function(ChangeSortOption value)? changeSortOption,
   }) {
     return deleteReminder?.call(this);
   }
@@ -734,6 +792,8 @@ class _$DeleteReminderImpl implements DeleteReminder {
     TResult Function(ToggleReminder value)? toggleReminder,
     TResult Function(RemindersUpdated value)? remindersUpdated,
     TResult Function(RemindersError value)? remindersError,
+    TResult Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult Function(ChangeSortOption value)? changeSortOption,
     required TResult orElse(),
   }) {
     if (deleteReminder != null) {
@@ -833,6 +893,8 @@ class _$ToggleReminderImpl implements ToggleReminder {
     required TResult Function(int id, bool isEnabled) toggleReminder,
     required TResult Function(List<ReminderEntity> reminders) remindersUpdated,
     required TResult Function(String message) remindersError,
+    required TResult Function(String query) changeSearchQuery,
+    required TResult Function(SortOption option) changeSortOption,
   }) {
     return toggleReminder(id, isEnabled);
   }
@@ -847,6 +909,8 @@ class _$ToggleReminderImpl implements ToggleReminder {
     TResult? Function(int id, bool isEnabled)? toggleReminder,
     TResult? Function(List<ReminderEntity> reminders)? remindersUpdated,
     TResult? Function(String message)? remindersError,
+    TResult? Function(String query)? changeSearchQuery,
+    TResult? Function(SortOption option)? changeSortOption,
   }) {
     return toggleReminder?.call(id, isEnabled);
   }
@@ -861,6 +925,8 @@ class _$ToggleReminderImpl implements ToggleReminder {
     TResult Function(int id, bool isEnabled)? toggleReminder,
     TResult Function(List<ReminderEntity> reminders)? remindersUpdated,
     TResult Function(String message)? remindersError,
+    TResult Function(String query)? changeSearchQuery,
+    TResult Function(SortOption option)? changeSortOption,
     required TResult orElse(),
   }) {
     if (toggleReminder != null) {
@@ -879,6 +945,8 @@ class _$ToggleReminderImpl implements ToggleReminder {
     required TResult Function(ToggleReminder value) toggleReminder,
     required TResult Function(RemindersUpdated value) remindersUpdated,
     required TResult Function(RemindersError value) remindersError,
+    required TResult Function(ChangeSearchQuery value) changeSearchQuery,
+    required TResult Function(ChangeSortOption value) changeSortOption,
   }) {
     return toggleReminder(this);
   }
@@ -893,6 +961,8 @@ class _$ToggleReminderImpl implements ToggleReminder {
     TResult? Function(ToggleReminder value)? toggleReminder,
     TResult? Function(RemindersUpdated value)? remindersUpdated,
     TResult? Function(RemindersError value)? remindersError,
+    TResult? Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult? Function(ChangeSortOption value)? changeSortOption,
   }) {
     return toggleReminder?.call(this);
   }
@@ -907,6 +977,8 @@ class _$ToggleReminderImpl implements ToggleReminder {
     TResult Function(ToggleReminder value)? toggleReminder,
     TResult Function(RemindersUpdated value)? remindersUpdated,
     TResult Function(RemindersError value)? remindersError,
+    TResult Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult Function(ChangeSortOption value)? changeSortOption,
     required TResult orElse(),
   }) {
     if (toggleReminder != null) {
@@ -1008,6 +1080,8 @@ class _$RemindersUpdatedImpl implements RemindersUpdated {
     required TResult Function(int id, bool isEnabled) toggleReminder,
     required TResult Function(List<ReminderEntity> reminders) remindersUpdated,
     required TResult Function(String message) remindersError,
+    required TResult Function(String query) changeSearchQuery,
+    required TResult Function(SortOption option) changeSortOption,
   }) {
     return remindersUpdated(reminders);
   }
@@ -1022,6 +1096,8 @@ class _$RemindersUpdatedImpl implements RemindersUpdated {
     TResult? Function(int id, bool isEnabled)? toggleReminder,
     TResult? Function(List<ReminderEntity> reminders)? remindersUpdated,
     TResult? Function(String message)? remindersError,
+    TResult? Function(String query)? changeSearchQuery,
+    TResult? Function(SortOption option)? changeSortOption,
   }) {
     return remindersUpdated?.call(reminders);
   }
@@ -1036,6 +1112,8 @@ class _$RemindersUpdatedImpl implements RemindersUpdated {
     TResult Function(int id, bool isEnabled)? toggleReminder,
     TResult Function(List<ReminderEntity> reminders)? remindersUpdated,
     TResult Function(String message)? remindersError,
+    TResult Function(String query)? changeSearchQuery,
+    TResult Function(SortOption option)? changeSortOption,
     required TResult orElse(),
   }) {
     if (remindersUpdated != null) {
@@ -1054,6 +1132,8 @@ class _$RemindersUpdatedImpl implements RemindersUpdated {
     required TResult Function(ToggleReminder value) toggleReminder,
     required TResult Function(RemindersUpdated value) remindersUpdated,
     required TResult Function(RemindersError value) remindersError,
+    required TResult Function(ChangeSearchQuery value) changeSearchQuery,
+    required TResult Function(ChangeSortOption value) changeSortOption,
   }) {
     return remindersUpdated(this);
   }
@@ -1068,6 +1148,8 @@ class _$RemindersUpdatedImpl implements RemindersUpdated {
     TResult? Function(ToggleReminder value)? toggleReminder,
     TResult? Function(RemindersUpdated value)? remindersUpdated,
     TResult? Function(RemindersError value)? remindersError,
+    TResult? Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult? Function(ChangeSortOption value)? changeSortOption,
   }) {
     return remindersUpdated?.call(this);
   }
@@ -1082,6 +1164,8 @@ class _$RemindersUpdatedImpl implements RemindersUpdated {
     TResult Function(ToggleReminder value)? toggleReminder,
     TResult Function(RemindersUpdated value)? remindersUpdated,
     TResult Function(RemindersError value)? remindersError,
+    TResult Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult Function(ChangeSortOption value)? changeSortOption,
     required TResult orElse(),
   }) {
     if (remindersUpdated != null) {
@@ -1173,6 +1257,8 @@ class _$RemindersErrorImpl implements RemindersError {
     required TResult Function(int id, bool isEnabled) toggleReminder,
     required TResult Function(List<ReminderEntity> reminders) remindersUpdated,
     required TResult Function(String message) remindersError,
+    required TResult Function(String query) changeSearchQuery,
+    required TResult Function(SortOption option) changeSortOption,
   }) {
     return remindersError(message);
   }
@@ -1187,6 +1273,8 @@ class _$RemindersErrorImpl implements RemindersError {
     TResult? Function(int id, bool isEnabled)? toggleReminder,
     TResult? Function(List<ReminderEntity> reminders)? remindersUpdated,
     TResult? Function(String message)? remindersError,
+    TResult? Function(String query)? changeSearchQuery,
+    TResult? Function(SortOption option)? changeSortOption,
   }) {
     return remindersError?.call(message);
   }
@@ -1201,6 +1289,8 @@ class _$RemindersErrorImpl implements RemindersError {
     TResult Function(int id, bool isEnabled)? toggleReminder,
     TResult Function(List<ReminderEntity> reminders)? remindersUpdated,
     TResult Function(String message)? remindersError,
+    TResult Function(String query)? changeSearchQuery,
+    TResult Function(SortOption option)? changeSortOption,
     required TResult orElse(),
   }) {
     if (remindersError != null) {
@@ -1219,6 +1309,8 @@ class _$RemindersErrorImpl implements RemindersError {
     required TResult Function(ToggleReminder value) toggleReminder,
     required TResult Function(RemindersUpdated value) remindersUpdated,
     required TResult Function(RemindersError value) remindersError,
+    required TResult Function(ChangeSearchQuery value) changeSearchQuery,
+    required TResult Function(ChangeSortOption value) changeSortOption,
   }) {
     return remindersError(this);
   }
@@ -1233,6 +1325,8 @@ class _$RemindersErrorImpl implements RemindersError {
     TResult? Function(ToggleReminder value)? toggleReminder,
     TResult? Function(RemindersUpdated value)? remindersUpdated,
     TResult? Function(RemindersError value)? remindersError,
+    TResult? Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult? Function(ChangeSortOption value)? changeSortOption,
   }) {
     return remindersError?.call(this);
   }
@@ -1247,6 +1341,8 @@ class _$RemindersErrorImpl implements RemindersError {
     TResult Function(ToggleReminder value)? toggleReminder,
     TResult Function(RemindersUpdated value)? remindersUpdated,
     TResult Function(RemindersError value)? remindersError,
+    TResult Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult Function(ChangeSortOption value)? changeSortOption,
     required TResult orElse(),
   }) {
     if (remindersError != null) {
@@ -1263,5 +1359,359 @@ abstract class RemindersError implements ReminderEvent {
   String get message;
   @JsonKey(ignore: true)
   _$$RemindersErrorImplCopyWith<_$RemindersErrorImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$ChangeSearchQueryImplCopyWith<$Res> {
+  factory _$$ChangeSearchQueryImplCopyWith(_$ChangeSearchQueryImpl value,
+          $Res Function(_$ChangeSearchQueryImpl) then) =
+      __$$ChangeSearchQueryImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String query});
+}
+
+/// @nodoc
+class __$$ChangeSearchQueryImplCopyWithImpl<$Res>
+    extends _$ReminderEventCopyWithImpl<$Res, _$ChangeSearchQueryImpl>
+    implements _$$ChangeSearchQueryImplCopyWith<$Res> {
+  __$$ChangeSearchQueryImplCopyWithImpl(_$ChangeSearchQueryImpl _value,
+      $Res Function(_$ChangeSearchQueryImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? query = null,
+  }) {
+    return _then(_$ChangeSearchQueryImpl(
+      query: null == query
+          ? _value.query
+          : query // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$ChangeSearchQueryImpl implements ChangeSearchQuery {
+  const _$ChangeSearchQueryImpl({required this.query});
+
+  @override
+  final String query;
+
+  @override
+  String toString() {
+    return 'ReminderEvent.changeSearchQuery(query: $query)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ChangeSearchQueryImpl &&
+            (identical(other.query, query) || other.query == query));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, query);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ChangeSearchQueryImplCopyWith<_$ChangeSearchQueryImpl> get copyWith =>
+      __$$ChangeSearchQueryImplCopyWithImpl<_$ChangeSearchQueryImpl>(
+          this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() loadReminders,
+    required TResult Function(ReminderEntity reminder) createReminder,
+    required TResult Function(ReminderEntity reminder) updateReminder,
+    required TResult Function(int id) deleteReminder,
+    required TResult Function(int id, bool isEnabled) toggleReminder,
+    required TResult Function(List<ReminderEntity> reminders) remindersUpdated,
+    required TResult Function(String message) remindersError,
+    required TResult Function(String query) changeSearchQuery,
+    required TResult Function(SortOption option) changeSortOption,
+  }) {
+    return changeSearchQuery(query);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? loadReminders,
+    TResult? Function(ReminderEntity reminder)? createReminder,
+    TResult? Function(ReminderEntity reminder)? updateReminder,
+    TResult? Function(int id)? deleteReminder,
+    TResult? Function(int id, bool isEnabled)? toggleReminder,
+    TResult? Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult? Function(String message)? remindersError,
+    TResult? Function(String query)? changeSearchQuery,
+    TResult? Function(SortOption option)? changeSortOption,
+  }) {
+    return changeSearchQuery?.call(query);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? loadReminders,
+    TResult Function(ReminderEntity reminder)? createReminder,
+    TResult Function(ReminderEntity reminder)? updateReminder,
+    TResult Function(int id)? deleteReminder,
+    TResult Function(int id, bool isEnabled)? toggleReminder,
+    TResult Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult Function(String message)? remindersError,
+    TResult Function(String query)? changeSearchQuery,
+    TResult Function(SortOption option)? changeSortOption,
+    required TResult orElse(),
+  }) {
+    if (changeSearchQuery != null) {
+      return changeSearchQuery(query);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(LoadReminders value) loadReminders,
+    required TResult Function(CreateReminder value) createReminder,
+    required TResult Function(UpdateReminder value) updateReminder,
+    required TResult Function(DeleteReminder value) deleteReminder,
+    required TResult Function(ToggleReminder value) toggleReminder,
+    required TResult Function(RemindersUpdated value) remindersUpdated,
+    required TResult Function(RemindersError value) remindersError,
+    required TResult Function(ChangeSearchQuery value) changeSearchQuery,
+    required TResult Function(ChangeSortOption value) changeSortOption,
+  }) {
+    return changeSearchQuery(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(LoadReminders value)? loadReminders,
+    TResult? Function(CreateReminder value)? createReminder,
+    TResult? Function(UpdateReminder value)? updateReminder,
+    TResult? Function(DeleteReminder value)? deleteReminder,
+    TResult? Function(ToggleReminder value)? toggleReminder,
+    TResult? Function(RemindersUpdated value)? remindersUpdated,
+    TResult? Function(RemindersError value)? remindersError,
+    TResult? Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult? Function(ChangeSortOption value)? changeSortOption,
+  }) {
+    return changeSearchQuery?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(LoadReminders value)? loadReminders,
+    TResult Function(CreateReminder value)? createReminder,
+    TResult Function(UpdateReminder value)? updateReminder,
+    TResult Function(DeleteReminder value)? deleteReminder,
+    TResult Function(ToggleReminder value)? toggleReminder,
+    TResult Function(RemindersUpdated value)? remindersUpdated,
+    TResult Function(RemindersError value)? remindersError,
+    TResult Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult Function(ChangeSortOption value)? changeSortOption,
+    required TResult orElse(),
+  }) {
+    if (changeSearchQuery != null) {
+      return changeSearchQuery(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class ChangeSearchQuery implements ReminderEvent {
+  const factory ChangeSearchQuery({required final String query}) =
+      _$ChangeSearchQueryImpl;
+
+  String get query;
+  @JsonKey(ignore: true)
+  _$$ChangeSearchQueryImplCopyWith<_$ChangeSearchQueryImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$ChangeSortOptionImplCopyWith<$Res> {
+  factory _$$ChangeSortOptionImplCopyWith(_$ChangeSortOptionImpl value,
+          $Res Function(_$ChangeSortOptionImpl) then) =
+      __$$ChangeSortOptionImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({SortOption option});
+}
+
+/// @nodoc
+class __$$ChangeSortOptionImplCopyWithImpl<$Res>
+    extends _$ReminderEventCopyWithImpl<$Res, _$ChangeSortOptionImpl>
+    implements _$$ChangeSortOptionImplCopyWith<$Res> {
+  __$$ChangeSortOptionImplCopyWithImpl(_$ChangeSortOptionImpl _value,
+      $Res Function(_$ChangeSortOptionImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? option = null,
+  }) {
+    return _then(_$ChangeSortOptionImpl(
+      option: null == option
+          ? _value.option
+          : option // ignore: cast_nullable_to_non_nullable
+              as SortOption,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$ChangeSortOptionImpl implements ChangeSortOption {
+  const _$ChangeSortOptionImpl({required this.option});
+
+  @override
+  final SortOption option;
+
+  @override
+  String toString() {
+    return 'ReminderEvent.changeSortOption(option: $option)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ChangeSortOptionImpl &&
+            (identical(other.option, option) || other.option == option));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, option);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ChangeSortOptionImplCopyWith<_$ChangeSortOptionImpl> get copyWith =>
+      __$$ChangeSortOptionImplCopyWithImpl<_$ChangeSortOptionImpl>(
+          this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() loadReminders,
+    required TResult Function(ReminderEntity reminder) createReminder,
+    required TResult Function(ReminderEntity reminder) updateReminder,
+    required TResult Function(int id) deleteReminder,
+    required TResult Function(int id, bool isEnabled) toggleReminder,
+    required TResult Function(List<ReminderEntity> reminders) remindersUpdated,
+    required TResult Function(String message) remindersError,
+    required TResult Function(String query) changeSearchQuery,
+    required TResult Function(SortOption option) changeSortOption,
+  }) {
+    return changeSortOption(option);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? loadReminders,
+    TResult? Function(ReminderEntity reminder)? createReminder,
+    TResult? Function(ReminderEntity reminder)? updateReminder,
+    TResult? Function(int id)? deleteReminder,
+    TResult? Function(int id, bool isEnabled)? toggleReminder,
+    TResult? Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult? Function(String message)? remindersError,
+    TResult? Function(String query)? changeSearchQuery,
+    TResult? Function(SortOption option)? changeSortOption,
+  }) {
+    return changeSortOption?.call(option);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? loadReminders,
+    TResult Function(ReminderEntity reminder)? createReminder,
+    TResult Function(ReminderEntity reminder)? updateReminder,
+    TResult Function(int id)? deleteReminder,
+    TResult Function(int id, bool isEnabled)? toggleReminder,
+    TResult Function(List<ReminderEntity> reminders)? remindersUpdated,
+    TResult Function(String message)? remindersError,
+    TResult Function(String query)? changeSearchQuery,
+    TResult Function(SortOption option)? changeSortOption,
+    required TResult orElse(),
+  }) {
+    if (changeSortOption != null) {
+      return changeSortOption(option);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(LoadReminders value) loadReminders,
+    required TResult Function(CreateReminder value) createReminder,
+    required TResult Function(UpdateReminder value) updateReminder,
+    required TResult Function(DeleteReminder value) deleteReminder,
+    required TResult Function(ToggleReminder value) toggleReminder,
+    required TResult Function(RemindersUpdated value) remindersUpdated,
+    required TResult Function(RemindersError value) remindersError,
+    required TResult Function(ChangeSearchQuery value) changeSearchQuery,
+    required TResult Function(ChangeSortOption value) changeSortOption,
+  }) {
+    return changeSortOption(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(LoadReminders value)? loadReminders,
+    TResult? Function(CreateReminder value)? createReminder,
+    TResult? Function(UpdateReminder value)? updateReminder,
+    TResult? Function(DeleteReminder value)? deleteReminder,
+    TResult? Function(ToggleReminder value)? toggleReminder,
+    TResult? Function(RemindersUpdated value)? remindersUpdated,
+    TResult? Function(RemindersError value)? remindersError,
+    TResult? Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult? Function(ChangeSortOption value)? changeSortOption,
+  }) {
+    return changeSortOption?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(LoadReminders value)? loadReminders,
+    TResult Function(CreateReminder value)? createReminder,
+    TResult Function(UpdateReminder value)? updateReminder,
+    TResult Function(DeleteReminder value)? deleteReminder,
+    TResult Function(ToggleReminder value)? toggleReminder,
+    TResult Function(RemindersUpdated value)? remindersUpdated,
+    TResult Function(RemindersError value)? remindersError,
+    TResult Function(ChangeSearchQuery value)? changeSearchQuery,
+    TResult Function(ChangeSortOption value)? changeSortOption,
+    required TResult orElse(),
+  }) {
+    if (changeSortOption != null) {
+      return changeSortOption(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class ChangeSortOption implements ReminderEvent {
+  const factory ChangeSortOption({required final SortOption option}) =
+      _$ChangeSortOptionImpl;
+
+  SortOption get option;
+  @JsonKey(ignore: true)
+  _$$ChangeSortOptionImplCopyWith<_$ChangeSortOptionImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

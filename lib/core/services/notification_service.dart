@@ -3,19 +3,16 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:injectable/injectable.dart';
 import 'package:go_router/go_router.dart';
-import 'package:get_it/get_it.dart';
-import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/routes/app_routes.dart';
-import 'package:reminders/core/services/alarm_service.dart';
-import 'package:reminders/core/services/alarm_scheduler_service.dart';
-import 'package:reminders/core/services/monitoring_coordinator.dart';
-import 'package:reminders/features/reminders/domain/repositories/reminder_repository.dart';
 import 'package:reminders/main.dart';
 
 abstract class NotificationService {
   Future<void> init();
   Future<bool> requestPermissions();
-  Future<void> showTestNotification({required String title, required String body});
+  Future<void> showTestNotification({
+    required String title,
+    required String body,
+  });
   Future<void> showFullScreenTestNotification();
   Future<bool> areNotificationsEnabled();
 }
@@ -33,7 +30,9 @@ class NotificationServiceImpl implements NotificationService {
 
   @override
   Future<void> init() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -48,7 +47,8 @@ class NotificationServiceImpl implements NotificationService {
     await _localNotifications.initialize(
       settings: initSettings,
       onDidReceiveNotificationResponse: _onNotificationResponse,
-      onDidReceiveBackgroundNotificationResponse: _onBackgroundNotificationTapped,
+      onDidReceiveBackgroundNotificationResponse:
+          _onBackgroundNotificationTapped,
     );
 
     // Create high importance Android channel
@@ -62,7 +62,8 @@ class NotificationServiceImpl implements NotificationService {
 
     await _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(androidChannel);
   }
 
@@ -70,9 +71,11 @@ class NotificationServiceImpl implements NotificationService {
   Future<bool> requestPermissions() async {
     final androidImplementation = _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (androidImplementation != null) {
-      final granted = await androidImplementation.requestNotificationsPermission();
+      final granted = await androidImplementation
+          .requestNotificationsPermission();
       return granted ?? false;
     }
     return false;
@@ -135,7 +138,8 @@ class NotificationServiceImpl implements NotificationService {
   Future<bool> areNotificationsEnabled() async {
     final androidImplementation = _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (androidImplementation != null) {
       final enabled = await androidImplementation.areNotificationsEnabled();
       return enabled ?? false;
@@ -143,7 +147,8 @@ class NotificationServiceImpl implements NotificationService {
 
     final darwinImplementation = _localNotifications
         .resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin>();
+          IOSFlutterLocalNotificationsPlugin
+        >();
     if (darwinImplementation != null) {
       final settings = await darwinImplementation.checkPermissions();
       return settings?.isEnabled == true;
@@ -157,7 +162,9 @@ class NotificationServiceImpl implements NotificationService {
 void _onNotificationResponse(NotificationResponse response) {
   debugPrint('[ANDROID] Wake-up callback received');
   debugPrint('[MONITORING] Wake received');
-  debugPrint('Notification response: actionId=${response.actionId}, payload=${response.payload}');
+  debugPrint(
+    'Notification response: actionId=${response.actionId}, payload=${response.payload}',
+  );
 
   final actionId = response.actionId;
   final payload = response.payload;
@@ -168,8 +175,6 @@ void _onNotificationResponse(NotificationResponse response) {
     debugPrint('[SNOOZE] Reminder ID: $reminderId');
   }
 
-
-
   // Default: body tap → navigate to AlarmPage
   if (reminderId != null) {
     final context = rootNavigatorKey.currentContext;
@@ -177,8 +182,9 @@ void _onNotificationResponse(NotificationResponse response) {
       try {
         final router = GoRouter.of(context);
         final routeState = router.routerDelegate.currentConfiguration;
-        final isAlreadyAlarm = routeState.routes.any((route) => 
-            route is GoRoute && route.path == AppRoutes.alarm);
+        final isAlreadyAlarm = routeState.routes.any(
+          (route) => route is GoRoute && route.path == AppRoutes.alarm,
+        );
         if (isAlreadyAlarm) {
           debugPrint("[NOTIFICATION] Already on AlarmPage, skipping push");
         } else {
@@ -202,7 +208,9 @@ void _onBackgroundNotificationTapped(NotificationResponse response) async {
   WidgetsFlutterBinding.ensureInitialized();
   debugPrint('[ANDROID] Wake-up callback received');
   debugPrint('[MONITORING] Wake received');
-  debugPrint('Background notification tapped: actionId=${response.actionId}, payload=${response.payload}');
+  debugPrint(
+    'Background notification tapped: actionId=${response.actionId}, payload=${response.payload}',
+  );
 
   final payload = response.payload;
   final reminderId = payload != null ? int.tryParse(payload) : null;

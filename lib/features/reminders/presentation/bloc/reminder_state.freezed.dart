@@ -20,7 +20,12 @@ mixin _$ReminderState {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() loading,
-    required TResult Function(List<ReminderEntity> reminders) loaded,
+    required TResult Function(
+            List<ReminderEntity> reminders,
+            List<ReminderEntity> filteredReminders,
+            String searchQuery,
+            SortOption sortBy)
+        loaded,
     required TResult Function() empty,
     required TResult Function(String message) error,
   }) =>
@@ -29,7 +34,12 @@ mixin _$ReminderState {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? loading,
-    TResult? Function(List<ReminderEntity> reminders)? loaded,
+    TResult? Function(
+            List<ReminderEntity> reminders,
+            List<ReminderEntity> filteredReminders,
+            String searchQuery,
+            SortOption sortBy)?
+        loaded,
     TResult? Function()? empty,
     TResult? Function(String message)? error,
   }) =>
@@ -38,7 +48,12 @@ mixin _$ReminderState {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? loading,
-    TResult Function(List<ReminderEntity> reminders)? loaded,
+    TResult Function(
+            List<ReminderEntity> reminders,
+            List<ReminderEntity> filteredReminders,
+            String searchQuery,
+            SortOption sortBy)?
+        loaded,
     TResult Function()? empty,
     TResult Function(String message)? error,
     required TResult orElse(),
@@ -132,7 +147,12 @@ class _$ReminderInitialImpl implements ReminderInitial {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() loading,
-    required TResult Function(List<ReminderEntity> reminders) loaded,
+    required TResult Function(
+            List<ReminderEntity> reminders,
+            List<ReminderEntity> filteredReminders,
+            String searchQuery,
+            SortOption sortBy)
+        loaded,
     required TResult Function() empty,
     required TResult Function(String message) error,
   }) {
@@ -144,7 +164,12 @@ class _$ReminderInitialImpl implements ReminderInitial {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? loading,
-    TResult? Function(List<ReminderEntity> reminders)? loaded,
+    TResult? Function(
+            List<ReminderEntity> reminders,
+            List<ReminderEntity> filteredReminders,
+            String searchQuery,
+            SortOption sortBy)?
+        loaded,
     TResult? Function()? empty,
     TResult? Function(String message)? error,
   }) {
@@ -156,7 +181,12 @@ class _$ReminderInitialImpl implements ReminderInitial {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? loading,
-    TResult Function(List<ReminderEntity> reminders)? loaded,
+    TResult Function(
+            List<ReminderEntity> reminders,
+            List<ReminderEntity> filteredReminders,
+            String searchQuery,
+            SortOption sortBy)?
+        loaded,
     TResult Function()? empty,
     TResult Function(String message)? error,
     required TResult orElse(),
@@ -252,7 +282,12 @@ class _$ReminderLoadingImpl implements ReminderLoading {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() loading,
-    required TResult Function(List<ReminderEntity> reminders) loaded,
+    required TResult Function(
+            List<ReminderEntity> reminders,
+            List<ReminderEntity> filteredReminders,
+            String searchQuery,
+            SortOption sortBy)
+        loaded,
     required TResult Function() empty,
     required TResult Function(String message) error,
   }) {
@@ -264,7 +299,12 @@ class _$ReminderLoadingImpl implements ReminderLoading {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? loading,
-    TResult? Function(List<ReminderEntity> reminders)? loaded,
+    TResult? Function(
+            List<ReminderEntity> reminders,
+            List<ReminderEntity> filteredReminders,
+            String searchQuery,
+            SortOption sortBy)?
+        loaded,
     TResult? Function()? empty,
     TResult? Function(String message)? error,
   }) {
@@ -276,7 +316,12 @@ class _$ReminderLoadingImpl implements ReminderLoading {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? loading,
-    TResult Function(List<ReminderEntity> reminders)? loaded,
+    TResult Function(
+            List<ReminderEntity> reminders,
+            List<ReminderEntity> filteredReminders,
+            String searchQuery,
+            SortOption sortBy)?
+        loaded,
     TResult Function()? empty,
     TResult Function(String message)? error,
     required TResult orElse(),
@@ -338,7 +383,11 @@ abstract class _$$ReminderLoadedImplCopyWith<$Res> {
           $Res Function(_$ReminderLoadedImpl) then) =
       __$$ReminderLoadedImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({List<ReminderEntity> reminders});
+  $Res call(
+      {List<ReminderEntity> reminders,
+      List<ReminderEntity> filteredReminders,
+      String searchQuery,
+      SortOption sortBy});
 }
 
 /// @nodoc
@@ -353,12 +402,27 @@ class __$$ReminderLoadedImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? reminders = null,
+    Object? filteredReminders = null,
+    Object? searchQuery = null,
+    Object? sortBy = null,
   }) {
     return _then(_$ReminderLoadedImpl(
       reminders: null == reminders
           ? _value._reminders
           : reminders // ignore: cast_nullable_to_non_nullable
               as List<ReminderEntity>,
+      filteredReminders: null == filteredReminders
+          ? _value._filteredReminders
+          : filteredReminders // ignore: cast_nullable_to_non_nullable
+              as List<ReminderEntity>,
+      searchQuery: null == searchQuery
+          ? _value.searchQuery
+          : searchQuery // ignore: cast_nullable_to_non_nullable
+              as String,
+      sortBy: null == sortBy
+          ? _value.sortBy
+          : sortBy // ignore: cast_nullable_to_non_nullable
+              as SortOption,
     ));
   }
 }
@@ -366,8 +430,13 @@ class __$$ReminderLoadedImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$ReminderLoadedImpl implements ReminderLoaded {
-  const _$ReminderLoadedImpl({required final List<ReminderEntity> reminders})
-      : _reminders = reminders;
+  const _$ReminderLoadedImpl(
+      {required final List<ReminderEntity> reminders,
+      required final List<ReminderEntity> filteredReminders,
+      this.searchQuery = '',
+      this.sortBy = SortOption.recentlyCreated})
+      : _reminders = reminders,
+        _filteredReminders = filteredReminders;
 
   final List<ReminderEntity> _reminders;
   @override
@@ -377,9 +446,25 @@ class _$ReminderLoadedImpl implements ReminderLoaded {
     return EqualUnmodifiableListView(_reminders);
   }
 
+  final List<ReminderEntity> _filteredReminders;
+  @override
+  List<ReminderEntity> get filteredReminders {
+    if (_filteredReminders is EqualUnmodifiableListView)
+      return _filteredReminders;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_filteredReminders);
+  }
+
+  @override
+  @JsonKey()
+  final String searchQuery;
+  @override
+  @JsonKey()
+  final SortOption sortBy;
+
   @override
   String toString() {
-    return 'ReminderState.loaded(reminders: $reminders)';
+    return 'ReminderState.loaded(reminders: $reminders, filteredReminders: $filteredReminders, searchQuery: $searchQuery, sortBy: $sortBy)';
   }
 
   @override
@@ -388,12 +473,21 @@ class _$ReminderLoadedImpl implements ReminderLoaded {
         (other.runtimeType == runtimeType &&
             other is _$ReminderLoadedImpl &&
             const DeepCollectionEquality()
-                .equals(other._reminders, _reminders));
+                .equals(other._reminders, _reminders) &&
+            const DeepCollectionEquality()
+                .equals(other._filteredReminders, _filteredReminders) &&
+            (identical(other.searchQuery, searchQuery) ||
+                other.searchQuery == searchQuery) &&
+            (identical(other.sortBy, sortBy) || other.sortBy == sortBy));
   }
 
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, const DeepCollectionEquality().hash(_reminders));
+  int get hashCode => Object.hash(
+      runtimeType,
+      const DeepCollectionEquality().hash(_reminders),
+      const DeepCollectionEquality().hash(_filteredReminders),
+      searchQuery,
+      sortBy);
 
   @JsonKey(ignore: true)
   @override
@@ -407,11 +501,16 @@ class _$ReminderLoadedImpl implements ReminderLoaded {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() loading,
-    required TResult Function(List<ReminderEntity> reminders) loaded,
+    required TResult Function(
+            List<ReminderEntity> reminders,
+            List<ReminderEntity> filteredReminders,
+            String searchQuery,
+            SortOption sortBy)
+        loaded,
     required TResult Function() empty,
     required TResult Function(String message) error,
   }) {
-    return loaded(reminders);
+    return loaded(reminders, filteredReminders, searchQuery, sortBy);
   }
 
   @override
@@ -419,11 +518,16 @@ class _$ReminderLoadedImpl implements ReminderLoaded {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? loading,
-    TResult? Function(List<ReminderEntity> reminders)? loaded,
+    TResult? Function(
+            List<ReminderEntity> reminders,
+            List<ReminderEntity> filteredReminders,
+            String searchQuery,
+            SortOption sortBy)?
+        loaded,
     TResult? Function()? empty,
     TResult? Function(String message)? error,
   }) {
-    return loaded?.call(reminders);
+    return loaded?.call(reminders, filteredReminders, searchQuery, sortBy);
   }
 
   @override
@@ -431,13 +535,18 @@ class _$ReminderLoadedImpl implements ReminderLoaded {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? loading,
-    TResult Function(List<ReminderEntity> reminders)? loaded,
+    TResult Function(
+            List<ReminderEntity> reminders,
+            List<ReminderEntity> filteredReminders,
+            String searchQuery,
+            SortOption sortBy)?
+        loaded,
     TResult Function()? empty,
     TResult Function(String message)? error,
     required TResult orElse(),
   }) {
     if (loaded != null) {
-      return loaded(reminders);
+      return loaded(reminders, filteredReminders, searchQuery, sortBy);
     }
     return orElse();
   }
@@ -485,9 +594,15 @@ class _$ReminderLoadedImpl implements ReminderLoaded {
 
 abstract class ReminderLoaded implements ReminderState {
   const factory ReminderLoaded(
-      {required final List<ReminderEntity> reminders}) = _$ReminderLoadedImpl;
+      {required final List<ReminderEntity> reminders,
+      required final List<ReminderEntity> filteredReminders,
+      final String searchQuery,
+      final SortOption sortBy}) = _$ReminderLoadedImpl;
 
   List<ReminderEntity> get reminders;
+  List<ReminderEntity> get filteredReminders;
+  String get searchQuery;
+  SortOption get sortBy;
   @JsonKey(ignore: true)
   _$$ReminderLoadedImplCopyWith<_$ReminderLoadedImpl> get copyWith =>
       throw _privateConstructorUsedError;
@@ -533,7 +648,12 @@ class _$ReminderEmptyImpl implements ReminderEmpty {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() loading,
-    required TResult Function(List<ReminderEntity> reminders) loaded,
+    required TResult Function(
+            List<ReminderEntity> reminders,
+            List<ReminderEntity> filteredReminders,
+            String searchQuery,
+            SortOption sortBy)
+        loaded,
     required TResult Function() empty,
     required TResult Function(String message) error,
   }) {
@@ -545,7 +665,12 @@ class _$ReminderEmptyImpl implements ReminderEmpty {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? loading,
-    TResult? Function(List<ReminderEntity> reminders)? loaded,
+    TResult? Function(
+            List<ReminderEntity> reminders,
+            List<ReminderEntity> filteredReminders,
+            String searchQuery,
+            SortOption sortBy)?
+        loaded,
     TResult? Function()? empty,
     TResult? Function(String message)? error,
   }) {
@@ -557,7 +682,12 @@ class _$ReminderEmptyImpl implements ReminderEmpty {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? loading,
-    TResult Function(List<ReminderEntity> reminders)? loaded,
+    TResult Function(
+            List<ReminderEntity> reminders,
+            List<ReminderEntity> filteredReminders,
+            String searchQuery,
+            SortOption sortBy)?
+        loaded,
     TResult Function()? empty,
     TResult Function(String message)? error,
     required TResult orElse(),
@@ -679,7 +809,12 @@ class _$ReminderErrorImpl implements ReminderError {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() loading,
-    required TResult Function(List<ReminderEntity> reminders) loaded,
+    required TResult Function(
+            List<ReminderEntity> reminders,
+            List<ReminderEntity> filteredReminders,
+            String searchQuery,
+            SortOption sortBy)
+        loaded,
     required TResult Function() empty,
     required TResult Function(String message) error,
   }) {
@@ -691,7 +826,12 @@ class _$ReminderErrorImpl implements ReminderError {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? loading,
-    TResult? Function(List<ReminderEntity> reminders)? loaded,
+    TResult? Function(
+            List<ReminderEntity> reminders,
+            List<ReminderEntity> filteredReminders,
+            String searchQuery,
+            SortOption sortBy)?
+        loaded,
     TResult? Function()? empty,
     TResult? Function(String message)? error,
   }) {
@@ -703,7 +843,12 @@ class _$ReminderErrorImpl implements ReminderError {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? loading,
-    TResult Function(List<ReminderEntity> reminders)? loaded,
+    TResult Function(
+            List<ReminderEntity> reminders,
+            List<ReminderEntity> filteredReminders,
+            String searchQuery,
+            SortOption sortBy)?
+        loaded,
     TResult Function()? empty,
     TResult Function(String message)? error,
     required TResult orElse(),

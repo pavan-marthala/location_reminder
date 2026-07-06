@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:reminders/features/reminders/domain/entities/reminder_entity.dart';
+import 'package:reminders/features/reminders/domain/entities/reminder_enums.dart';
 
 part 'reminder_event.freezed.dart';
 
@@ -24,4 +25,10 @@ class ReminderEvent with _$ReminderEvent {
   const factory ReminderEvent.remindersError({
     required String message,
   }) = RemindersError;
+  const factory ReminderEvent.changeSearchQuery({
+    required String query,
+  }) = ChangeSearchQuery;
+  const factory ReminderEvent.changeSortOption({
+    required SortOption option,
+  }) = ChangeSortOption;
 }

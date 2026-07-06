@@ -13,6 +13,7 @@ import '../../../infrastructure_validation/presentation/bloc/validation_event.da
 import '../../../infrastructure_validation/presentation/bloc/validation_state.dart';
 import 'package:go_router/go_router.dart';
 import 'package:reminders/core/routes/app_routes.dart';
+import 'package:reminders/features/reminders/domain/entities/reminder_enums.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -56,129 +57,190 @@ class _SettingsPageView extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings'), centerTitle: true),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: context.isDark
-              ? gradients.backgroundDark
-              : gradients.backgroundLight,
-        ),
-        child: BlocConsumer<ValidationBloc, ValidationState>(
-          listener: (context, state) {
-            if (state.errorMessage != null) {
-              log(state.errorMessage ?? "");
-              showErrorToast(message: state.errorMessage!);
-            }
-          },
-          builder: (context, state) {
-            if (state.isLoading && !state.isInitialized) {
-              return Center(
-                child: CircularProgressIndicator(color: colors.primary),
-              );
-            }
+      body: BlocConsumer<ValidationBloc, ValidationState>(
+        listener: (context, state) {
+          if (state.errorMessage != null) {
+            log(state.errorMessage ?? "");
+            showErrorToast(message: state.errorMessage!);
+          }
+        },
+        builder: (context, state) {
+          if (state.isLoading && !state.isInitialized) {
+            return Center(
+              child: CircularProgressIndicator(color: colors.primary),
+            );
+          }
 
-            // Expose monitoring status
-            String monitoringStatus = 'Disabled';
-            IconData statusIcon = Icons.remove_circle_outline_rounded;
-            Color statusColor = colors.textTertiary;
+          // Expose monitoring status
+          String monitoringStatus = 'Disabled';
+          IconData statusIcon = Icons.remove_circle_outline_rounded;
+          Color statusColor = colors.textTertiary;
 
-            if (!state.isMonitoringEnabled) {
-              monitoringStatus = 'Disabled';
-              statusIcon = Icons.remove_circle_outline_rounded;
-              statusColor = colors.textTertiary;
-            } else if (!state.isBackgroundServiceRunning) {
-              monitoringStatus = 'Stopped';
-              statusIcon = Icons.pause_circle_filled_rounded;
-              statusColor = colors.textTertiary;
+          if (!state.isMonitoringEnabled) {
+            monitoringStatus = 'Disabled';
+            statusIcon = Icons.remove_circle_outline_rounded;
+            statusColor = colors.textTertiary;
+          } else if (!state.isBackgroundServiceRunning) {
+            monitoringStatus = 'Stopped';
+            statusIcon = Icons.pause_circle_filled_rounded;
+            statusColor = colors.textTertiary;
+          } else {
+            if (state.backgroundReadinessState == 'WaitingForLocation') {
+              monitoringStatus = 'Waiting for GPS';
+              statusIcon = Icons.gps_not_fixed_rounded;
+              statusColor = colors.warning;
             } else {
-              if (state.backgroundReadinessState == 'WaitingForLocation') {
-                monitoringStatus = 'Waiting for GPS';
-                statusIcon = Icons.gps_not_fixed_rounded;
-                statusColor = colors.warning;
-              } else {
-                monitoringStatus = 'Running';
-                statusIcon = Icons.play_circle_fill_rounded;
-                statusColor = colors.success;
-              }
+              monitoringStatus = 'Running';
+              statusIcon = Icons.play_circle_fill_rounded;
+              statusColor = colors.success;
             }
+          }
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // 1. Permissions Section
-                  _buildSectionHeader(context, 'Permissions'),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          _buildPermissionRow(
-                            context,
-                            'Notification Permission',
-                            state.isNotificationPermissionGranted,
-                            onAction: () => context.read<ValidationBloc>().add(
-                              const ValidationEvent.requestNotificationPermission(),
-                            ),
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 1. Permissions Section
+                _buildSectionHeader(context, 'Permissions'),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      children: [
+                        _buildPermissionRow(
+                          context,
+                          'Notification Permission',
+                          state.isNotificationPermissionGranted,
+                          onAction: () => context.read<ValidationBloc>().add(
+                            const ValidationEvent.requestNotificationPermission(),
                           ),
-                          const Divider(),
-                          _buildPermissionRow(
-                            context,
-                            'Location Permission',
-                            state.isLocationPermissionGranted,
-                            onAction: () => context.read<ValidationBloc>().add(
-                              const ValidationEvent.requestLocationPermission(),
-                            ),
+                        ),
+                        const Divider(),
+                        _buildPermissionRow(
+                          context,
+                          'Location Permission',
+                          state.isLocationPermissionGranted,
+                          onAction: () => context.read<ValidationBloc>().add(
+                            const ValidationEvent.requestLocationPermission(),
                           ),
-                          const SizedBox(height: 16),
-                          AppButton(
-                            width: double.infinity,
-                            text: 'Open System Settings',
-                            color: colors.primary,
-                            onPressed: () {
-                              context.read<ValidationBloc>().add(
-                                const ValidationEvent.openAppSettings(),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 16),
+                        AppButton(
+                          width: double.infinity,
+                          text: 'Open System Settings',
+                          color: colors.primary,
+                          onPressed: () {
+                            context.read<ValidationBloc>().add(
+                              const ValidationEvent.openAppSettings(),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 20),
+                ),
+                const SizedBox(height: 20),
 
-                  // 2. Notifications Section
-                  _buildSectionHeader(context, 'Notifications'),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                // 2. Notifications Section
+                _buildSectionHeader(context, 'Notifications'),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Alarm Tone',
+                          style: typography.bodyMedium.copyWith(
+                            color: colors.textSecondary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          value:
+                              state.selectedAlarmTone != null &&
+                                  availableTones.any(
+                                    (element) =>
+                                        element['path'] ==
+                                        state.selectedAlarmTone,
+                                  )
+                              ? state.selectedAlarmTone
+                              : Assets.audioDaybreak,
+                          dropdownColor: colors.card,
+                          borderRadius: BorderRadius.circular(16),
+                          enableFeedback: true,
+                          items: availableTones.map((tone) {
+                            return DropdownMenuItem<String>(
+                              value: tone['path'],
+                              child: Text(tone['name']!),
+                            );
+                          }).toList(),
+                          decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            filled: false,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: colors.border),
+                            ),
+                          ),
+                          onChanged: (newValue) {
+                            if (newValue != null) {
+                              context.read<ValidationBloc>().add(
+                                ValidationEvent.changeAlarmTone(path: newValue),
+                              );
+                              showSuccessToast(
+                                message:
+                                    'Alarm tone updated to ${_getAlarmToneName(newValue)}',
+                              );
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            'Vibration',
+                            style: typography.bodyLarge.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Vibrate when alarms trigger',
+                            style: typography.bodySmall.copyWith(
+                              color: colors.textTertiary,
+                            ),
+                          ),
+                          value: state.isVibrationEnabled,
+                          activeThumbColor: colors.primary,
+                          onChanged: (val) {
+                            context.read<ValidationBloc>().add(
+                              ValidationEvent.toggleVibration(enabled: val),
+                            );
+                          },
+                        ),
+                        if (state.isVibrationEnabled) ...[
+                          const SizedBox(height: 12),
                           Text(
-                            'Alarm Tone',
+                            'Vibration Pattern',
                             style: typography.bodyMedium.copyWith(
                               color: colors.textSecondary,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
-                            value: state.selectedAlarmTone != null &&
-                                    availableTones.any(
-                                      (element) =>
-                                          element['path'] ==
-                                          state.selectedAlarmTone,
-                                    )
-                                ? state.selectedAlarmTone
-                                : Assets.audioDaybreak,
+                          DropdownButtonFormField<VibrationPattern>(
+                            value: state.selectedVibrationPattern,
                             dropdownColor: colors.card,
                             borderRadius: BorderRadius.circular(16),
-                            enableFeedback: true,
-                            items: availableTones.map((tone) {
-                              return DropdownMenuItem<String>(
-                                value: tone['path'],
-                                child: Text(tone['name']!),
+                            items: VibrationPattern.values.map((pat) {
+                              return DropdownMenuItem<VibrationPattern>(
+                                value: pat,
+                                child: Text(pat.displayName),
                               );
                             }).toList(),
                             decoration: InputDecoration(
@@ -186,250 +248,214 @@ class _SettingsPageView extends StatelessWidget {
                                 horizontal: 12,
                                 vertical: 8,
                               ),
-                              filled: false,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(color: colors.border),
                               ),
                             ),
-                            onChanged: (newValue) {
-                              if (newValue != null) {
+                            onChanged: (newPattern) {
+                              if (newPattern != null) {
                                 context.read<ValidationBloc>().add(
-                                  ValidationEvent.changeAlarmTone(
-                                    path: newValue,
+                                  ValidationEvent.changeVibrationPattern(
+                                    pattern: newPattern,
                                   ),
-                                );
-                                showSuccessToast(
-                                  message:
-                                      'Alarm tone updated to ${_getAlarmToneName(newValue)}',
                                 );
                               }
                             },
                           ),
-                          const SizedBox(height: 16),
-                          SwitchListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(
-                              'Vibration',
-                              style: typography.bodyLarge.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            subtitle: Text(
-                              'Vibrate when alarms trigger',
-                              style: typography.bodySmall.copyWith(
-                                color: colors.textTertiary,
-                              ),
-                            ),
-                            value: state.isVibrationEnabled,
-                            activeThumbColor: colors.primary,
-                            onChanged: (val) {
-                              context.read<ValidationBloc>().add(
-                                ValidationEvent.toggleVibration(enabled: val),
-                              );
-                            },
-                          ),
-                          const Divider(),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: AppButton(
-                                  text: state.isAlarmPlaying
-                                      ? 'Stop Test Alarm'
-                                      : 'Play Test Alarm',
-                                  color: state.isAlarmPlaying
-                                      ? colors.error
-                                      : colors.success,
-                                  onPressed: () {
-                                    context.read<ValidationBloc>().add(
-                                      state.isAlarmPlaying
-                                          ? const ValidationEvent.stopAlarm()
-                                          : const ValidationEvent.startAlarm(),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
                         ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // 3. Monitoring Settings
-                  _buildSectionHeader(context, 'Monitoring'),
-                  Card(
-                    child: Column(
-                      children: [
-                        SwitchListTile(
-                          title: Text(
-                            'Enable Monitoring',
-                            style: typography.bodyLarge.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          subtitle: Text(
-                            'Allow background checking for active reminders',
-                            style: typography.bodySmall.copyWith(
-                              color: colors.textTertiary,
-                            ),
-                          ),
-                          value: state.isMonitoringEnabled,
-                          activeThumbColor: colors.primary,
-                          onChanged: (val) {
-                            context.read<ValidationBloc>().add(
-                              ValidationEvent.toggleMonitoring(enabled: val),
-                            );
-                          },
-                        ),
-                        const Divider(height: 1),
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Row(
-                            children: [
-                              Icon(
-                                statusIcon,
-                                color: statusColor,
-                                size: 24,
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: AppButton(
+                                text: state.isAlarmPlaying
+                                    ? 'Stop Test Alarm'
+                                    : 'Play Test Alarm',
+                                color: state.isAlarmPlaying
+                                    ? colors.error
+                                    : colors.success,
+                                onPressed: () {
+                                  context.read<ValidationBloc>().add(
+                                    state.isAlarmPlaying
+                                        ? const ValidationEvent.stopAlarm()
+                                        : const ValidationEvent.startAlarm(),
+                                  );
+                                },
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Status',
-                                      style: typography.bodyMedium.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    Text(
-                                      monitoringStatus,
-                                      style: typography.bodySmall.copyWith(
-                                        color: colors.textTertiary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
+                ),
+                const SizedBox(height: 20),
 
-                  // 4. About Section
-                  _buildSectionHeader(context, 'About'),
-                  Card(
-                    child: FutureBuilder<PackageInfo>(
-                      future: PackageInfo.fromPlatform(),
-                      builder: (context, snapshot) {
-                        final version = snapshot.data?.version ?? '1.0.0';
-                        final buildNumber = snapshot.data?.buildNumber ?? '1';
-
-                        return Column(
-                          children: [
-                            ListTile(
-                              title: Text(
-                                'App Version',
-                                style: typography.bodyLarge.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              trailing: Text(
-                                version,
-                                style: typography.bodyMedium.copyWith(
-                                  color: colors.textSecondary,
-                                ),
-                              ),
-                            ),
-                            const Divider(height: 1),
-                            ListTile(
-                              title: Text(
-                                'Build Number',
-                                style: typography.bodyLarge.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              trailing: Text(
-                                buildNumber,
-                                style: typography.bodyMedium.copyWith(
-                                  color: colors.textSecondary,
-                                ),
-                              ),
-                            ),
-                            const Divider(height: 1),
-                            ListTile(
-                              title: Text(
-                                'Privacy Policy',
-                                style: typography.bodyLarge.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              trailing: const Icon(Icons.chevron_right_rounded),
-                              onTap: () {
-                                showSuccessToast(
-                                  message: 'Privacy Policy placeholder tapped.',
-                                );
-                              },
-                            ),
-                            const Divider(height: 1),
-                            ListTile(
-                              title: Text(
-                                'Open Source Licenses',
-                                style: typography.bodyLarge.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              trailing: const Icon(Icons.chevron_right_rounded),
-                              onTap: () {
-                                showLicensePage(
-                                  context: context,
-                                  applicationName: 'Location Reminder',
-                                );
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // 5. Developer Tools (kDebugMode only)
-                  if (kDebugMode) ...[
-                    _buildSectionHeader(context, 'Developer Tools'),
-                    Card(
-                      child: ListTile(
+                // 3. Monitoring Settings
+                _buildSectionHeader(context, 'Monitoring'),
+                Card(
+                  child: Column(
+                    children: [
+                      SwitchListTile(
                         title: Text(
-                          'Developer Tools',
+                          'Enable Monitoring',
                           style: typography.bodyLarge.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         subtitle: Text(
-                          'Expose coordinates, distance, geofences, and evaluation logs',
+                          'Allow background checking for active reminders',
                           style: typography.bodySmall.copyWith(
                             color: colors.textTertiary,
                           ),
                         ),
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap: () {
-                          context.push(AppRoutes.developerTools);
+                        value: state.isMonitoringEnabled,
+                        activeThumbColor: colors.primary,
+                        onChanged: (val) {
+                          context.read<ValidationBloc>().add(
+                            ValidationEvent.toggleMonitoring(enabled: val),
+                          );
                         },
                       ),
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Icon(statusIcon, color: statusColor, size: 24),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Status',
+                                    style: typography.bodyMedium.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    monitoringStatus,
+                                    style: typography.bodySmall.copyWith(
+                                      color: colors.textTertiary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 4. About Section
+                _buildSectionHeader(context, 'About'),
+                Card(
+                  child: FutureBuilder<PackageInfo>(
+                    future: PackageInfo.fromPlatform(),
+                    builder: (context, snapshot) {
+                      final version = snapshot.data?.version ?? '1.0.0';
+                      final buildNumber = snapshot.data?.buildNumber ?? '1';
+
+                      return Column(
+                        children: [
+                          ListTile(
+                            title: Text(
+                              'App Version',
+                              style: typography.bodyLarge.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            trailing: Text(
+                              version,
+                              style: typography.bodyMedium.copyWith(
+                                color: colors.textSecondary,
+                              ),
+                            ),
+                          ),
+                          const Divider(height: 1),
+                          ListTile(
+                            title: Text(
+                              'Build Number',
+                              style: typography.bodyLarge.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            trailing: Text(
+                              buildNumber,
+                              style: typography.bodyMedium.copyWith(
+                                color: colors.textSecondary,
+                              ),
+                            ),
+                          ),
+                          const Divider(height: 1),
+                          ListTile(
+                            title: Text(
+                              'Privacy Policy',
+                              style: typography.bodyLarge.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () {
+                              showSuccessToast(
+                                message: 'Privacy Policy placeholder tapped.',
+                              );
+                            },
+                          ),
+                          const Divider(height: 1),
+                          ListTile(
+                            title: Text(
+                              'Open Source Licenses',
+                              style: typography.bodyLarge.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () {
+                              showLicensePage(context: context);
+                            },
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 5. Developer Tools (kDebugMode only)
+                if (kDebugMode) ...[
+                  _buildSectionHeader(context, 'Developer Tools'),
+                  Card(
+                    child: ListTile(
+                      title: Text(
+                        'Developer Tools',
+                        style: typography.bodyLarge.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Expose coordinates, distance, geofences, and evaluation logs',
+                        style: typography.bodySmall.copyWith(
+                          color: colors.textTertiary,
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () {
+                        context.push(AppRoutes.developerTools);
+                      },
                     ),
-                    const SizedBox(height: 20),
-                  ],
+                  ),
+                  const SizedBox(height: 20),
                 ],
-              ),
-            );
-          },
-        ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

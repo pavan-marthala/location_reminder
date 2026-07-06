@@ -12,6 +12,8 @@ import 'package:reminders/core/services/monitoring_coordinator.dart';
 import 'validation_event.dart';
 import 'validation_state.dart';
 
+import 'package:reminders/features/reminders/domain/entities/reminder_enums.dart';
+
 @injectable
 class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
   final NotificationService _notificationService;
@@ -47,6 +49,7 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
     on<ChangeAlarmTone>(_onChangeAlarmTone);
     on<ToggleMonitoring>(_onToggleMonitoring);
     on<ToggleVibration>(_onToggleVibration);
+    on<ChangeVibrationPattern>(_onChangeVibrationPattern);
     on<OpenAppSettings>(_onOpenAppSettings);
   }
 
@@ -71,6 +74,7 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
       final alarmTone = _settingsService.getSelectedAlarmTonePath();
       final monitoringEnabled = _monitoringCoordinator.isMonitoringEnabled();
       final vibrationEnabled = _settingsService.isVibrationEnabled();
+      final vibrationPattern = _settingsService.getVibrationPattern();
 
       // Listen to background service events
       await _backgroundSubscription?.cancel();
@@ -91,6 +95,7 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
           isBackgroundLocationPermissionGranted: bgLocGranted,
           isMonitoringEnabled: monitoringEnabled,
           isVibrationEnabled: vibrationEnabled,
+          selectedVibrationPattern: vibrationPattern,
           selectedAlarmTone: alarmTone,
           isLoading: false,
         ),
@@ -377,6 +382,21 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
       ));
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Failed to toggle vibration: $e'));
+    }
+  }
+
+  Future<void> _onChangeVibrationPattern(
+    ChangeVibrationPattern event,
+    Emitter<ValidationState> emit,
+  ) async {
+    emit(state.copyWith(errorMessage: null));
+    try {
+      await _settingsService.saveVibrationPattern(event.pattern);
+      emit(state.copyWith(
+        selectedVibrationPattern: event.pattern,
+      ));
+    } catch (e) {
+      emit(state.copyWith(errorMessage: 'Failed to update vibration pattern: $e'));
     }
   }
 

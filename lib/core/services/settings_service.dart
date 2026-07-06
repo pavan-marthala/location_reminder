@@ -2,6 +2,8 @@ import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:reminders/generated/assets.dart';
 
+import 'package:reminders/features/reminders/domain/entities/reminder_enums.dart';
+
 abstract class SettingsService {
   Future<void> saveSelectedAlarmTonePath(String path);
   String getSelectedAlarmTonePath();
@@ -11,6 +13,10 @@ abstract class SettingsService {
   bool isOnboardingCompleted();
   Future<void> saveVibrationEnabled(bool enabled);
   bool isVibrationEnabled();
+  Future<void> saveVibrationPattern(VibrationPattern pattern);
+  VibrationPattern getVibrationPattern();
+  Future<void> saveSortOption(SortOption option);
+  SortOption getSortOption();
 }
 
 @LazySingleton(as: SettingsService)
@@ -20,6 +26,7 @@ class SettingsServiceImpl implements SettingsService {
   static const String _keyMonitoringEnabled = 'monitoring_enabled';
   static const String _keyOnboardingCompleted = 'onboarding_completed';
   static const String _keyVibrationEnabled = 'vibration_enabled';
+  static const String _keyVibrationPattern = 'vibration_pattern';
 
   SettingsServiceImpl(this._prefs);
 
@@ -61,5 +68,27 @@ class SettingsServiceImpl implements SettingsService {
   @override
   bool isVibrationEnabled() {
     return _prefs.getBool(_keyVibrationEnabled) ?? true;
+  }
+
+  @override
+  Future<void> saveVibrationPattern(VibrationPattern pattern) async {
+    await _prefs.setString(_keyVibrationPattern, pattern.name);
+  }
+
+  @override
+  VibrationPattern getVibrationPattern() {
+    final val = _prefs.getString(_keyVibrationPattern);
+    return VibrationPattern.fromString(val);
+  }
+
+  @override
+  Future<void> saveSortOption(SortOption option) async {
+    await _prefs.setString('selected_sort_option', option.name);
+  }
+
+  @override
+  SortOption getSortOption() {
+    final val = _prefs.getString('selected_sort_option');
+    return SortOption.fromString(val);
   }
 }
