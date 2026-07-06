@@ -37,6 +37,7 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
   late final PageController _pageController;
   int _currentStep = 0;
   LocationPermission? _locationPermissionStatus;
+  bool _hasRequestedLocation = false;
 
   @override
   void initState() {
@@ -195,12 +196,13 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
   Widget _buildLocationStep() {
     final colors = context.appColors;
     final typography = context.appTypography;
-    final isDenied = _locationPermissionStatus == LocationPermission.denied;
+    final isInitial = _locationPermissionStatus == LocationPermission.denied && !_hasRequestedLocation;
+    final isDenied = _locationPermissionStatus == LocationPermission.denied && _hasRequestedLocation;
     final isPermanentlyDenied =
         _locationPermissionStatus == LocationPermission.deniedForever;
 
     Widget? errorWidget;
-    if (isDenied || isPermanentlyDenied) {
+    if (isDenied) {
       errorWidget = Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -214,7 +216,32 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Location permission is required for destination alarms to work.',
+                'Location permission was denied.',
+                style: typography.bodySmall.copyWith(
+                  color: colors.error,
+                  fontWeight: FontWeight.w600,
+                  height: 1.3,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else if (isPermanentlyDenied) {
+      errorWidget = Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: colors.error.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: colors.error.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: colors.error, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Location permission is permanently denied.\nPlease enable it from Settings.',
                 style: typography.bodySmall.copyWith(
                   color: colors.error,
                   fontWeight: FontWeight.w600,
@@ -227,10 +254,15 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
       );
     }
 
+    final headline = isInitial ? 'Allow Location Permission' : 'Location Access Required';
+    final buttonText = isPermanentlyDenied
+        ? 'Open Settings'
+        : (isDenied ? 'Try Again' : 'Allow Location');
+
     return _OnboardingPageTemplate(
       key: const ValueKey('step_location'),
       imagePath: 'assets/illustration_location.png',
-      headline: 'Location Access Required',
+      headline: headline,
       description:
           'We monitor your location to detect when you are approaching your selected destination.',
       perks: const [
@@ -241,7 +273,7 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
       errorWidget: errorWidget,
       ctaButton: isPermanentlyDenied
           ? AppButton(
-              text: 'Open Settings',
+              text: buttonText,
               color: colors.primary,
               onPressed: () {
                 context.read<ValidationBloc>().add(
@@ -250,9 +282,12 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
               },
             )
           : AppButton(
-              text: isDenied ? 'Try Again' : 'Allow Location Access',
+              text: buttonText,
               color: colors.primary,
               onPressed: () {
+                setState(() {
+                  _hasRequestedLocation = true;
+                });
                 context.read<ValidationBloc>().add(
                   const ValidationEvent.requestLocationPermission(),
                 );
