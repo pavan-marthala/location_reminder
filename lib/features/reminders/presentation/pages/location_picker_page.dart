@@ -12,6 +12,7 @@ import 'package:reminders/core/utils/app_toast.dart';
 import 'package:reminders/features/reminders/domain/entities/location_selection_result.dart';
 import 'package:reminders/features/reminders/domain/entities/reminder_entity.dart';
 import 'package:reminders/features/reminders/domain/repositories/reminder_repository.dart';
+import 'package:reminders/features/reminders/domain/services/duplicate_detection_service.dart';
 import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/services/mapbox_service.dart';
 
@@ -904,10 +905,172 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     _drawCircleAndHandle();
   }
 
+  Future<bool?> _showDuplicateWarningDialog(List<DuplicateReminder> duplicates) {
+    final colors = context.appColors;
+    final typography = context.appTypography;
+
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: colors.card,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: colors.warning),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Duplicate Reminder Detected',
+                  style: typography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'You already have one or more reminders very close to this location.',
+                  style: typography.bodyMedium,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Nearby reminders:',
+                  style: typography.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: duplicates.length,
+                    separatorBuilder: (context, index) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final dup = duplicates[index];
+                      final distanceStr = dup.distanceMeters >= 1000
+                          ? '${(dup.distanceMeters / 1000).toStringAsFixed(1)} km'
+                          : '${dup.distanceMeters.round()} m';
+                      final status = dup.reminder.status.isNotEmpty
+                          ? '${dup.reminder.status[0].toUpperCase()}${dup.reminder.status.substring(1)}'
+                          : '';
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    dup.reminder.title,
+                                    style: typography.bodyMedium.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: colors.textPrimary,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    status,
+                                    style: typography.bodySmall.copyWith(
+                                      color: dup.reminder.status == 'active'
+                                          ? colors.primary
+                                          : colors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              distanceStr,
+                              style: typography.bodyMedium.copyWith(
+                                color: colors.warning,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Would you still like to create this reminder?',
+                  style: typography.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(
+                'Cancel',
+                style: typography.labelLarge.copyWith(color: colors.textSecondary),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                'Create Anyway',
+                style: typography.labelLarge.copyWith(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _onConfirm() async {
     if (_centerLat == null || _centerLng == null) {
       showErrorToast(message: 'Please tap the map to select a location');
       return;
+    }
+
+    print('''
+[DUPLICATE] Confirm location pressed
+Selected:
+Lat = $_centerLat
+Lng = $_centerLng
+Editing Reminder ID = ${widget.editingReminderId}
+Total cached reminders = ${_allReminders.length}
+''');
+
+    print('[DUPLICATE] Calling DuplicateDetectionService');
+    final duplicateService = getIt<DuplicateDetectionService>();
+    final duplicates = duplicateService.checkForDuplicates(
+      latitude: _centerLat!,
+      longitude: _centerLng!,
+      allReminders: _allReminders,
+      excludeId: widget.editingReminderId,
+    );
+    print('[DUPLICATE] Duplicate count = ${duplicates.length}');
+
+    if (duplicates.isNotEmpty) {
+      print('[DUPLICATE] Showing duplicate dialog');
+      final proceed = await _showDuplicateWarningDialog(duplicates);
+      if (proceed != true) {
+        return;
+      }
+    } else {
+      print('[DUPLICATE] No duplicates found');
     }
 
     setState(() => _isLoadingLocation = true);
