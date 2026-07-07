@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:injectable/injectable.dart';
 import 'package:reminders/core/services/settings_service.dart';
+import 'package:vibration/vibration.dart';
+import 'package:reminders/features/reminders/domain/entities/reminder_enums.dart';
 
 abstract class AlarmService {
   Future<void> init();
@@ -59,12 +61,40 @@ class AlarmServiceImpl implements AlarmService {
     await _audioPlayer.play(AssetSource(cleanPath));
     _isPlaying = true;
     debugPrint('[SNOOZE] Audio playback started');
+
+    // Trigger dynamic vibration patterns
+    if (_settingsService.isVibrationEnabled()) {
+      try {
+        final hasVib = await Vibration.hasVibrator() ?? false;
+        if (hasVib) {
+          final pattern = _settingsService.getVibrationPattern();
+          debugPrint('[VIBRATION] Starting vibration pattern: ${pattern.name}');
+          switch (pattern) {
+            case VibrationPattern.defaultPattern:
+              await Vibration.vibrate(pattern: [500, 1000], repeat: 0);
+              break;
+            case VibrationPattern.strong:
+              await Vibration.vibrate(pattern: [0, 500, 300], repeat: 0);
+              break;
+            case VibrationPattern.emergency:
+              await Vibration.vibrate(pattern: [0, 1000, 250], repeat: 0);
+              break;
+          }
+        }
+      } catch (e) {
+        debugPrint('[VIBRATION] Error starting vibration: $e');
+      }
+    }
   }
 
   @override
   Future<void> stopAlarm() async {
     try {
       FlutterBackgroundService().invoke('stopAlarm');
+    } catch (_) {}
+
+    try {
+      await Vibration.cancel();
     } catch (_) {}
 
     if (!_isPlaying) return;

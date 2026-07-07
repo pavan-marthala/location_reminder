@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:reminders/features/reminders/domain/entities/reminder_enums.dart';
 
 part 'validation_event.freezed.dart';
 
@@ -29,5 +30,8 @@ class ValidationEvent with _$ValidationEvent {
   const factory ValidationEvent.toggleVibration({
     required bool enabled,
   }) = ToggleVibration;
+  const factory ValidationEvent.changeVibrationPattern({
+    required VibrationPattern pattern,
+  }) = ChangeVibrationPattern;
   const factory ValidationEvent.openAppSettings() = OpenAppSettings;
 }

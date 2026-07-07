@@ -2,10 +2,15 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/services/alarm_scheduler_service.dart';
 import 'package:reminders/core/services/monitoring_coordinator.dart';
+import 'package:reminders/core/services/settings_service.dart';
+import 'package:reminders/core/services/location_service.dart';
 import 'package:reminders/features/reminders/domain/entities/reminder_entity.dart';
+import 'package:reminders/features/reminders/domain/entities/reminder_enums.dart';
+import 'package:reminders/features/reminders/domain/services/reminder_query_service.dart';
 import 'package:reminders/features/reminders/domain/usecases/create_reminder_usecase.dart';
 import 'package:reminders/features/reminders/domain/usecases/delete_reminder_usecase.dart';
 import 'package:reminders/features/reminders/domain/usecases/update_reminder_usecase.dart';
@@ -20,8 +25,12 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
   final UpdateReminderUseCase _updateReminder;
   final DeleteReminderUseCase _deleteReminder;
   final MonitoringCoordinator _monitoringCoordinator;
+  final ReminderQueryService _reminderQueryService;
+  final SettingsService _settingsService;
+  final LocationService _locationService;
 
   StreamSubscription<List<ReminderEntity>>? _remindersSubscription;
+  Position? _lastKnownPos;
 
   ReminderBloc(
     this._watchAllReminders,
@@ -29,6 +38,9 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
     this._updateReminder,
     this._deleteReminder,
     this._monitoringCoordinator,
+    this._reminderQueryService,
+    this._settingsService,
+    this._locationService,
   ) : super(const ReminderState.initial()) {
     on<LoadReminders>(_onLoadReminders);
     on<CreateReminder>(_onCreateReminder);
@@ -37,6 +49,8 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
     on<ToggleReminder>(_onToggleReminder);
     on<RemindersUpdated>(_onRemindersUpdated);
     on<RemindersError>(_onRemindersError);
+    on<ChangeSearchQuery>(_onChangeSearchQuery);
+    on<ChangeSortOption>(_onChangeSortOption);
   }
 
   Future<void> _onLoadReminders(
@@ -44,6 +58,15 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
     Emitter<ReminderState> emit,
   ) async {
     emit(const ReminderState.loading());
+    
+    // Fetch location asynchronously so we don't block
+    _locationService.getCurrentLocation().then((pos) {
+      _lastKnownPos = pos;
+      if (state is ReminderLoaded) {
+        add(ReminderEvent.changeSortOption(option: (state as ReminderLoaded).sortBy));
+      }
+    }).catchError((_) {});
+
     await _remindersSubscription?.cancel();
     _remindersSubscription = _watchAllReminders().listen(
       (reminders) {
@@ -116,7 +139,6 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
     Emitter<ReminderState> emit,
   ) async {
     try {
-      // Optimistic update: update the local list immediately
       final currentState = state;
       if (currentState is ReminderLoaded) {
         final updatedReminders = currentState.reminders.map((r) {
@@ -125,7 +147,20 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
           }
           return r;
         }).toList();
-        emit(ReminderState.loaded(reminders: updatedReminders));
+        
+        final filtered = _reminderQueryService.query(
+          reminders: updatedReminders,
+          searchQuery: currentState.searchQuery,
+          sortBy: currentState.sortBy,
+          currentPosition: _lastKnownPos,
+        );
+
+        emit(ReminderState.loaded(
+          reminders: updatedReminders,
+          filteredReminders: filtered,
+          searchQuery: currentState.searchQuery,
+          sortBy: currentState.sortBy,
+        ));
       }
 
       final currentReminder = (currentState is ReminderLoaded
@@ -164,7 +199,28 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
     if (event.reminders.isEmpty) {
       emit(const ReminderState.empty());
     } else {
-      emit(ReminderState.loaded(reminders: event.reminders));
+      final currentState = state;
+      String query = '';
+      SortOption sortBy = _settingsService.getSortOption();
+      
+      if (currentState is ReminderLoaded) {
+        query = currentState.searchQuery;
+        sortBy = currentState.sortBy;
+      }
+
+      final filtered = _reminderQueryService.query(
+        reminders: event.reminders,
+        searchQuery: query,
+        sortBy: sortBy,
+        currentPosition: _lastKnownPos,
+      );
+
+      emit(ReminderState.loaded(
+        reminders: event.reminders,
+        filteredReminders: filtered,
+        searchQuery: query,
+        sortBy: sortBy,
+      ));
     }
   }
 
@@ -173,6 +229,50 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
     Emitter<ReminderState> emit,
   ) {
     emit(ReminderState.error(message: event.message));
+  }
+
+  void _onChangeSearchQuery(
+    ChangeSearchQuery event,
+    Emitter<ReminderState> emit,
+  ) {
+    final currentState = state;
+    if (currentState is ReminderLoaded) {
+      final filtered = _reminderQueryService.query(
+        reminders: currentState.reminders,
+        searchQuery: event.query,
+        sortBy: currentState.sortBy,
+        currentPosition: _lastKnownPos,
+      );
+      emit(currentState.copyWith(
+        searchQuery: event.query,
+        filteredReminders: filtered,
+      ));
+    }
+  }
+
+  Future<void> _onChangeSortOption(
+    ChangeSortOption event,
+    Emitter<ReminderState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is ReminderLoaded) {
+      await _settingsService.saveSortOption(event.option);
+      if (event.option == SortOption.distanceNearest || event.option == SortOption.distanceFarthest) {
+        try {
+          _lastKnownPos = await _locationService.getCurrentLocation();
+        } catch (_) {}
+      }
+      final filtered = _reminderQueryService.query(
+        reminders: currentState.reminders,
+        searchQuery: currentState.searchQuery,
+        sortBy: event.option,
+        currentPosition: _lastKnownPos,
+      );
+      emit(currentState.copyWith(
+        sortBy: event.option,
+        filteredReminders: filtered,
+      ));
+    }
   }
 
   @override

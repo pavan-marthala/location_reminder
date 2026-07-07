@@ -12,6 +12,7 @@ import 'package:reminders/main.dart';
 
 import 'package:reminders/core/services/settings_service.dart';
 import 'package:reminders/core/services/monitoring_coordinator.dart';
+import 'package:reminders/features/reminders/domain/entities/reminder_enums.dart';
 
 class MockNotificationService implements NotificationService {
   @override
@@ -130,6 +131,7 @@ class MockSettingsService implements SettingsService {
   bool isOnboardingCompleted() => _onboardingCompleted;
 
   bool _vibrationEnabled = true;
+  VibrationPattern _vibrationPattern = VibrationPattern.defaultPattern;
 
   @override
   Future<void> saveVibrationEnabled(bool enabled) async {
@@ -138,6 +140,24 @@ class MockSettingsService implements SettingsService {
 
   @override
   bool isVibrationEnabled() => _vibrationEnabled;
+
+  @override
+  Future<void> saveVibrationPattern(VibrationPattern pattern) async {
+    _vibrationPattern = pattern;
+  }
+
+  @override
+  VibrationPattern getVibrationPattern() => _vibrationPattern;
+
+  SortOption _sortOption = SortOption.recentlyCreated;
+
+  @override
+  Future<void> saveSortOption(SortOption option) async {
+    _sortOption = option;
+  }
+
+  @override
+  SortOption getSortOption() => _sortOption;
 }
 
 class MockMonitoringCoordinator implements MonitoringCoordinator {
