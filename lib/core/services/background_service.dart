@@ -67,6 +67,7 @@ class BackgroundServiceImpl implements BackgroundService {
       androidConfiguration: AndroidConfiguration(
         onStart: onStart,
         autoStart: false,
+        autoStartOnBoot: true,
         isForegroundMode: true,
         notificationChannelId: _foregroundChannelId,
         initialNotificationTitle: 'Location Monitor Starting...',
@@ -179,8 +180,9 @@ class SnoozeTimerManager {
 
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
+  final isolateStartTime = DateTime.now().toIso8601String();
   debugPrint("======================================");
-  debugPrint("[BACKGROUND] Isolate Started");
+  debugPrint("[SERVICE] Background Isolate Started at $isolateStartTime");
   DartPluginRegistrant.ensureInitialized();
   geo.Position? lastKnownPosition;
   late Future<void> Function() handleRefreshRef;
@@ -202,8 +204,7 @@ void onStart(ServiceInstance service) async {
       'details': details,
       'time': nowStr,
     };
-    debugPrint(
-    "[BACKGROUND] Sending update to Main Isolate");
+    debugPrint("[BACKGROUND] Sending update to Main Isolate");
     debugPrint(data.toString());
     service.invoke('update', data);
 
@@ -245,7 +246,7 @@ void onStart(ServiceInstance service) async {
   // Step 1: SERVICE_STARTED
   updateState('Starting');
   debugPrint(
-    '[GEOPROCESSOR] SERVICE_STARTED at ${DateTime.now().toIso8601String()}',
+    '[SERVICE] SERVICE_STARTED at $isolateStartTime',
   );
 
   // Initialize notifications inside background isolate
@@ -267,7 +268,43 @@ void onStart(ServiceInstance service) async {
   final dbFolder = await getApplicationDocumentsDirectory();
   final file = File(p.join(dbFolder.path, 'app_database.db'));
   final database = AppDatabase(NativeDatabase(file));
-  debugPrint("[BACKGROUND] Database opened");
+  debugPrint("[BACKGROUND] Database opened directly from SQLite");
+
+  // Check persisted reminders directly from SQLite to determine if monitoring work exists
+  final datasource = ReminderLocalDatasourceImpl(database);
+  await datasource.reactivateExpiredSnoozes();
+
+  final allEnabled = await (database.select(
+    database.reminders,
+  )..where((t) => t.isEnabled.equals(true))).get();
+
+  final now = DateTime.now();
+  final activeWorkReminders = allEnabled.where((r) {
+    if (r.isTriggered) return false;
+    if (r.status == 'disabled' || r.status == 'completed') return false;
+    if (r.status == 'snoozed') {
+      return r.snoozedUntil != null && r.snoozedUntil!.isAfter(now);
+    }
+    return true;
+  }).toList();
+
+  final activeMonitoringCount = activeWorkReminders.where((r) => r.status != 'snoozed').length;
+  final pendingSnoozesCount = activeWorkReminders.where((r) => r.status == 'snoozed').length;
+
+  debugPrint('[SERVICE] SQLite reminders loaded: ${allEnabled.length}');
+  debugPrint('[SERVICE] Active monitoring work: $activeMonitoringCount');
+  debugPrint('[SERVICE] Pending snoozes: $pendingSnoozesCount');
+
+  // Self-termination guard: If no monitoring work exists (no active reminders and no pending snoozes), stop service immediately
+  if (activeWorkReminders.isEmpty) {
+    debugPrint('[SERVICE] Self-terminating: no monitoring work found in SQLite');
+    updateState('MonitoringActive', details: 'No active reminders');
+    await database.close();
+    service.stopSelf();
+    return;
+  }
+
+  debugPrint('[SERVICE] Resuming background monitoring engine');
 
   // Initialize audio player
   final audioPlayer = AudioPlayer();
@@ -288,6 +325,7 @@ void onStart(ServiceInstance service) async {
   );
 
   StreamSubscription<geo.Position>? positionSubscription;
+  bool isRestartingLocationStream = false;
 
   if (service is AndroidServiceInstance) {
     service.on('setAsForeground').listen((event) {
@@ -300,16 +338,17 @@ void onStart(ServiceInstance service) async {
   }
 
   service.on('stopService').listen((event) async {
-    debugPrint("[BACKGROUND] stopService event received");
-    debugPrint("[BACKGROUND] Cancelling location subscription");
+    debugPrint("[SERVICE] stopService event received");
+    debugPrint("[SERVICE] Cancelling location subscription");
     await positionSubscription?.cancel();
+    positionSubscription = null;
     try {
       await audioPlayer.stop();
       await audioPlayer.dispose();
     } catch (_) {}
-    debugPrint("[BACKGROUND] Closing database");
+    debugPrint("[SERVICE] Closing database");
     await database.close();
-    debugPrint("[BACKGROUND] Stopping isolate");
+    debugPrint("[SERVICE] Stopping isolate self");
     service.stopSelf();
   });
 
@@ -323,6 +362,7 @@ void onStart(ServiceInstance service) async {
   final serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
   if (!serviceEnabled) {
     updateState('Error', details: 'Location services are disabled');
+    await database.close();
     service.stopSelf();
     return;
   }
@@ -331,17 +371,15 @@ void onStart(ServiceInstance service) async {
   if (permission == geo.LocationPermission.denied ||
       permission == geo.LocationPermission.deniedForever) {
     updateState('WaitingForPermissions');
+    await database.close();
     service.stopSelf();
     return;
   }
 
   // Step 2: LoadingReminders & REMINDERS_LOADED
   updateState('LoadingReminders');
-  final enabledReminders = await (database.select(
-    database.reminders,
-  )..where((t) => t.isEnabled.equals(true))).get();
   debugPrint(
-    '[GEOPROCESSOR] REMINDERS_LOADED: Loaded ${enabledReminders.length} enabled reminders at ${DateTime.now().toIso8601String()}',
+    '[SERVICE] REMINDERS_LOADED: Loaded ${allEnabled.length} enabled reminders at ${DateTime.now().toIso8601String()}',
   );
 
   // Step 3: WaitingForLocation & FIRST_LOCATION_RECEIVED
@@ -356,11 +394,11 @@ void onStart(ServiceInstance service) async {
     );
     lastKnownPosition = firstPosition;
     debugPrint(
-      '[GEOPROCESSOR] FIRST_LOCATION_RECEIVED: Lat: ${firstPosition.latitude}, Lng: ${firstPosition.longitude} at ${DateTime.now().toIso8601String()}',
+      '[SERVICE] FIRST_LOCATION_RECEIVED: Lat: ${firstPosition.latitude}, Lng: ${firstPosition.longitude} at ${DateTime.now().toIso8601String()}',
     );
   } catch (e) {
     debugPrint(
-      '[GEOPROCESSOR] getCurrentPosition timed out or failed: $e. Falling back to last known position.',
+      '[SERVICE] getCurrentPosition timed out or failed: $e. Falling back to last known position.',
     );
     firstPosition = await geo.Geolocator.getLastKnownPosition();
     if (firstPosition != null) {
@@ -377,17 +415,16 @@ void onStart(ServiceInstance service) async {
     final timestamp = DateTime.now().toIso8601String();
     if (isInitial) {
       debugPrint(
-        '[GEOPROCESSOR] FIRST_GEOFENCE_EVALUATION starting at $timestamp',
+        '[SERVICE] FIRST_GEOFENCE_EVALUATION starting at $timestamp',
       );
     } else {
-      debugPrint('[GEOPROCESSOR] Location update received at $timestamp');
+      debugPrint('[LOCATION] Location update received at $timestamp');
       debugPrint(
-        '[GEOPROCESSOR] Coordinates: Lat: ${position.latitude}, Lng: ${position.longitude}',
+        '[LOCATION] Coordinates: Lat: ${position.latitude}, Lng: ${position.longitude}',
       );
     }
 
     try {
-      final datasource = ReminderLocalDatasourceImpl(database);
       final reactivatedCount = await datasource.reactivateExpiredSnoozes();
       if (reactivatedCount > 0) {
         debugPrint('[SNOOZE] Isolate reactivated $reactivatedCount expired snoozed reminders.');
@@ -408,8 +445,6 @@ void onStart(ServiceInstance service) async {
             "Status=${r.status}");
       }
 
-
-
       final currentActive = currentEnabled.where((r) {
         if (r.isTriggered) return false;
         if (r.status == 'disabled' || r.status == 'completed' || r.status == 'snoozed') return false;
@@ -419,7 +454,7 @@ void onStart(ServiceInstance service) async {
 
       if (currentActive.isEmpty) {
         debugPrint(
-          '[GEOPROCESSOR] No active (enabled, unsnoozed & untriggered) reminders found.',
+          '[SERVICE] No active (enabled, unsnoozed & untriggered) reminders found during evaluation.',
         );
         updateState('MonitoringActive', details: 'No active reminders');
         final data = {
@@ -457,7 +492,7 @@ void onStart(ServiceInstance service) async {
             "Radius=${reminder.radius}");
 
         debugPrint(
-          '[GEOPROCESSOR] Evaluating Reminder: "${reminder.title}" | Distance: ${distance.toStringAsFixed(2)}m (Radius: ${reminder.radius}m)',
+          '[SERVICE] Evaluating Reminder: "${reminder.title}" | Distance: ${distance.toStringAsFixed(2)}m (Radius: ${reminder.radius}m)',
         );
 
         if (nearestDistance == null || distance < nearestDistance) {
@@ -646,25 +681,27 @@ void onStart(ServiceInstance service) async {
 
   // Initial geofence evaluation (Step 4: FIRST_GEOFENCE_EVALUATION)
   if (firstPosition != null) {
-    final currentEnabled = await (database.select(database.reminders)
-      ..where((t) => t.isEnabled.equals(true))).get();
-    snoozeTimerManager.syncTimers(currentEnabled);
+    snoozeTimerManager.syncTimers(allEnabled);
     await evaluatePosition(firstPosition, isInitial: true);
   }
 
-  // Subscribe to position stream (Step 5: POSITION_STREAM_SUBSCRIBED)
+  // Subscribe to position stream with restart guard and lifecycle watchdog
   const locationSettings = geo.LocationSettings(
     accuracy: geo.LocationAccuracy.high,
     distanceFilter: 10,
   );
 
-  debugPrint("[BACKGROUND] Starting location stream");
-  positionSubscription =
-      geo.Geolocator.getPositionStream(
-        locationSettings: locationSettings,
-      ).listen(
-        (geo.Position position) async {
-          debugPrint('''
+  void startLocationSubscription() {
+    if (isRestartingLocationStream) return;
+    isRestartingLocationStream = true;
+
+    debugPrint("[LOCATION] Location stream subscribing...");
+    positionSubscription?.cancel();
+    positionSubscription = geo.Geolocator.getPositionStream(
+      locationSettings: locationSettings,
+    ).listen(
+      (geo.Position position) async {
+        debugPrint('''
 ======================================
 [LOCATION] NEW LOCATION UPDATE
 
@@ -673,21 +710,33 @@ Lng=${position.longitude}
 
 ======================================
 ''');
-          await evaluatePosition(position, isInitial: false);
-        },
-        onError: (e) {
-          service.invoke('update', {
-            'time': DateTime.now().toIso8601String(),
-            'status': 'error',
-            'error': e.toString(),
-          });
-        },
-      );
-  debugPrint("[BACKGROUND] Location stream started");
+        await evaluatePosition(position, isInitial: false);
+      },
+      onError: (e) {
+        debugPrint("[LOCATION] Location stream error: $e");
+        service.invoke('update', {
+          'time': DateTime.now().toIso8601String(),
+          'status': 'error',
+          'error': e.toString(),
+        });
+        // Safely restart stream on explicit provider/stream error
+        isRestartingLocationStream = false;
+        debugPrint("[LOCATION] Restarting location stream after error...");
+        startLocationSubscription();
+      },
+      onDone: () {
+        debugPrint("[LOCATION] Location stream done/closed unexpectedly.");
+        isRestartingLocationStream = false;
+        debugPrint("[LOCATION] Restarting location stream onDone...");
+        startLocationSubscription();
+      },
+    );
+    isRestartingLocationStream = false;
+    debugPrint("[LOCATION] Location stream subscribed successfully");
+    updateState('MonitoringActive', details: 'Location stream active');
+  }
 
-  debugPrint(
-    '[GEOPROCESSOR] POSITION_STREAM_SUBSCRIBED at ${DateTime.now().toIso8601String()}',
-  );
+  startLocationSubscription();
 }
 
 @pragma('vm:entry-point')
