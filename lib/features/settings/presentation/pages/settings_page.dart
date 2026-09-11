@@ -47,7 +47,6 @@ class _SettingsPageView extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final typography = context.appTypography;
-    final gradients = context.appGradients;
 
     final List<Map<String, String>> availableTones = [
       {'path': Assets.audioDaybreak, 'name': 'Daybreak'},
@@ -346,6 +345,36 @@ class _SettingsPageView extends StatelessWidget {
                             ),
                           ],
                         ),
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        title: Text(
+                          'Background Protection',
+                          style: typography.bodyLarge.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Battery optimization & OEM auto-launch settings',
+                          style: typography.bodySmall.copyWith(
+                            color: colors.textTertiary,
+                          ),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.shield_outlined,
+                              color: colors.primary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.chevron_right_rounded),
+                          ],
+                        ),
+                        onTap: () {
+                          context.push(AppRoutes.backgroundProtection);
+                        },
                       ),
                     ],
                   ),

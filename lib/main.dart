@@ -17,6 +17,7 @@ import 'package:reminders/core/services/app_routing_notifier.dart';
 import 'package:reminders/core/services/monitoring_coordinator.dart';
 import 'package:reminders/features/reminders/presentation/pages/alarm_page.dart';
 import 'package:reminders/features/settings/presentation/pages/developer_tools_page.dart';
+import 'package:reminders/features/settings/presentation/pages/background_protection_page.dart';
 import 'package:reminders/core/database/app_database.dart';
 import 'core/di/injection.dart';
 
@@ -202,6 +203,10 @@ List<RouteBase> routes() {
     GoRoute(
       path: AppRoutes.developerTools,
       builder: (context, state) => const DeveloperToolsPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.backgroundProtection,
+      builder: (context, state) => const BackgroundProtectionPage(),
     ),
   ];
 }

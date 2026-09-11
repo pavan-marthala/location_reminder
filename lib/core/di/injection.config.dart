@@ -49,6 +49,7 @@ import '../services/mapbox_service.dart' as _i15;
 import '../services/monitoring_coordinator.dart' as _i17;
 import '../services/notification_service.dart' as _i16;
 import '../services/permission_validation_service.dart' as _i18;
+import '../services/background_protection_service.dart' as _i30;
 import '../services/settings_service.dart' as _i14;
 import 'register_module.dart' as _i29;
 
@@ -99,6 +100,12 @@ extension GetItInjectableX on _i1.GetIt {
         () => _i18.PermissionValidationServiceImpl(
               gh<_i11.LocationService>(),
               gh<_i16.NotificationService>(),
+            ));
+    gh.lazySingleton<_i30.BackgroundProtectionService>(
+        () => _i30.BackgroundProtectionServiceImpl(
+              gh<_i11.LocationService>(),
+              gh<_i16.NotificationService>(),
+              gh<_i10.BackgroundService>(),
             ));
     gh.factory<_i19.DeleteReminderUseCase>(
         () => _i19.DeleteReminderUseCase(gh<_i12.ReminderRepository>()));

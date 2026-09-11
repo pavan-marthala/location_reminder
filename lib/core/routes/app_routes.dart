@@ -9,4 +9,5 @@ class AppRoutes {
   static const editReminder = '/reminders/edit';
   static const alarm = '/alarm';
   static const developerTools = '/settings/developer-tools';
+  static const backgroundProtection = '/settings/background-protection';
 }

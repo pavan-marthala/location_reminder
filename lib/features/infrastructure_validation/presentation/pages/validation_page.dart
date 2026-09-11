@@ -8,7 +8,8 @@ import 'package:reminders/core/services/settings_service.dart';
 import 'package:reminders/core/theme/app_theme.dart';
 import 'package:reminders/core/utils/app_button.dart';
 import 'package:reminders/core/utils/app_toast.dart';
-import 'package:reminders/core/utils/sized_context.dart';
+import 'package:go_router/go_router.dart';
+import 'package:reminders/core/routes/app_routes.dart';
 import '../bloc/validation_bloc.dart';
 import '../bloc/validation_event.dart';
 import '../bloc/validation_state.dart';
@@ -344,15 +345,37 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
       headline: 'You’re Ready To Go',
       description:
           'Create your first destination reminder and never miss your stop again.',
-      ctaButton: AppButton(
-        text: 'Start Using App',
-        color: colors.primary,
-        onPressed: () async {
-          // Mark onboarding as completed
-          await getIt<SettingsService>().setOnboardingCompleted(true);
-          // Notify app routing system to trigger GoRouter redirect to /home
-          await getIt<AppRoutingNotifier>().notifyPermissionChanged();
-        },
+      perks: const [
+        'Foreground location monitoring',
+        'Optional OEM battery protection available',
+      ],
+      ctaButton: Column(
+        children: [
+          AppButton(
+            width: double.infinity,
+            text: 'Review Background Protection',
+            color: colors.card,
+            textStyle: TextStyle(
+              color: colors.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+            onPressed: () {
+              context.push(AppRoutes.backgroundProtection);
+            },
+          ),
+          const SizedBox(height: 12),
+          AppButton(
+            width: double.infinity,
+            text: 'Start Using App',
+            color: colors.primary,
+            onPressed: () async {
+              // Mark onboarding as completed
+              await getIt<SettingsService>().setOnboardingCompleted(true);
+              // Notify app routing system to trigger GoRouter redirect to /home
+              await getIt<AppRoutingNotifier>().notifyPermissionChanged();
+            },
+          ),
+        ],
       ),
     );
   }
@@ -392,7 +415,7 @@ class _OnboardingPageTemplate extends StatelessWidget {
           top: 0,
           left: 0,
           right: 0,
-          height: context.heightPx,
+          height: MediaQuery.of(context).size.height,
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0.0, end: 1.0),
             duration: const Duration(milliseconds: 600),
