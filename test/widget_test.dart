@@ -28,6 +28,8 @@ class MockNotificationService implements NotificationService {
   Future<void> showFullScreenTestNotification() async {}
   @override
   Future<bool> areNotificationsEnabled() async => true;
+  @override
+  int? takePendingLaunchReminderId() => null;
 }
 
 class MockAlarmService implements AlarmService {

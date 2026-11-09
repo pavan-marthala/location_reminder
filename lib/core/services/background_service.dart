@@ -70,9 +70,10 @@ class BackgroundServiceImpl implements BackgroundService {
         autoStartOnBoot: true,
         isForegroundMode: true,
         notificationChannelId: _foregroundChannelId,
-        initialNotificationTitle: 'Location Monitor Starting...',
-        initialNotificationContent: 'Initializing service components...',
+        initialNotificationTitle: 'Location reminders',
+        initialNotificationContent: 'Starting…',
         foregroundServiceNotificationId: 888,
+        foregroundServiceTypes: const [AndroidForegroundType.location],
       ),
       iosConfiguration: IosConfiguration(
         autoStart: false,
@@ -195,6 +196,65 @@ void onStart(ServiceInstance service) async {
   debugPrint("[BACKGROUND] Database opened directly from SQLite");
 
   geo.Position? lastKnownPosition;
+
+  // Last text pushed to the persistent notification. Android redraws/updates
+  // the notification (and may re-post it) every time the text is set, so we
+  // only update it when the user-visible copy actually changes.
+  String? lastForegroundTitle;
+  String? lastForegroundContent;
+  String? lastForegroundExpanded;
+
+  /// Formats a distance for user-facing copy: `850 m`, `1.2 km`, `68 km`.
+  String formatDistance(double meters) {
+    if (meters < 1000) return '${meters.round()} m';
+    final km = meters / 1000;
+    if (km < 100) return '${km.toStringAsFixed(1)} km';
+    return '${km.toStringAsFixed(0)} km';
+  }
+
+  /// Builds the short, reassuring line shown under the ongoing notification.
+  String buildMonitoringNotificationText({
+    required int activeCount,
+    String? nearestTitle,
+    double? nearestDistance,
+  }) {
+    if (nearestTitle == null || nearestDistance == null) {
+      return activeCount == 1
+          ? 'Watching for your reminder'
+          : 'Watching for $activeCount reminders';
+    }
+    if (activeCount == 1) {
+      // Only show the distance when it is genuinely useful (near mode);
+      // a raw “67709 m” for a long-distance reminder just looks noisy.
+      return nearestDistance <= 5000
+          ? 'Watching for “$nearestTitle” · ${formatDistance(nearestDistance)}'
+          : 'Watching for “$nearestTitle”';
+    }
+    // Multiple reminders: show the nearest one plus how many others exist.
+    final suffix = (activeCount - 1) == 1 ? 'reminder' : 'reminders';
+    return nearestDistance <= 5000
+        ? 'Watching for “$nearestTitle” · ${formatDistance(nearestDistance)} + ${activeCount - 1} $suffix'
+        : 'Watching for “$nearestTitle” + ${activeCount - 1} $suffix';
+  }
+
+  /// Builds the expanded (pull-down) text listing every monitored reminder
+  /// with its distance. Used as BigTextStyleInformation content.
+  String buildExpandedMonitoringText(List<({String title, double distance})> items) {
+    final header = 'Watching for ${items.length} reminder${items.length == 1 ? '' : 's'}';
+    if (items.isEmpty) return header;
+    final lines = items
+        .map((e) => '• ${e.title} — ${formatDistance(e.distance)}')
+        .join('\n');
+    return '$header\n$lines';
+  }
+
+  /// Called after every position evaluation with the distance (in metres) to
+  /// the nearest active reminder. The subscription manager uses it to lower the
+  /// GPS sampling rate while the user is still far away, which is what keeps
+  /// the process alive on long drives instead of burning battery at full
+  /// accuracy for hours.
+  Future<void> Function(double nearestDistanceMeters)? onNearestDistanceChanged;
+
   late Future<void> Function() handleRefreshRef;
   final snoozeTimerManager = SnoozeTimerManager(onTimerExpired: () async {
     await handleRefreshRef();
@@ -207,8 +267,10 @@ void onStart(ServiceInstance service) async {
     debugPrint('$tag $event ${details != null ? '| Details: $details' : ''} at $timeStr');
   }
 
+  late FlutterLocalNotificationsPlugin localNotifications;
+
   // Helper to update state in console and main isolate
-  void updateState(String state, {String? details}) async {
+  void updateState(String state, {String? details, String? notificationContent, String? expandedContent}) async {
     final nowStr = DateTime.now().toIso8601String();
     log(
       ' STATE_CHANGE: $state | Details: $details ',
@@ -216,6 +278,17 @@ void onStart(ServiceInstance service) async {
       time: DateTime.now(),
     );
     await logEvent('[BACKGROUND_ISOLATE]', 'STATE_CHANGE', details: '$state ($details)');
+
+    // Persist a heartbeat so the UI can prove whether the isolate is alive
+    // after the screen has been locked for a long time.
+    try {
+      final heartbeatPrefs = await SharedPreferences.getInstance();
+      await heartbeatPrefs.setString('background_last_heartbeat_at', nowStr);
+      await heartbeatPrefs.setString('background_last_state', state);
+      if (details != null) {
+        await heartbeatPrefs.setString('background_last_details', details);
+      }
+    } catch (_) {}
 
     final data = {
       'status': 'state_change',
@@ -229,35 +302,70 @@ void onStart(ServiceInstance service) async {
 
     if (service is AndroidServiceInstance) {
       if (await service.isForegroundService()) {
-        String title = 'Location Monitor';
+        String title = 'Location reminders';
         String content = '';
         switch (state) {
           case 'Starting':
-            title = 'Location Monitor Starting...';
-            content = 'Initializing service components...';
+            title = 'Location reminders';
+            content = 'Starting…';
             break;
           case 'WaitingForPermissions':
-            title = 'Location Monitor Paused';
-            content = 'Please grant location permissions';
+            title = 'Location reminders paused';
+            content = 'Location permission needed';
             break;
           case 'LoadingReminders':
-            title = 'Location Monitor Starting...';
-            content = 'Loading reminders from database...';
+            title = 'Location reminders';
+            content = 'Loading reminders…';
             break;
           case 'WaitingForLocation':
-            title = 'Location Monitor Starting...';
-            content = 'Waiting for initial GPS coordinates...';
+            title = 'Location reminders';
+            content = 'Getting your location…';
             break;
           case 'MonitoringActive':
-            title = 'Location Monitor Active';
-            content = details ?? 'Monitoring reminders';
+            title = 'Location reminders on';
+            content = notificationContent ?? 'Watching for your reminders';
             break;
           case 'Error':
-            title = 'Location Monitor Error';
-            content = details ?? 'An error occurred';
+            title = 'Location reminders need attention';
+            content = 'Open the app for details';
             break;
         }
-        service.setForegroundNotificationInfo(title: title, content: content);
+        final expanded = expandedContent;
+        // Only push to the OS when the user-visible text actually changes, to
+        // avoid needless notification churn/battery use on every location tick.
+        if (title != lastForegroundTitle ||
+            content != lastForegroundContent ||
+            expanded != lastForegroundExpanded) {
+          lastForegroundTitle = title;
+          lastForegroundContent = content;
+          lastForegroundExpanded = expanded;
+          // Use a manually-built notification so we can attach a BigTextStyle
+          // (expanded view) while keeping the compact (collapsed) line short.
+          final androidDetails = AndroidNotificationDetails(
+            BackgroundServiceImpl._foregroundChannelId,
+            BackgroundServiceImpl._foregroundChannelName,
+            channelDescription: BackgroundServiceImpl._foregroundChannelDesc,
+            importance: Importance.low,
+            priority: Priority.low,
+            ongoing: true,
+            autoCancel: false,
+            showWhen: false,
+            styleInformation: (expanded != null && expanded.isNotEmpty)
+                ? BigTextStyleInformation(expanded)
+                : null,
+          );
+          try {
+            await localNotifications.show(
+              id: 888,
+              title: title,
+              body: content,
+              notificationDetails: NotificationDetails(android: androidDetails),
+            );
+          } catch (_) {
+            // Fallback to the service's built-in helper if the plugin show fails.
+            service.setForegroundNotificationInfo(title: title, content: content);
+          }
+        }
       }
     }
   }
@@ -268,7 +376,7 @@ void onStart(ServiceInstance service) async {
   await logEvent('[ANDROID_SERVICE]', 'SERVICE_STARTED', details: 'Isolate instance: $instanceId');
 
   // Initialize notifications inside background isolate
-  final localNotifications = FlutterLocalNotificationsPlugin();
+  localNotifications = FlutterLocalNotificationsPlugin();
   const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
   const iosSettings = DarwinInitializationSettings(
     requestAlertPermission: false,
@@ -282,9 +390,106 @@ void onStart(ServiceInstance service) async {
   await localNotifications.initialize(settings: initSettings);
   debugPrint("[BACKGROUND] Notifications initialized");
 
+  /// Shared alarm notification used both by the live geofence evaluator and by
+  /// the Play Services geofence hand-off. `fullScreenIntent` opens AlarmPage
+  /// over the lock screen.
+  Future<void> showAlarmNotification({
+    required int reminderId,
+    required String reminderTitle,
+    required bool vibrate,
+  }) async {
+    final androidDetails = AndroidNotificationDetails(
+      'alarm_channel',
+      'Alarms & Reminders',
+      channelDescription: 'Channel for location-based reminders and alarm triggers',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: false, // AlarmPage owns audio playback
+      enableVibration: vibrate,
+      fullScreenIntent: true,
+      category: AndroidNotificationCategory.alarm,
+    );
+    final details = NotificationDetails(
+      android: androidDetails,
+      iOS: const DarwinNotificationDetails(),
+    );
+
+    await localNotifications.show(
+      id: reminderId,
+      title: 'Reminder: $reminderTitle',
+      body: 'You’re near your destination.',
+      notificationDetails: details,
+      payload: reminderId.toString(),
+    );
+  }
+
+  /// Consumes the reminder id written by the native geofence receiver. This is
+  /// the path used when Play Services detected the arrival while the app was
+  /// dead, so we cannot rely on the live position stream having fired.
+  Future<void> handlePendingGeofenceTrigger() async {
+    final prefs = await SharedPreferences.getInstance();
+    final pendingId = prefs.getInt('pending_geofence_trigger_id');
+    if (pendingId == null) return;
+    await prefs.remove('pending_geofence_trigger_id');
+
+    await logEvent('[GEOFENCE]', 'PENDING_TRIGGER_RECEIVED',
+        details: 'Reminder ID: $pendingId');
+
+    final rows = await (database.select(database.reminders)
+          ..where((t) => t.id.equals(pendingId)))
+        .get();
+    if (rows.isEmpty) {
+      await logEvent('[GEOFENCE]', 'PENDING_TRIGGER_NOT_FOUND',
+          details: 'ID: $pendingId');
+      return;
+    }
+
+    final reminder = rows.first;
+    if (!reminder.isEnabled || reminder.isTriggered) {
+      await logEvent('[GEOFENCE]', 'PENDING_TRIGGER_IGNORED',
+          details:
+              'ID: $pendingId enabled=${reminder.isEnabled} triggered=${reminder.isTriggered}');
+      return;
+    }
+
+    final now = DateTime.now();
+    await (database.update(database.reminders)
+          ..where((t) => t.id.equals(pendingId)))
+        .write(
+      RemindersCompanion(
+        isTriggered: const Value(true),
+        status: const Value('triggered'),
+        triggeredAt: Value(now),
+        lastTriggeredAt: Value(now),
+        updatedAt: Value(now),
+      ),
+    );
+
+    final vibrate = prefs.getBool('vibration_enabled') ?? true;
+    await showAlarmNotification(
+      reminderId: reminder.id,
+      reminderTitle: reminder.title,
+      vibrate: vibrate,
+    );
+
+    service.invoke('update', {
+      'time': now.toIso8601String(),
+      'status': 'triggered',
+      'reminderId': reminder.id,
+      'reminderTitle': reminder.title,
+      'readinessState': 'MonitoringActive',
+    });
+    updateState('MonitoringActive',
+        details: 'Triggered by geofence: ${reminder.title}');
+  }
+
   // Check persisted reminders directly from SQLite to determine if monitoring work exists
   final datasource = ReminderLocalDatasourceImpl(database);
   await datasource.reactivateExpiredSnoozes();
+
+  // Handle a geofence arrival that woke us from a killed state before deciding
+  // whether there is any monitoring work left.
+  await handlePendingGeofenceTrigger();
 
   final allEnabled = await (database.select(
     database.reminders,
@@ -336,7 +541,8 @@ void onStart(ServiceInstance service) async {
   );
 
   StreamSubscription<geo.Position>? positionSubscription;
-  bool isRestartingLocationStream = false;
+  int streamGeneration = 0;
+  int currentAdaptiveBucket = -1;
 
   if (service is AndroidServiceInstance) {
     service.on('setAsForeground').listen((event) {
@@ -452,6 +658,7 @@ void onStart(ServiceInstance service) async {
 
       double? nearestDistance;
       String? nearestReminderTitle;
+      final reminderDistances = <({String title, double distance})>[];
 
       for (final reminder in currentActive) {
         final distance = geo.Geolocator.distanceBetween(
@@ -460,6 +667,8 @@ void onStart(ServiceInstance service) async {
           reminder.latitude,
           reminder.longitude,
         );
+
+        reminderDistances.add((title: reminder.title, distance: distance));
 
         if (nearestDistance == null || distance < nearestDistance) {
           nearestDistance = distance;
@@ -483,30 +692,10 @@ void onStart(ServiceInstance service) async {
           final prefs = await SharedPreferences.getInstance();
           final vibrate = prefs.getBool('vibration_enabled') ?? true;
 
-          final androidDetails = AndroidNotificationDetails(
-            'alarm_channel',
-            'Alarms & Reminders',
-            channelDescription:
-                'Channel for location-based reminders and alarm triggers',
-            importance: Importance.max,
-            priority: Priority.high,
-            playSound: false, // UI Alarm Screen owns audio playback
-            enableVibration: vibrate,
-            fullScreenIntent: true,
-            category: AndroidNotificationCategory.alarm,
-          );
-          const iosDetails = DarwinNotificationDetails();
-          final details = NotificationDetails(
-            android: androidDetails,
-            iOS: iosDetails,
-          );
-
-          await localNotifications.show(
-            id: reminder.id,
-            title: 'Reminder Triggered!',
-            body: 'You entered the geofence for: ${reminder.title}',
-            notificationDetails: details,
-            payload: reminder.id.toString(),
+          await showAlarmNotification(
+            reminderId: reminder.id,
+            reminderTitle: reminder.title,
+            vibrate: vibrate,
           );
 
           final data = {
@@ -520,6 +709,10 @@ void onStart(ServiceInstance service) async {
         }
       }
 
+      if (nearestDistance != null) {
+        await onNearestDistanceChanged?.call(nearestDistance);
+      }
+
       final activeCount = currentActive.length;
       String infoText = 'Monitoring $activeCount active reminders';
       if (nearestReminderTitle != null && nearestDistance != null) {
@@ -527,7 +720,18 @@ void onStart(ServiceInstance service) async {
             '$nearestReminderTitle: ${nearestDistance.toStringAsFixed(0)}m away';
       }
 
-      updateState('MonitoringActive', details: infoText);
+      final notificationText = buildMonitoringNotificationText(
+        activeCount: activeCount,
+        nearestTitle: nearestReminderTitle,
+        nearestDistance: nearestDistance,
+      );
+
+      updateState(
+        'MonitoringActive',
+        details: infoText,
+        notificationContent: notificationText,
+        expandedContent: buildExpandedMonitoringText(reminderDistances),
+      );
 
       final data = {
         'time': DateTime.now().toIso8601String(),
@@ -603,52 +807,127 @@ void onStart(ServiceInstance service) async {
     await handleRefresh();
   });
 
-  // Initial geofence evaluation
-  if (firstPosition != null) {
-    snoozeTimerManager.syncTimers(allEnabled);
-    await evaluatePosition(firstPosition, isInitial: true);
+  // ── Adaptive location sampling ────────────────────────────────────────────
+  //
+  // A reminder 50–100 km away does not need a 10 m high-accuracy stream: doing
+  // that for hours is exactly what makes aggressive OEMs kill the process. We
+  // sample coarsely while far away and tighten the stream as the user
+  // approaches. Play Services geofences (synced from the Dart side) provide the
+  // wake-up at 10 km even if this service has been killed.
+  const int bucketFar = 0;
+  const int bucketMid = 1;
+  const int bucketNear = 2;
+
+  int adaptiveBucketFor(double distanceMeters) {
+    if (distanceMeters > 25000) return bucketFar;
+    if (distanceMeters > 5000) return bucketMid;
+    return bucketNear;
   }
 
-  // Subscribe to position stream with restart guard and lifecycle watchdog
-  const locationSettings = geo.LocationSettings(
-    accuracy: geo.LocationAccuracy.high,
-    distanceFilter: 10,
-  );
+  geo.LocationSettings settingsForBucket(int bucket) {
+    if (bucket == bucketNear) {
+      return const geo.LocationSettings(
+        accuracy: geo.LocationAccuracy.high,
+        distanceFilter: 10,
+      );
+    }
+    if (bucket == bucketMid) {
+      return const geo.LocationSettings(
+        accuracy: geo.LocationAccuracy.medium,
+        distanceFilter: 250,
+      );
+    }
+    return const geo.LocationSettings(
+      accuracy: geo.LocationAccuracy.low,
+      distanceFilter: 1000,
+    );
+  }
 
-  void startLocationSubscription() {
-    if (isRestartingLocationStream) return;
-    isRestartingLocationStream = true;
+  String bucketName(int bucket) {
+    if (bucket == bucketNear) return 'near';
+    if (bucket == bucketMid) return 'mid';
+    return 'far';
+  }
 
-    logEvent('[LOCATION_NATIVE]', 'LOCATION_SUBSCRIBING');
+  void startLocationSubscription(geo.LocationSettings settings, int bucket) {
+    streamGeneration++;
+    final generation = streamGeneration;
+    currentAdaptiveBucket = bucket;
+
+    logEvent(
+      '[LOCATION_NATIVE]',
+      'LOCATION_SUBSCRIBING',
+      details:
+          'bucket=${bucketName(bucket)}, accuracy=${settings.accuracy.name}, distanceFilter=${settings.distanceFilter}',
+    );
     positionSubscription?.cancel();
     positionSubscription = geo.Geolocator.getPositionStream(
-      locationSettings: locationSettings,
+      locationSettings: settings,
     ).listen(
       (geo.Position position) async {
+        if (generation != streamGeneration) return;
+        lastKnownPosition = position;
         await evaluatePosition(position, isInitial: false);
       },
       onError: (e) {
-        logEvent('[LOCATION_NATIVE]', 'LOCATION_STREAM_ERROR', details: e.toString());
+        if (generation != streamGeneration) return;
+        logEvent('[LOCATION_NATIVE]', 'LOCATION_STREAM_ERROR',
+            details: e.toString());
         service.invoke('update', {
           'time': DateTime.now().toIso8601String(),
           'status': 'error',
           'error': e.toString(),
         });
-        isRestartingLocationStream = false;
-        startLocationSubscription();
+        // Delay the restart so a persistent error cannot hot-loop.
+        Future<void>.delayed(const Duration(seconds: 5), () {
+          if (generation == streamGeneration) {
+            startLocationSubscription(settings, bucket);
+          }
+        });
       },
       onDone: () {
+        if (generation != streamGeneration) return;
         logEvent('[LOCATION_NATIVE]', 'LOCATION_STREAM_DONE');
-        isRestartingLocationStream = false;
-        startLocationSubscription();
+        Future<void>.delayed(const Duration(seconds: 5), () {
+          if (generation == streamGeneration) {
+            startLocationSubscription(settings, bucket);
+          }
+        });
       },
     );
-    isRestartingLocationStream = false;
     logEvent('[LOCATION_NATIVE]', 'LOCATION_SUBSCRIBED_SUCCESS');
-    updateState('MonitoringActive', details: 'Location stream active');
+    updateState(
+      'MonitoringActive',
+      details: 'Location stream active (${bucketName(bucket)} mode)',
+      notificationContent: null,
+    );
   }
 
-  startLocationSubscription();
+  Future<void> applyAdaptiveBucket(double nearestDistanceMeters) async {
+    final bucket = adaptiveBucketFor(nearestDistanceMeters);
+    if (bucket == currentAdaptiveBucket) return;
+    await logEvent(
+      '[LOCATION_NATIVE]',
+      'ADAPTIVE_BUCKET_CHANGED',
+      details:
+          'nearest=${nearestDistanceMeters.toStringAsFixed(0)}m -> ${bucketName(bucket)}',
+    );
+    startLocationSubscription(settingsForBucket(bucket), bucket);
+  }
+
+  onNearestDistanceChanged = applyAdaptiveBucket;
+
+  // Initial geofence evaluation (also selects the first sampling bucket).
+  if (firstPosition != null) {
+    snoozeTimerManager.syncTimers(allEnabled);
+    await evaluatePosition(firstPosition, isInitial: true);
+  }
+
+  // If no position was available, start a conservative far-distance stream so
+  // the service still recovers when a fix arrives.
+  if (currentAdaptiveBucket == -1) {
+    startLocationSubscription(settingsForBucket(bucketFar), bucketFar);
+  }
 }
 
 @pragma('vm:entry-point')

@@ -49,10 +49,11 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late final GoRouter _goRouter;
   @override
   void initState() {
+    WidgetsBinding.instance.addObserver(this);
     final routingNotifier = getIt<AppRoutingNotifier>();
     _goRouter = GoRouter(
       initialLocation: AppRoutes.splash,
@@ -128,6 +129,52 @@ class _MyAppState extends State<MyApp> {
     });
 
     super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _openPendingAlarmFromNotification(),
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+
+    // The OEM/Doze may have killed the monitor while the screen was locked.
+    // Re-evaluate as soon as the user comes back to the app so monitoring is
+    // restored immediately instead of on the next cold start.
+    getIt<MonitoringCoordinator>()
+        .evaluateMonitoringState(
+          source: 'app_lifecycle',
+          reason: 'resumed',
+        )
+        .catchError((Object e) {
+      debugPrint('[MAIN] Resume monitoring recovery failed: $e');
+    });
+
+    _openPendingAlarmFromNotification();
+  }
+
+  /// A full-screen alarm notification may have launched the app from a killed
+  /// state. Open the alarm screen once the router is ready.
+  void _openPendingAlarmFromNotification() {
+    if (!mounted) return;
+    final reminderId =
+        getIt<NotificationService>().takePendingLaunchReminderId();
+    if (reminderId == null || reminderId <= 0) return;
+    try {
+      _goRouter.push(
+        AppRoutes.alarm,
+        extra: {'id': reminderId, 'title': 'Reminder'},
+      );
+    } catch (e) {
+      debugPrint('[MAIN] Could not open alarm from notification: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   @override

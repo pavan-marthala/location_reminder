@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 import 'package:reminders/core/services/alarm_scheduler_service.dart';
+import 'package:reminders/core/services/geofence_service.dart';
 import 'injection.config.dart';
 
 final GetIt getIt = GetIt.instance;
@@ -15,5 +16,6 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<AlarmSchedulerService>(
     () => AlarmSchedulerServiceImpl(getIt(), getIt(), getIt()),
   );
+  getIt.registerLazySingleton<GeofenceService>(() => GeofenceServiceImpl());
 }
 

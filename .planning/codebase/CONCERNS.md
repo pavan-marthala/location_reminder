@@ -21,18 +21,29 @@ Because this application relies on real-time background location tracking (`geol
 *   **Android 14 (API 34) Foreground Service Type**: Android 14 introduces mandatory declarations for foreground services. The background service must explicitly declare its type in `AndroidManifest.xml` as `location`.
     ```xml
     <service
-        android:name="com.jected.flutter_background_service.BackgroundService"
+        android:name="id.flutter.flutter_background_service.BackgroundService"
         android:foregroundServiceType="location"
-        android:exported="false" />
+        android:exported="true" />
     ```
-*   **ACCESS_BACKGROUND_LOCATION Permission**: Android 10+ requires runtime request of background location. Google Play requires a dedicated privacy declaration and a prominent in-app disclosure video before approving apps with this permission.
+*   **ACCESS_BACKGROUND_LOCATION Permission**: Android 10+ requires runtime request of background location. Google Play requires a dedicated privacy declaration and a prominent in-app disclosure video before approving apps with this permission. The runtime dialog can only return `whileInUse`; on Android 11+ the user must switch to **"Allow all the time"** in system settings. The onboarding flow now detects `whileInUse` and routes the user to settings instead of treating it as success.
+*   **Battery Optimisation Exemption Is a Hard Gate**: On Android 12+, a location foreground service cannot be (re)started from the background unless the app is exempt from battery optimisations. `PermissionValidationService.isAppReady()` therefore requires both `LocationPermission.always` and the battery exemption; onboarding blocks the final step until the exemption is granted.
 *   **OEM Battery Optimizations**: Handsets from manufacturers like Samsung, Xiaomi, and OnePlus deploy aggressive battery savers (e.g., "Put unused apps to sleep"). These will terminate the background location service within minutes unless the user manually whitelist the app from battery optimizations.
+
+### B2. Background Reliability Architecture (implemented)
+*   **Play Services Geofencing API is now the primary trigger** (`GeofenceManager` / `GeofenceBroadcastReceiver`). Two fences are registered per reminder:
+    *   `rem_<id>_target` — the reminder radius (minimum 150 m), `INITIAL_TRIGGER_ENTER`, responsiveness 180 s.
+    *   `rem_<id>_approach` — a 10 km "near target" fence, responsiveness 300 s.
+*   Geofences are owned by Play Services, so target entry wakes the app **even when the process was killed by the OEM**. The receiver writes a pending trigger id into `FlutterSharedPreferences` and starts the existing location FGS (a documented Android 12+ background-start exemption). The isolate consumes the pending id on boot.
+*   Geofences are re-registered after reboot/package update by `GeofenceBootReceiver` from a locally persisted spec list. The coordinator keeps them in sync on every `evaluateMonitoringState`.
+*   **Remaining risk**: if the user force-stops the app, clears Play Services data, or disables "Location accuracy"/Google Play Services, geofences can be dropped and the live FGS is the only fallback. The Developer Tools page exposes synced-fence count, last geofence event/error, background-location state and the isolate heartbeat so this is diagnosable in the field.
 
 ### C. Battery Drain & Location Tracking Frequency
 *   **Continuous GPS Exhaustion**: Keeping the GPS chip active in high-accuracy mode (`LocationAccuracy.high` or `LocationAccuracy.best`) drains a device's battery from 100% to 0% in 3–5 hours.
-*   **Lack of Adaptive Tracking**: Currently, there is no adaptive tracking mechanism in place. The tracking algorithm should dynamically adjust its query frequency:
-    *   **Coarse Tracking**: Use low accuracy and long distances when the user is far from any active reminder (e.g., using cell-tower/Wi-Fi positioning, `LocationAccuracy.low`).
-    *   **Fine Tracking**: Increase accuracy (`LocationAccuracy.high`) only when the user is within a close geofence threshold (e.g., < 500 meters) of a registered reminder.
+*   **Adaptive Tracking (implemented)**: The background isolate now selects a sampling bucket from the distance to the nearest active reminder:
+    *   **Far (> 25 km)**: `LocationAccuracy.low`, 1000 m distance filter.
+    *   **Mid (5–25 km)**: `LocationAccuracy.medium`, 250 m distance filter.
+    *   **Near (≤ 5 km)**: `LocationAccuracy.high`, 10 m distance filter.
+    The stream is restarted only when the bucket changes, and Play Services handles the 10 km wake-up even if the isolate is dead.
 
 ---
 
@@ -114,4 +125,5 @@ graph TD
 | **Audio** | Silent alarms on muted/DND devices. | Configure native iOS Audio Session category to `playback` using `audio_session` package. |
 | **Isolate DB** | Write lock contentions and Isar database crashes. | Coordinate database writes. Ensure both isolates open Isar with the exact same schemas and name. Limit background isolate writes to minor status flags. |
 | **Dependencies** | Code generator conflicts and fragile overrides. | Schedule a migration step to upgrade the SDK to the latest Flutter stable release and upgrade all dev_dependencies to eliminate the `dependency_overrides` hacks. |
-| **State Sync** | Stale reminder data cached in background isolate. | Use `Isar` reactive queries (watchers) or `flutter_background_service` custom action listeners to hot-reload target reminders in the background loop when the DB updates. |
+| **State Sync** | Stale reminder data cached in background isolate. | `evaluateMonitoringState()` now also syncs Play Services geofences. Use `Isar`/Drift reactive queries (watchers) or `flutter_background_service` custom action listeners to hot-reload target reminders in the background loop when the DB updates. |
+| **Process Death** | OEM kills the FGS on long, locked sessions (50–100 km reminders). | Primary mitigation is Play Services geofences (`_target` + 10 km `_approach`). The isolate persists a heartbeat, the app recovers on resume, and diagnostics expose fence/heartbeat state. Force-stop / disabled Play Services remains a known gap. |

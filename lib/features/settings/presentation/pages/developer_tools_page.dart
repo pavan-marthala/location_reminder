@@ -2,10 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/theme/app_theme.dart';
 import 'package:reminders/core/routes/app_routes.dart';
 import 'package:reminders/core/services/background_service.dart';
+import 'package:reminders/core/services/geofence_service.dart';
 import 'package:reminders/core/services/notification_service.dart';
 import 'package:reminders/features/infrastructure_validation/presentation/bloc/validation_bloc.dart';
 import 'package:reminders/features/infrastructure_validation/presentation/bloc/validation_event.dart';
@@ -35,6 +37,12 @@ class _DeveloperToolsPageViewState extends State<_DeveloperToolsPageView> {
   final List<String> _localLogs = [];
   Map<String, dynamic>? _latestUpdates;
   StreamSubscription? _updatesSubscription;
+  Timer? _diagnosticsTimer;
+
+  String? _heartbeatAt;
+  String? _backgroundLastState;
+  String? _backgroundLastDetails;
+  GeofenceStatus? _geofenceStatus;
 
   @override
   void initState() {
@@ -58,6 +66,12 @@ class _DeveloperToolsPageViewState extends State<_DeveloperToolsPageView> {
         });
       }
     });
+
+    _loadDiagnostics();
+    _diagnosticsTimer = Timer.periodic(
+      const Duration(seconds: 10),
+      (_) => _loadDiagnostics(),
+    );
 
     // Subscribe to logs stream to collect them dynamically for display
     _updatesSubscription = getIt<BackgroundService>().backgroundUpdates.listen((event) {
@@ -90,8 +104,39 @@ class _DeveloperToolsPageViewState extends State<_DeveloperToolsPageView> {
     });
   }
 
+  Future<void> _loadDiagnostics() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      // Background isolate writes heartbeat into the same prefs file; reload so
+      // the main isolate's cache reflects cross-isolate updates.
+      await prefs.reload();
+      final status = await getIt<GeofenceService>().getStatus();
+      if (!mounted) return;
+      setState(() {
+        _heartbeatAt = prefs.getString('background_last_heartbeat_at');
+        _backgroundLastState = prefs.getString('background_last_state');
+        _backgroundLastDetails = prefs.getString('background_last_details');
+        _geofenceStatus = status;
+      });
+    } catch (_) {}
+  }
+
+  String _formatHeartbeat(String? raw) {
+    if (raw == null || raw.isEmpty) return 'Never';
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+    final diff = DateTime.now().difference(parsed);
+    if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) {
+      return '${diff.inHours}h ${diff.inMinutes % 60}m ago';
+    }
+    return '${diff.inDays}d ago';
+  }
+
   @override
   void dispose() {
+    _diagnosticsTimer?.cancel();
     _updatesSubscription?.cancel();
     super.dispose();
   }
@@ -149,6 +194,80 @@ class _DeveloperToolsPageViewState extends State<_DeveloperToolsPageView> {
                           _buildDiagnosticRow('Current Distance', nearestDist),
                           const Divider(),
                           _buildDiagnosticRow('Reminder Status', reminderStatus.toString().toUpperCase(), valueColor: reminderStatus == 'triggered' ? colors.error : colors.secondary),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Section 1b: Recovery & Geofences
+                  _buildSectionHeader(context, 'Recovery & Geofences'),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          _buildDiagnosticRow(
+                            'Last Heartbeat',
+                            _formatHeartbeat(_heartbeatAt),
+                            valueColor: _heartbeatAt == null
+                                ? colors.error
+                                : colors.success,
+                          ),
+                          const Divider(),
+                          _buildDiagnosticRow(
+                            'Background State',
+                            (_backgroundLastState ?? 'Unknown').toUpperCase(),
+                          ),
+                          if ((_backgroundLastDetails ?? '').isNotEmpty) ...[
+                            const Divider(),
+                            _buildDiagnosticRow(
+                              'Last Detail',
+                              _backgroundLastDetails!,
+                            ),
+                          ],
+                          const Divider(),
+                          _buildDiagnosticRow(
+                            'Geofences Registered',
+                            '${_geofenceStatus?.syncedCount ?? 0}',
+                          ),
+                          const Divider(),
+                          _buildDiagnosticRow(
+                            'Background Location',
+                            (_geofenceStatus?.hasBackgroundLocation ?? false)
+                                ? 'Always'
+                                : 'Missing',
+                            valueColor:
+                                (_geofenceStatus?.hasBackgroundLocation ?? false)
+                                    ? colors.success
+                                    : colors.error,
+                          ),
+                          const Divider(),
+                          _buildDiagnosticRow(
+                            'Last Geofence Event',
+                            _geofenceStatus?.lastEvent ?? 'None',
+                          ),
+                          if ((_geofenceStatus?.lastEventAt ?? '').isNotEmpty) ...[
+                            const Divider(),
+                            _buildDiagnosticRow(
+                              'Last Event At',
+                              _formatHeartbeat(_geofenceStatus?.lastEventAt),
+                            ),
+                          ],
+                          if ((_geofenceStatus?.lastError ?? '').isNotEmpty) ...[
+                            const Divider(),
+                            _buildDiagnosticRow(
+                              'Geofence Error',
+                              _geofenceStatus!.lastError!,
+                              valueColor: colors.error,
+                            ),
+                          ],
+                          const SizedBox(height: 8),
+                          TextButton.icon(
+                            onPressed: _loadDiagnostics,
+                            icon: const Icon(Icons.refresh_rounded, size: 18),
+                            label: const Text('Refresh Diagnostics'),
+                          ),
                         ],
                       ),
                     ),

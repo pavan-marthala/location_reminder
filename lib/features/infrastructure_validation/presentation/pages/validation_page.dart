@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/services/app_routing_notifier.dart';
+import 'package:reminders/core/services/background_protection_service.dart';
 import 'package:reminders/core/services/settings_service.dart';
 import 'package:reminders/core/theme/app_theme.dart';
 import 'package:reminders/core/utils/app_button.dart';
@@ -34,15 +36,28 @@ class _ValidationPageView extends StatefulWidget {
   State<_ValidationPageView> createState() => _ValidationPageViewState();
 }
 
-class _ValidationPageViewState extends State<_ValidationPageView> {
+class _ValidationPageViewState extends State<_ValidationPageView>
+    with WidgetsBindingObserver {
   late final PageController _pageController;
   int _currentStep = 0;
   LocationPermission? _locationPermissionStatus;
   bool _hasRequestedLocation = false;
+  bool _batteryExempt = false;
+  bool _protectionChecked = false;
+  bool _requestingExemption = false;
+
+  bool get _isAndroid =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+  bool get _needsBackgroundLocation =>
+      _locationPermissionStatus != LocationPermission.always;
+
+  bool get _needsBatteryExemption => _isAndroid && !_batteryExempt;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final settings = getIt<SettingsService>();
     final blocState = context.read<ValidationBloc>().state;
 
@@ -57,12 +72,34 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
 
     _pageController = PageController(initialPage: _currentStep);
     _checkLocationPermissionStatus();
+    _refreshReadiness();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    _onResumed();
+  }
+
+  /// Users are sent to the system Settings app to grant "Allow all the time"
+  /// location or the battery exemption. Re-read both whenever we come back.
+  Future<void> _onResumed() async {
+    await _refreshReadiness();
+    if (!mounted) return;
+    context.read<ValidationBloc>().add(const ValidationEvent.initialize());
+
+    // If they came back from Settings with everything granted, continue the
+    // onboarding flow automatically.
+    if (_currentStep == 1 && !_needsBackgroundLocation) {
+      _goToPage(2);
+    }
   }
 
   Future<void> _checkLocationPermissionStatus() async {
@@ -74,6 +111,99 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
         });
       }
     } catch (_) {}
+  }
+
+  /// Re-reads the two background-reliability gates: "Allow all the time"
+  /// location and, on Android, the battery optimisation exemption.
+  Future<bool> _refreshReadiness() async {
+    LocationPermission permission = _locationPermissionStatus ??
+        LocationPermission.denied;
+    bool exempt = true;
+    try {
+      permission = await Geolocator.checkPermission();
+    } catch (_) {}
+
+    if (_isAndroid) {
+      try {
+        exempt = await getIt<BackgroundProtectionService>()
+            .isIgnoringBatteryOptimizations();
+      } catch (_) {
+        exempt = false;
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _locationPermissionStatus = permission;
+        _batteryExempt = exempt;
+        _protectionChecked = true;
+      });
+    }
+    return permission == LocationPermission.always && exempt;
+  }
+
+  Future<void> _requestBatteryExemption() async {
+    if (_requestingExemption) return;
+    setState(() => _requestingExemption = true);
+    try {
+      await getIt<BackgroundProtectionService>()
+          .requestBatteryOptimizationExemption();
+      await _refreshReadiness();
+      if (mounted && _needsBatteryExemption) {
+        // Some OEMs ignore the system dialog; fall back to app settings.
+        await getIt<BackgroundProtectionService>().openBatteryOptimizationSettings();
+      }
+    } finally {
+      if (mounted) setState(() => _requestingExemption = false);
+    }
+  }
+
+  Future<void> _openAppSettings() async {
+    context.read<ValidationBloc>().add(
+          const ValidationEvent.openAppSettings(),
+        );
+  }
+
+  Future<void> _finishOnboarding() async {
+    final ready = await _refreshReadiness();
+    if (!mounted) return;
+
+    if (!ready) {
+      if (_needsBackgroundLocation) {
+        showErrorToast(
+          message: 'Set location access to “Allow all the time” first.',
+        );
+        _goToPage(1);
+      } else {
+        showErrorToast(
+          message: 'Allow background activity so reminders keep working.',
+        );
+      }
+      return;
+    }
+
+    // Mark onboarding as completed and let the router move to /home now that
+    // every background-reliability requirement is satisfied.
+    await getIt<SettingsService>().setOnboardingCompleted(true);
+    await getIt<AppRoutingNotifier>().notifyPermissionChanged();
+  }
+
+  void _maybeAutoAdvance(ValidationState state) {
+    if (_currentStep == 1 && state.isBackgroundLocationPermissionGranted) {
+      _goToPage(2);
+      // If notifications were already granted in a previous session, keep the
+      // flow moving instead of leaving the user on a completed step.
+      Future<void>.delayed(const Duration(milliseconds: 700), () {
+        if (!mounted || _currentStep != 2) return;
+        if (state.isNotificationPermissionGranted) {
+          _goToPage(3);
+        }
+      });
+      return;
+    }
+    if (_currentStep == 2 && state.isNotificationPermissionGranted) {
+      _goToPage(3);
+    }
   }
 
   void _goToPage(int page) {
@@ -109,13 +239,7 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
             showErrorToast(message: state.errorMessage!);
           }
 
-          // Automatically advance if permissions are granted
-          if (state.isLocationPermissionGranted && _currentStep == 1) {
-            _goToPage(2);
-          } else if (state.isNotificationPermissionGranted &&
-              _currentStep == 2) {
-            _goToPage(3);
-          }
+          _maybeAutoAdvance(state);
         },
         child: Stack(
           children: [
@@ -197,13 +321,42 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
   Widget _buildLocationStep() {
     final colors = context.appColors;
     final typography = context.appTypography;
-    final isInitial = _locationPermissionStatus == LocationPermission.denied && !_hasRequestedLocation;
-    final isDenied = _locationPermissionStatus == LocationPermission.denied && _hasRequestedLocation;
-    final isPermanentlyDenied =
-        _locationPermissionStatus == LocationPermission.deniedForever;
+    final status = _locationPermissionStatus;
+    final isWhileInUse = status == LocationPermission.whileInUse;
+    final isInitial = status == LocationPermission.denied &&
+        !_hasRequestedLocation;
+    final isDenied = status == LocationPermission.denied && _hasRequestedLocation;
+    final isPermanentlyDenied = status == LocationPermission.deniedForever;
 
     Widget? errorWidget;
-    if (isDenied) {
+    if (isWhileInUse) {
+      errorWidget = Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: colors.primary.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: colors.primary.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline_rounded, color: colors.primary, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Android is set to “While using the app”. Choose “Allow all '
+                'the time” so reminders still trigger when your phone is '
+                'locked or the app is closed.',
+                style: typography.bodySmall.copyWith(
+                  color: colors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  height: 1.3,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else if (isDenied) {
       errorWidget = Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -255,8 +408,13 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
       );
     }
 
-    final headline = isInitial ? 'Allow Location Permission' : 'Location Access Required';
-    final buttonText = isPermanentlyDenied
+    final headline = isWhileInUse
+        ? 'Allow All The Time'
+        : (isInitial ? 'Allow Location Permission' : 'Location Access Required');
+    final description = isWhileInUse
+        ? 'Background location access lets us detect your destination while the app is closed or your phone is locked.'
+        : 'We monitor your location to detect when you are approaching your selected destination.';
+    final buttonText = isWhileInUse || isPermanentlyDenied
         ? 'Open Settings'
         : (isDenied ? 'Try Again' : 'Allow Location');
 
@@ -264,23 +422,24 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
       key: const ValueKey('step_location'),
       imagePath: 'assets/illustration_location.png',
       headline: headline,
-      description:
-          'We monitor your location to detect when you are approaching your selected destination.',
-      perks: const [
-        'Detect arrival near destination',
-        'Trigger geofence alarms',
-        'Wake you at the right time',
-      ],
+      description: description,
+      perks: isWhileInUse
+          ? const [
+              'Works while the phone is locked',
+              'Detects arrival in the background',
+              'Reliable geofence alarms',
+            ]
+          : const [
+              'Detect arrival near destination',
+              'Trigger geofence alarms',
+              'Wake you at the right time',
+            ],
       errorWidget: errorWidget,
-      ctaButton: isPermanentlyDenied
+      ctaButton: isWhileInUse || isPermanentlyDenied
           ? AppButton(
               text: buttonText,
               color: colors.primary,
-              onPressed: () {
-                context.read<ValidationBloc>().add(
-                  const ValidationEvent.openAppSettings(),
-                );
-              },
+              onPressed: _openAppSettings,
             )
           : AppButton(
               text: buttonText,
@@ -338,19 +497,81 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
   // ── STEP 4: COMPLETION SCREEN ────────────────────────────────
   Widget _buildCompletionStep() {
     final colors = context.appColors;
+    final typography = context.appTypography;
+    final needsLocation = _needsBackgroundLocation;
+    final needsBattery = _protectionChecked && _needsBatteryExemption;
+    final blocked = needsLocation || needsBattery;
+
+    Widget? statusWidget;
+    if (blocked) {
+      statusWidget = Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: colors.primary.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: colors.primary.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              needsBattery
+                  ? Icons.battery_alert_rounded
+                  : Icons.location_off_rounded,
+              color: colors.primary,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                needsLocation
+                    ? 'Location access must be set to “Allow all the time”.'
+                    : 'Battery optimisation is still restricting background monitoring.',
+                style: typography.bodySmall.copyWith(
+                  color: colors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  height: 1.3,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return _OnboardingPageTemplate(
       key: const ValueKey('step_completion'),
       imagePath: 'assets/illustration_completion.png',
-      headline: 'You’re Ready To Go',
-      description:
-          'Create your first destination reminder and never miss your stop again.',
+      headline: blocked ? 'One Last Step' : 'You’re Ready To Go',
+      description: blocked
+          ? 'Android can only keep location monitoring alive while the phone is idle if background access and battery rules allow it.'
+          : 'Create your first destination reminder and never miss your stop again.',
       perks: const [
-        'Foreground location monitoring',
+        'Play Services geofence monitoring',
+        'Works while the phone is locked',
         'Optional OEM battery protection available',
       ],
+      errorWidget: statusWidget,
       ctaButton: Column(
         children: [
+          if (needsLocation) ...[
+            AppButton(
+              width: double.infinity,
+              text: 'Open Location Settings',
+              color: colors.primary,
+              onPressed: _openAppSettings,
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (needsBattery) ...[
+            AppButton(
+              width: double.infinity,
+              text: 'Allow Background Activity',
+              color: colors.primary,
+              isLoading: _requestingExemption,
+              onPressed: _requestingExemption ? null : _requestBatteryExemption,
+            ),
+            const SizedBox(height: 12),
+          ],
           AppButton(
             width: double.infinity,
             text: 'Review Background Protection',
@@ -367,13 +588,14 @@ class _ValidationPageViewState extends State<_ValidationPageView> {
           AppButton(
             width: double.infinity,
             text: 'Start Using App',
-            color: colors.primary,
-            onPressed: () async {
-              // Mark onboarding as completed
-              await getIt<SettingsService>().setOnboardingCompleted(true);
-              // Notify app routing system to trigger GoRouter redirect to /home
-              await getIt<AppRoutingNotifier>().notifyPermissionChanged();
-            },
+            color: blocked ? colors.card : colors.primary,
+            textStyle: blocked
+                ? TextStyle(
+                    color: colors.textTertiary,
+                    fontWeight: FontWeight.bold,
+                  )
+                : null,
+            onPressed: _finishOnboarding,
           ),
         ],
       ),

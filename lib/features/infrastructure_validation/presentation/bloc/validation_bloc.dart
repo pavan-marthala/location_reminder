@@ -12,8 +12,6 @@ import 'package:reminders/core/services/monitoring_coordinator.dart';
 import 'validation_event.dart';
 import 'validation_state.dart';
 
-import 'package:reminders/features/reminders/domain/entities/reminder_enums.dart';
-
 @injectable
 class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
   final NotificationService _notificationService;
@@ -319,7 +317,6 @@ class ValidationBloc extends Bloc<ValidationEvent, ValidationState> {
     UpdateBackgroundTick event,
     Emitter<ValidationState> emit,
   ) {
-    final status = event.data['status'] as String?;
     final readinessState = event.data['readinessState'] as String?;
     final timeStr = event.data['time'] as String?;
 

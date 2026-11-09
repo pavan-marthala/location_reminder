@@ -11,12 +11,15 @@ import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
 import android.view.WindowManager
+import com.example.reminders.geofence.GeofenceManager
+import com.example.reminders.geofence.GeofenceSpec
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.example.reminders/background_protection"
+    private val GEOFENCE_CHANNEL = "com.example.reminders/geofence"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,6 +69,51 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, GEOFENCE_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "sync" -> {
+                    val args = call.arguments as? Map<*, *>
+                    val rawList = args?.get("geofences") as? List<*>
+                    val specs = rawList?.mapNotNull { parseGeofenceSpec(it) } ?: emptyList()
+                    GeofenceManager.register(this, specs) { error ->
+                        runOnUiThread {
+                            if (error == null) {
+                                result.success(specs.size)
+                            } else {
+                                result.error("geofence_error", error, null)
+                            }
+                        }
+                    }
+                }
+                "clear" -> {
+                    GeofenceManager.clear(this)
+                    result.success(true)
+                }
+                "status" -> {
+                    result.success(GeofenceManager.status(this))
+                }
+                else -> {
+                    result.notImplemented()
+                }
+            }
+        }
+    }
+
+    private fun parseGeofenceSpec(raw: Any?): GeofenceSpec? {
+        val map = raw as? Map<*, *> ?: return null
+        val id = (map["id"] as? Number)?.toInt() ?: return null
+        val latitude = (map["latitude"] as? Number)?.toDouble() ?: return null
+        val longitude = (map["longitude"] as? Number)?.toDouble() ?: return null
+        val radius = (map["radiusMeters"] as? Number)?.toDouble() ?: 150.0
+        val title = map["title"] as? String ?: "Reminder"
+        return GeofenceSpec(
+            id = id,
+            title = title,
+            latitude = latitude,
+            longitude = longitude,
+            radiusMeters = radius,
+        )
     }
 
     private fun isIgnoringBatteryOptimizations(): Boolean {

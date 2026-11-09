@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
+import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/services/background_service.dart';
+import 'package:reminders/core/services/geofence_service.dart';
 import 'package:reminders/core/services/settings_service.dart';
 import 'package:reminders/features/reminders/domain/repositories/reminder_repository.dart';
 import 'package:reminders/features/reminders/domain/entities/reminder_entity.dart';
@@ -62,6 +64,10 @@ class MonitoringCoordinatorImpl implements MonitoringCoordinator {
 
     final shouldBeRunning = _calculateMonitoringState(reminders, explicitlyEnabled);
 
+    // Keep Play Services geofences in sync. These survive the app process being
+    // killed and are what make long-distance reminders reliable.
+    await _syncGeofences(reminders, explicitlyEnabled);
+
     debugPrint("[COORDINATOR] Checking service state...");
     final isRunning = await _backgroundService.isRunning();
     debugPrint("[COORDINATOR] isRunning=$isRunning");
@@ -83,6 +89,38 @@ class MonitoringCoordinatorImpl implements MonitoringCoordinator {
     if (reactivatedCount > 0) {
       debugPrint('[SNOOZE] Reactivated $reactivatedCount expired snoozed reminders.');
     }
+  }
+
+  Future<void> _syncGeofences(
+    List<ReminderEntity> reminders,
+    bool explicitlyEnabled,
+  ) async {
+    try {
+      final geofenceService = getIt<GeofenceService>();
+      if (!explicitlyEnabled) {
+        await geofenceService.clearAll();
+        return;
+      }
+
+      final active = reminders.where(_isMonitorable).toList();
+      if (active.isEmpty) {
+        await geofenceService.clearAll();
+      } else {
+        await geofenceService.syncGeofences(active);
+      }
+    } catch (e) {
+      // Geofences are a reliability improvement, never a reason to stop the
+      // foreground monitor.
+      debugPrint('[COORDINATOR] Geofence sync failed: $e');
+    }
+  }
+
+  bool _isMonitorable(ReminderEntity reminder) {
+    if (reminder.id == null) return false;
+    if (!reminder.isEnabled || reminder.isTriggered) return false;
+    return reminder.status != 'snoozed' &&
+        reminder.status != 'completed' &&
+        reminder.status != 'disabled';
   }
 
   void _logReminders(List<ReminderEntity> reminders) {

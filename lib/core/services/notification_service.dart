@@ -15,6 +15,7 @@ abstract class NotificationService {
   });
   Future<void> showFullScreenTestNotification();
   Future<bool> areNotificationsEnabled();
+  int? takePendingLaunchReminderId();
 }
 
 @LazySingleton(as: NotificationService)
@@ -22,6 +23,8 @@ class NotificationServiceImpl implements NotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications;
 
   NotificationServiceImpl(this._localNotifications);
+
+  int? _pendingLaunchReminderId;
 
   static const String _channelId = 'alarm_channel';
   static const String _channelName = 'Alarms & Reminders';
@@ -50,6 +53,22 @@ class NotificationServiceImpl implements NotificationService {
       onDidReceiveBackgroundNotificationResponse:
           _onBackgroundNotificationTapped,
     );
+
+    // If a full-screen alarm notification launched the app from a killed
+    // state, remember which reminder it belongs to so the router can open the
+    // alarm screen once the widget tree is ready.
+    final launchDetails =
+        await _localNotifications.getNotificationAppLaunchDetails();
+    if (launchDetails?.didNotificationLaunchApp == true) {
+      final payload = launchDetails?.notificationResponse?.payload;
+      final reminderId = payload != null ? int.tryParse(payload) : null;
+      if (reminderId != null && reminderId > 0) {
+        _pendingLaunchReminderId = reminderId;
+        debugPrint(
+          '[NOTIFICATIONS] Cold start from alarm notification for reminder $reminderId',
+        );
+      }
+    }
 
     // Create high importance Android channel
     final androidChannel = const AndroidNotificationChannel(
@@ -155,6 +174,13 @@ class NotificationServiceImpl implements NotificationService {
     }
 
     return true;
+  }
+
+  @override
+  int? takePendingLaunchReminderId() {
+    final id = _pendingLaunchReminderId;
+    _pendingLaunchReminderId = null;
+    return id;
   }
 }
 

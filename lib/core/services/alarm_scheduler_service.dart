@@ -88,8 +88,8 @@ class AlarmSchedulerServiceImpl implements AlarmSchedulerService {
     try {
       await _localNotifications.zonedSchedule(
         id: reminderId,
-        title: 'Reminder Triggered (Snoozed)!',
-        body: 'You are near: ${reminder.title}',
+        title: 'Reminder: ${reminder.title}',
+        body: 'You’re near your destination.',
         scheduledDate: scheduledDate,
         notificationDetails: details,
         androidScheduleMode: scheduleMode,

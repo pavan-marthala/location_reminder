@@ -128,7 +128,9 @@ class BackgroundProtectionServiceImpl implements BackgroundProtectionService {
       return result;
     } catch (e) {
       _log('BACKGROUND_PROTECTION', 'BATTERY_OPTIMIZATION_CHECK_ERROR: $e');
-      return true;
+      // On Android a failed check must not be reported as "protected" — that is
+      // exactly the state where the OEM is free to kill the monitor.
+      return defaultTargetPlatform != TargetPlatform.android;
     }
   }
 
