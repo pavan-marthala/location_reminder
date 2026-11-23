@@ -2,7 +2,7 @@ import 'package:delightful_toast/delight_toast.dart';
 import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:reminders/core/theme/app_colors.dart';
 import 'package:reminders/main.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:reminders/core/theme/app_theme.dart';
 import 'package:reminders/core/utils/sized_context.dart';
 

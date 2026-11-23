@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:reminders/core/utils/sized_context.dart';
 import 'package:reminders/core/utils/dimens.dart';
 

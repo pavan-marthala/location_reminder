@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/theme/app_theme.dart';
 import 'package:reminders/core/services/app_routing_notifier.dart';

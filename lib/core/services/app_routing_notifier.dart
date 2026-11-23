@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:injectable/injectable.dart';
 import 'package:reminders/core/services/permission_validation_service.dart';
 
