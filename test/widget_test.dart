@@ -29,6 +29,8 @@ class MockNotificationService implements NotificationService {
   @override
   Future<bool> areNotificationsEnabled() async => true;
   @override
+  Future<void> cancelAlarm(int reminderId) async {}
+  @override
   int? takePendingLaunchReminderId() => null;
 }
 
@@ -166,7 +168,11 @@ class MockMonitoringCoordinator implements MonitoringCoordinator {
   bool _monitoringEnabled = true;
 
   @override
-  Future<void> evaluateMonitoringState({String source = 'unknown', String reason = 'unknown'}) async {}
+  Future<void> evaluateMonitoringState({
+    String source = 'unknown',
+    String reason = 'unknown',
+    bool forceGeofenceResync = false,
+  }) async {}
 
   @override
   Future<void> setMonitoringEnabled(bool enabled) async {

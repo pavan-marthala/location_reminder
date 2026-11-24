@@ -9,6 +9,7 @@ import 'package:reminders/core/theme/app_theme.dart';
 import 'package:reminders/core/services/alarm_service.dart';
 import 'package:reminders/core/services/alarm_scheduler_service.dart';
 import 'package:reminders/core/services/monitoring_coordinator.dart';
+import 'package:reminders/core/services/notification_service.dart';
 import 'package:reminders/features/reminders/domain/entities/reminder_entity.dart';
 import 'package:reminders/features/reminders/domain/repositories/reminder_repository.dart';
 
@@ -94,7 +95,14 @@ class _AlarmPageState extends State<AlarmPage> with SingleTickerProviderStateMix
         // Start watching for external state changes (e.g. notification actions)
         _startWatchingReminder();
 
-        // Start playing the alarm sound immediately
+        // The notification owns the sound while the process is dead. Now that
+        // the alarm screen is visible, cancel it and take over with looping
+        // audio so the sound plays once, continuously.
+        try {
+          if (widget.reminderId > 0) {
+            await getIt<NotificationService>().cancelAlarm(widget.reminderId);
+          }
+        } catch (_) {}
         try {
           await getIt<AlarmService>().playAlarm(reminder?.alarmTone);
         } catch (_) {}

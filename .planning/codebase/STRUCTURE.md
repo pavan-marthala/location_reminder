@@ -24,7 +24,7 @@ reminders/
 │   │   └── [feature_name]/            # Individual feature folder (e.g. reminders)
 │   │       ├── data/                  # Data Layer (Infrastructure & Persistance)
 │   │       │   ├── datasources/       # Data providers (local databases, API wrappers)
-│   │       │   ├── models/            # DTOs (Freezed classes & Isar schemas)
+│   │       │   ├── models/            # DTOs (Freezed classes & Drift schemas)
 │   │       │   └── repositories/      # Concrete repository implementations
 │   │       ├── domain/                # Domain Layer (Pure Business Logic)
 │   │       │   ├── entities/          # Plain Dart core business objects
@@ -54,7 +54,7 @@ reminders/
 * **`lib/main.dart`**: The application bootstrapper. It initializes the Flutter binding environment, executes dependency registration via `configureDependencies()`, and sets up the theme configs inside the root `MaterialApp` widget.
 * **`lib/core/di/injection.dart`**: Declares the `GetIt` instance globally and specifies `@InjectableInit` to auto-generate registrations.
 * **`lib/core/di/register_module.dart`**: Provides pre-configured, singleton instances of third-party libraries like:
-  * `Isar` (Local database for storing reminders offline)
+  * `Drift` (Local database for storing reminders offline)
   * `FlutterLocalNotificationsPlugin` (Triggering system-level alerts)
   * `AudioPlayer` (Playing alerting signals when reminders are triggered)
 

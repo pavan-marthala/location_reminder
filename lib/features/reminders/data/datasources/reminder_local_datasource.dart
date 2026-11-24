@@ -13,6 +13,10 @@ abstract class ReminderLocalDatasource {
   Future<void> deleteReminder(int id);
   Future<void> toggleReminder(int id, bool isEnabled);
   Future<int> reactivateExpiredSnoozes();
+
+  /// Atomically claims a reminder arrival. Returns the number of rows changed:
+  /// 1 when this call triggered the reminder, 0 when another path already did.
+  Future<int> claimTrigger(int id, DateTime now);
 }
 
 @LazySingleton(as: ReminderLocalDatasource)
@@ -124,6 +128,26 @@ class ReminderLocalDatasourceImpl implements ReminderLocalDatasource {
     await _logDiff(id, companion, 'toggleReminder');
     await (_db.update(_db.reminders)..where((t) => t.id.equals(id)))
         .write(companion);
+  }
+
+  @override
+  Future<int> claimTrigger(int id, DateTime now) async {
+    final count = await (_db.update(_db.reminders)
+          ..where((t) =>
+              t.id.equals(id) &
+              t.isTriggered.equals(false) &
+              t.status.isNotIn(const ['completed', 'snoozed'])))
+        .write(
+      RemindersCompanion(
+        isTriggered: const Value(true),
+        status: const Value('triggered'),
+        triggeredAt: Value(now),
+        lastTriggeredAt: Value(now),
+        updatedAt: Value(now),
+      ),
+    );
+    debugPrint('[DATABASE] claimTrigger id=$id affected=$count');
+    return count;
   }
 
   @override

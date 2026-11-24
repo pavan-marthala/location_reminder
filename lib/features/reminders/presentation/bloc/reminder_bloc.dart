@@ -5,7 +5,6 @@ import 'package:injectable/injectable.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/services/alarm_scheduler_service.dart';
-import 'package:reminders/core/services/monitoring_coordinator.dart';
 import 'package:reminders/core/services/settings_service.dart';
 import 'package:reminders/core/services/location_service.dart';
 import 'package:reminders/features/reminders/domain/entities/reminder_entity.dart';
@@ -24,7 +23,6 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
   final CreateReminderUseCase _createReminder;
   final UpdateReminderUseCase _updateReminder;
   final DeleteReminderUseCase _deleteReminder;
-  final MonitoringCoordinator _monitoringCoordinator;
   final ReminderQueryService _reminderQueryService;
   final SettingsService _settingsService;
   final LocationService _locationService;
@@ -37,7 +35,6 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
     this._createReminder,
     this._updateReminder,
     this._deleteReminder,
-    this._monitoringCoordinator,
     this._reminderQueryService,
     this._settingsService,
     this._locationService,
@@ -86,12 +83,8 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
       debugPrint("[BLOC] Creating reminder...");
       await _createReminder(event.reminder);
       debugPrint("[BLOC] Reminder inserted successfully.");
-      debugPrint("[BLOC] Calling evaluateMonitoringState()");
-      await _monitoringCoordinator.evaluateMonitoringState(
-        source: 'ReminderBloc',
-        reason: 'createReminder',
-      );
-      debugPrint("[BLOC] evaluateMonitoringState() finished");
+      // The coordinator observes reminder changes through the repository
+      // stream and reconciles fences/service from there.
       // Reload the list after creating
       add(const ReminderEvent.loadReminders());
     } catch (e) {
@@ -105,10 +98,6 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
   ) async {
     try {
       await _updateReminder(event.reminder);
-      await _monitoringCoordinator.evaluateMonitoringState(
-        source: 'ReminderBloc',
-        reason: 'updateReminder',
-      );
       add(const ReminderEvent.loadReminders());
     } catch (e) {
       emit(ReminderState.error(message: 'Failed to update reminder: $e'));
@@ -124,10 +113,6 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
       try {
         await getIt<AlarmSchedulerService>().cancelSnooze(event.id);
       } catch (_) {}
-      await _monitoringCoordinator.evaluateMonitoringState(
-        source: 'ReminderBloc',
-        reason: 'deleteReminder',
-      );
       add(const ReminderEvent.loadReminders());
     } catch (e) {
       emit(ReminderState.error(message: 'Failed to delete reminder: $e'));
@@ -181,10 +166,6 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
           await getIt<AlarmSchedulerService>().cancelSnooze(event.id);
         } catch (_) {}
       }
-      await _monitoringCoordinator.evaluateMonitoringState(
-        source: 'ReminderBloc',
-        reason: 'toggleReminder',
-      );
     } catch (e) {
       emit(ReminderState.error(message: 'Failed to toggle reminder: $e'));
       // Reload to get consistent state

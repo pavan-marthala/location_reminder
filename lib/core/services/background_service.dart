@@ -8,12 +8,13 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:injectable/injectable.dart';
 import 'package:geolocator/geolocator.dart' as geo;
-import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:reminders/core/database/app_database.dart';
+import 'package:reminders/core/services/alarm_notification_details.dart';
+import 'package:reminders/core/services/pending_trigger_service.dart';
 import 'package:reminders/features/reminders/data/datasources/reminder_local_datasource.dart';
 
 abstract class BackgroundService {
@@ -398,21 +399,7 @@ void onStart(ServiceInstance service) async {
     required String reminderTitle,
     required bool vibrate,
   }) async {
-    final androidDetails = AndroidNotificationDetails(
-      'alarm_channel',
-      'Alarms & Reminders',
-      channelDescription: 'Channel for location-based reminders and alarm triggers',
-      importance: Importance.max,
-      priority: Priority.high,
-      playSound: false, // AlarmPage owns audio playback
-      enableVibration: vibrate,
-      fullScreenIntent: true,
-      category: AndroidNotificationCategory.alarm,
-    );
-    final details = NotificationDetails(
-      android: androidDetails,
-      iOS: const DarwinNotificationDetails(),
-    );
+    final details = AlarmNotificationDetails.platform(vibrate: vibrate);
 
     await localNotifications.show(
       id: reminderId,
@@ -426,70 +413,70 @@ void onStart(ServiceInstance service) async {
   /// Consumes the reminder id written by the native geofence receiver. This is
   /// the path used when Play Services detected the arrival while the app was
   /// dead, so we cannot rely on the live position stream having fired.
+  late ReminderLocalDatasourceImpl datasource;
+  late PendingTriggerService pendingTriggers;
+  Timer? pendingTriggerPollTimer;
+
   Future<void> handlePendingGeofenceTrigger() async {
-    final prefs = await SharedPreferences.getInstance();
-    final pendingId = prefs.getInt('pending_geofence_trigger_id');
-    if (pendingId == null) return;
-    await prefs.remove('pending_geofence_trigger_id');
+    final envelope = await pendingTriggers.readFresh();
+    if (envelope == null) return;
+    final pendingId = envelope.reminderId;
+
+    // Clear before claiming: if this isolate dies mid-handling, the envelope
+    // must not be replayed as a second alarm on the next restart.
+    await pendingTriggers.clear();
 
     await logEvent('[GEOFENCE]', 'PENDING_TRIGGER_RECEIVED',
         details: 'Reminder ID: $pendingId');
 
+    final now = DateTime.now();
+    final claimed = await datasource.claimTrigger(pendingId, now);
+    if (claimed == 0) {
+      await logEvent('[GEOFENCE]', 'PENDING_TRIGGER_IGNORED',
+          details: 'ID: $pendingId already triggered or ineligible');
+      return;
+    }
+
     final rows = await (database.select(database.reminders)
           ..where((t) => t.id.equals(pendingId)))
         .get();
-    if (rows.isEmpty) {
-      await logEvent('[GEOFENCE]', 'PENDING_TRIGGER_NOT_FOUND',
-          details: 'ID: $pendingId');
-      return;
-    }
+    final title = rows.isEmpty ? 'Reminder' : rows.first.title;
 
-    final reminder = rows.first;
-    if (!reminder.isEnabled || reminder.isTriggered) {
-      await logEvent('[GEOFENCE]', 'PENDING_TRIGGER_IGNORED',
-          details:
-              'ID: $pendingId enabled=${reminder.isEnabled} triggered=${reminder.isTriggered}');
-      return;
-    }
-
-    final now = DateTime.now();
-    await (database.update(database.reminders)
-          ..where((t) => t.id.equals(pendingId)))
-        .write(
-      RemindersCompanion(
-        isTriggered: const Value(true),
-        status: const Value('triggered'),
-        triggeredAt: Value(now),
-        lastTriggeredAt: Value(now),
-        updatedAt: Value(now),
-      ),
-    );
-
+    final prefs = await SharedPreferences.getInstance();
     final vibrate = prefs.getBool('vibration_enabled') ?? true;
     await showAlarmNotification(
-      reminderId: reminder.id,
-      reminderTitle: reminder.title,
+      reminderId: pendingId,
+      reminderTitle: title,
       vibrate: vibrate,
     );
 
     service.invoke('update', {
       'time': now.toIso8601String(),
       'status': 'triggered',
-      'reminderId': reminder.id,
-      'reminderTitle': reminder.title,
+      'reminderId': pendingId,
+      'reminderTitle': title,
       'readinessState': 'MonitoringActive',
     });
     updateState('MonitoringActive',
-        details: 'Triggered by geofence: ${reminder.title}');
+        details: 'Triggered by geofence: $title');
   }
 
   // Check persisted reminders directly from SQLite to determine if monitoring work exists
-  final datasource = ReminderLocalDatasourceImpl(database);
+  datasource = ReminderLocalDatasourceImpl(database);
+  pendingTriggers = PendingTriggerService(await SharedPreferences.getInstance());
   await datasource.reactivateExpiredSnoozes();
 
   // Handle a geofence arrival that woke us from a killed state before deciding
   // whether there is any monitoring work left.
   await handlePendingGeofenceTrigger();
+
+  // Play Services can deliver an arrival while this isolate is already alive.
+  // Polling the envelope in addition to onStart/refresh closes that gap.
+  pendingTriggerPollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+    handlePendingGeofenceTrigger().catchError((Object error) {
+      debugPrint('[GEOFENCE] Pending trigger poll failed: $error');
+    });
+  });
 
   final allEnabled = await (database.select(
     database.reminders,
@@ -515,6 +502,7 @@ void onStart(ServiceInstance service) async {
   if (activeWorkReminders.isEmpty) {
     await logEvent('[ANDROID_SERVICE]', 'SELF_TERMINATING', details: 'No monitoring work found in SQLite');
     updateState('MonitoringActive', details: 'No active reminders');
+    pendingTriggerPollTimer?.cancel();
     await database.close();
     service.stopSelf();
     return;
@@ -556,6 +544,7 @@ void onStart(ServiceInstance service) async {
 
   service.on('stopService').listen((event) async {
     await logEvent('[ANDROID_SERVICE]', 'SERVICE_STOP_REQUESTED', details: 'stopService event received');
+    pendingTriggerPollTimer?.cancel();
     await positionSubscription?.cancel();
     positionSubscription = null;
     try {
@@ -577,6 +566,7 @@ void onStart(ServiceInstance service) async {
   if (!serviceEnabled) {
     await logEvent('[GEOLOCATOR]', 'LOCATION_SERVICES_DISABLED');
     updateState('Error', details: 'Location services are disabled');
+    pendingTriggerPollTimer?.cancel();
     await database.close();
     service.stopSelf();
     return;
@@ -587,6 +577,7 @@ void onStart(ServiceInstance service) async {
       permission == geo.LocationPermission.deniedForever) {
     await logEvent('[GEOLOCATOR]', 'LOCATION_PERMISSION_DENIED', details: permission.toString());
     updateState('WaitingForPermissions');
+    pendingTriggerPollTimer?.cancel();
     await database.close();
     service.stopSelf();
     return;
@@ -676,18 +667,17 @@ void onStart(ServiceInstance service) async {
         }
 
         if (distance <= reminder.radius) {
+          final triggerTime = DateTime.now();
+          // The same conditional claim used by the geofence hand-off prevents
+          // a double alarm when both detectors observe this arrival.
+          final claimed = await datasource.claimTrigger(reminder.id, triggerTime);
+          if (claimed == 0) {
+            await logEvent('[GEOPROCESSOR]', 'REMINDER_ALREADY_TRIGGERED',
+                details: 'ID: ${reminder.id}');
+            continue;
+          }
+          await pendingTriggers.clearId(reminder.id);
           await logEvent('[GEOPROCESSOR]', 'REMINDER_TRIGGERED', details: 'ID: ${reminder.id}, Title: ${reminder.title}');
-          await (database.update(
-            database.reminders,
-          )..where((t) => t.id.equals(reminder.id))).write(
-            RemindersCompanion(
-              isTriggered: const Value(true),
-              status: const Value('triggered'),
-              triggeredAt: Value(DateTime.now()),
-              lastTriggeredAt: Value(DateTime.now()),
-              updatedAt: Value(DateTime.now()),
-            ),
-          );
 
           final prefs = await SharedPreferences.getInstance();
           final vibrate = prefs.getBool('vibration_enabled') ?? true;
@@ -699,7 +689,7 @@ void onStart(ServiceInstance service) async {
           );
 
           final data = {
-            'time': DateTime.now().toIso8601String(),
+            'time': triggerTime.toIso8601String(),
             'status': 'triggered',
             'reminderId': reminder.id,
             'reminderTitle': reminder.title,
@@ -804,6 +794,7 @@ void onStart(ServiceInstance service) async {
     final currentEnabled = await (database.select(database.reminders)
       ..where((t) => t.isEnabled.equals(true))).get();
     snoozeTimerManager.syncTimers(currentEnabled);
+    await handlePendingGeofenceTrigger();
     await handleRefresh();
   });
 

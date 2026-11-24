@@ -157,6 +157,11 @@ object GeofenceManager {
                             "geofence_last_error",
                             "",
                         )
+                        FlutterPrefs.writeString(
+                            context,
+                            "geofence_last_sync_at",
+                            nowTimestamp(),
+                        )
                         onDone(null)
                     }
                     .addOnFailureListener { e ->
@@ -190,13 +195,38 @@ object GeofenceManager {
             context,
             Manifest.permission.ACCESS_BACKGROUND_LOCATION,
         ) == PackageManager.PERMISSION_GRANTED
+        val specs = load(context)
+        val pendingId = FlutterPrefs.readLong(context, PendingTrigger.KEY_ID)
+        val pendingAt = FlutterPrefs.readString(context, PendingTrigger.KEY_AT)
+        val pendingAgeSeconds = pendingAt?.let { parseAgeSeconds(it) }
         return mapOf(
-            "syncedCount" to load(context).size,
+            "syncedCount" to specs.size,
+            "expectedCount" to specs.size,
+            "lastSyncAt" to FlutterPrefs.readString(context, "geofence_last_sync_at"),
+            "pendingId" to pendingId,
+            "pendingAgeSeconds" to pendingAgeSeconds,
             "lastEventAt" to FlutterPrefs.readString(context, "geofence_last_event_at"),
             "lastEvent" to FlutterPrefs.readString(context, "geofence_last_event"),
             "lastError" to FlutterPrefs.readString(context, "geofence_last_error"),
             "hasBackgroundLocation" to hasBackgroundLocation,
         )
+    }
+
+    private fun nowTimestamp(): String = java.text.SimpleDateFormat(
+        "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+        java.util.Locale.US,
+    ).format(java.util.Date())
+
+    private fun parseAgeSeconds(timestamp: String): Long? = try {
+        val parsed = java.text.SimpleDateFormat(
+            "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+            java.util.Locale.US,
+        ).parse(timestamp)
+        if (parsed == null) null
+        else max(0L, (java.util.Date().time - parsed.time) / 1000L)
+    } catch (e: Exception) {
+        Log.w(TAG, "Could not parse pending trigger timestamp", e)
+        null
     }
 
     fun recordEvent(context: Context, message: String) {

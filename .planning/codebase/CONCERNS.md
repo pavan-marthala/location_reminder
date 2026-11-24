@@ -62,30 +62,29 @@ Because this application relies on real-time background location tracking (`geol
 
 ## 3. Data Persistence & Concurrency Risks
 
-The application uses **Isar** as its local database. This introduces structural risks related to multi-isolate access and code generation.
+The application uses **Drift (SQLite)** as its local database. Both isolates open the same `app_database.db` file.
 
-```mermaid
-graph TD
-    UI[Main UI Isolate] -->|Reads/Writes| DB[(Isar Database File)]
-    BG[Background Isolate] -->|Reads/Writes| DB
-    DB -->|Locking Risk| Conflict(Write Lock Contention / Thread Block)
+```
+UI isolate -----> Drift SQLite file <----- background isolate
+                       |
+                  short conditional writes (claimTrigger)
 ```
 
-### A. Isolate Concurrency & Multi-Instance File Locking
-*   **Dart Isolate Isolation**: Dart isolates do not share memory. The background location tracking service runs in its own isolate and cannot share the database instance initialized by the UI thread.
-*   **Database Locks**: While Isar supports opening the same database file from multiple isolates, concurrent write transactions can block each other. If the background isolate is performing a write (e.g., logging location history or updating reminder state) at the exact millisecond the user is editing a reminder in the UI, it can lead to write transaction timeouts or app locks.
-*   **Pre-Resolve Failure**: The Isar initialization is marked with `@preResolve` in `RegisterModule`. If opening the database in the background isolate blocks due to a lock held by the UI thread, it could block the background service's startup entirely.
+### A. Isolate Concurrency
+*   **Separate connections**: The main isolate registers `AppDatabase` in `RegisterModule`; the background isolate opens its own `NativeDatabase` directly in `onStart`. Dart isolates do not share memory.
+*   **Write contention**: Keep background writes to short conditional updates (`claimTrigger`, snooze reactivation) so UI edits are not blocked. Enable WAL in `beforeOpen` only if diagnostics show contention.
+*   **Trigger hand-off**: The pending geofence envelope lives in `FlutterSharedPreferences` (shared by native and Dart); the authoritative trigger claim lives in SQLite, so a stale native envelope cannot produce a second alarm.
 
 ### B. Schema Safety & Code Generation
-*   **Stale Generator Output**: Isar requires code generation via `build_runner`. If schema changes are made in the entities (e.g., adding an option to `Reminder`) and the developer fails to run the code generator, the generated `injection.config.dart` and Isar schemas will drift, causing runtime crashes during dependency resolution or database queries.
-*   **Migration Failure**: Modifying schema columns without defining proper migration plans or using safe schema properties will corrupt existing user database files upon app updates, causing the app to crash on launch.
+*   **Generator drift**: Drift and injectable output (`app_database.g.dart`, `injection.config.dart`) must be regenerated after schema or DI changes. The current toolchain has a pre-existing `build_resolvers`/analyzer mismatch that can prevent `build_runner` from precompiling; patch generated files only as a short-term workaround and fix the overrides before shipping.
+*   **Migrations**: Schema version is `6`. Each migration must stay idempotent and preserve earlier steps; version 6 raises stored radii below 150 m.
 
 ---
 
 ## 4. Dependency & Build Pipeline Risks
 
-### A. Stale SDK Environment
-*   **Dart/Flutter version (SDK ^3.10.4)**: The workspace is locked to Dart SDK 3.10.4 (released mid-2023). This is outdated, lacking access to modern compiler optimizations, Swift Package Manager (SPM) integrations, and modern Dart language features (such as macros or enhanced pattern matching).
+### A. SDK Constraint
+*   `pubspec.yaml` declares `sdk: ^3.10.4`; the installed toolchain is Flutter 3.50 / Dart 3.14. The declared floor and overrides should be updated together so code generation and package upgrades work reliably.
 
 ### B. Fragile Dependency Overrides
 *   The `pubspec.yaml` contains severe dependency overrides:
@@ -95,23 +94,20 @@ graph TD
       dart_style: 2.3.2
       build_resolvers: 2.2.0
     ```
-    *   **Root Cause**: These overrides indicate version mismatches between older generators (`freezed`, `isar_generator`, `injectable_generator`) and the current Dart analyzer version.
-    *   **Risk**: Updating any minor dependency in the future is likely to break the build pipeline. This structure acts as a barrier to standard upgrading and security patching.
+    *   **Root Cause**: These overrides pin old analyzer/build_resolvers versions for older generators (`freezed`, `drift_dev`, `injectable_generator`).
+    *   **Observed impact**: `dart run build_runner build` currently fails to precompile its build script with the installed Dart SDK. Regenerating code requires fixing or removing these overrides first.
 
-### C. Isar DB Maintenance Status
-*   **Project Abandonment**: Isar 3.x is highly stable but has transitioned out of active maintenance by its creator (who shifted focus). Isar 4.0 has been in beta/alpha status for a long time. 
-*   **Future Incompatibility**: As Flutter updates its FFI and internal structures, Isar 3.x is prone to compilation failures. The development team should evaluate migrations to `drift` (SQLite) or `hive` (for simpler key-value storage) if long-term upgrade compatibility is required.
+### C. Platform Scope
+*   Android is the target platform. iOS/macOS/desktop/web scaffolding remains in the repository, but native geofencing is Android-only (`GeofenceService` is a no-op elsewhere). Do not assume iOS background-location behavior is validated.
 
 ---
 
 ## 5. Architectural Concerns
 
-### A. State Synchronization Between Isolates
-*   If the user adds, updates, or deletes a reminder in the UI, the background service remains unaware of this change unless:
-    1.  It queries the Isar database continuously (inefficient database polling).
-    2.  An Isar watcher/stream (`isar.reminders.watchLazy()`) is successfully active in the background isolate.
-    3.  The UI explicitly notifies the background service via IPC port signals (`FlutterBackgroundService().invoke(...)`).
-*   Failing to synchronize these states properly will cause geofence triggers to fire for deleted reminders, or not fire for newly created ones.
+### A. State Synchronization
+*   `MonitoringCoordinator` now owns reconciliation: it debounces `ReminderRepository.watchAllReminders()`, computes a fingerprint of monitorable reminders, and re-registers fences only when that fingerprint changes.
+*   The background isolate reads the database on every position evaluation and consumes the native pending-arrival envelope on a 5-second poll, so it does not rely on UI-originated IPC for reminder changes.
+*   Force-stops, cleared Play Services data, or disabled location accuracy remain uncovered; diagnostics expose fence counts, sync errors and heartbeat freshness.
 
 ---
 
@@ -122,8 +118,8 @@ graph TD
 | **Permissions** | iOS / Android Location access denial or downgrades. | Implement a dedicated onboarding flow that explains *why* background permission is required before presenting the OS system dialog. Check permission states on app resume. |
 | **Manifests** | App Store rejection or Android background service crashes. | Add `NSLocationAlwaysAndWhenInUseUsageDescription` to `Info.plist`. Add `foregroundServiceType="location"` to Android service declarations. |
 | **Battery Life** | Continuous GPS activation causing fast battery drain. | Build an adaptive tracking loop that scales location query interval and accuracy based on the distance to the nearest target reminder. |
-| **Audio** | Silent alarms on muted/DND devices. | Configure native iOS Audio Session category to `playback` using `audio_session` package. |
-| **Isolate DB** | Write lock contentions and Isar database crashes. | Coordinate database writes. Ensure both isolates open Isar with the exact same schemas and name. Limit background isolate writes to minor status flags. |
-| **Dependencies** | Code generator conflicts and fragile overrides. | Schedule a migration step to upgrade the SDK to the latest Flutter stable release and upgrade all dev_dependencies to eliminate the `dependency_overrides` hacks. |
-| **State Sync** | Stale reminder data cached in background isolate. | `evaluateMonitoringState()` now also syncs Play Services geofences. Use `Isar`/Drift reactive queries (watchers) or `flutter_background_service` custom action listeners to hot-reload target reminders in the background loop when the DB updates. |
+| **Audio** | Silent alarms when the UI process is dead. | The OS plays a bundled raw alarm sound via the full-screen `alarm_channel` notification; `AlarmPage` cancels that notification and takes over with looping audio. |
+| **Isolate DB** | Write lock contention between isolates. | Keep background writes to short conditional updates; both isolates use the same schema version 6 file. |
+| **Dependencies** | Code generator conflicts and fragile overrides. | Fix the analyzer/build_resolvers override mismatch so `build_runner` works, then upgrade dev dependencies. |
+| **State Sync** | Stale reminder data in the background isolate. | Coordinator reconciles fences from a debounced Drift watch stream with fingerprint dedupe; the isolate polls the pending-arrival envelope and reads SQLite on every evaluation. |
 | **Process Death** | OEM kills the FGS on long, locked sessions (50–100 km reminders). | Primary mitigation is Play Services geofences (`_target` + 10 km `_approach`). The isolate persists a heartbeat, the app recovers on resume, and diagnostics expose fence/heartbeat state. Force-stop / disabled Play Services remains a known gap. |

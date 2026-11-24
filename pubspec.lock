@@ -913,10 +913,34 @@ packages:
     dependency: "direct main"
     description:
       name: mapbox_maps_flutter
-      sha256: "8ae32ef9ef8073f0789c3f6bed904bde71d7edb51b56144fd13453dcc845fba9"
+      sha256: b527c591c2983d11f4964899ca7a2eb7ee26f9e69c8fce899e6b364d4fc16f04
       url: "https://pub.dev"
     source: hosted
-    version: "2.31.3"
+    version: "3.36.0-rc.1"
+  mapbox_maps_flutter_mobile:
+    dependency: transitive
+    description:
+      name: mapbox_maps_flutter_mobile
+      sha256: "99b11872a15df45bb84d7236075abf12993f8810953519b373c4f90610c3bf30"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.36.0-rc.1"
+  mapbox_maps_flutter_platform_interface:
+    dependency: transitive
+    description:
+      name: mapbox_maps_flutter_platform_interface
+      sha256: c0366770c441400dd476cb4b3e412c3521eaeae9f197aaa7f8c74392098cb8ee
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.36.0-rc.1"
+  mapbox_maps_flutter_web:
+    dependency: transitive
+    description:
+      name: mapbox_maps_flutter_web
+      sha256: faf4a31ca7e2a39677432fdf5a2d0c25c8db4cd24f9634834619758f53ffae84
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.36.0-rc.1"
   matcher:
     dependency: transitive
     description:
@@ -969,10 +993,10 @@ packages:
     dependency: "direct main"
     description:
       name: no_screenshot
-      sha256: "2192d312e74e67b88ae6cf61cea0e0ae66aee3881127c0740dcbdcd1d4eed3e9"
+      sha256: "8b94f45c8fc91366c2175681b0d28f3e115107dd122e5549193753a97d09eb00"
       url: "https://pub.dev"
     source: hosted
-    version: "1.2.0"
+    version: "2.0.1"
   objective_c:
     dependency: transitive
     description:

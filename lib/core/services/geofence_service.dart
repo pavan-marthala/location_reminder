@@ -4,6 +4,10 @@ import 'package:reminders/features/reminders/domain/entities/reminder_entity.dar
 
 class GeofenceStatus {
   final int syncedCount;
+  final int expectedCount;
+  final String? lastSyncAt;
+  final int? pendingId;
+  final int? pendingAgeSeconds;
   final String? lastEventAt;
   final String? lastEvent;
   final String? lastError;
@@ -11,6 +15,10 @@ class GeofenceStatus {
 
   const GeofenceStatus({
     required this.syncedCount,
+    this.expectedCount = 0,
+    this.lastSyncAt,
+    this.pendingId,
+    this.pendingAgeSeconds,
     required this.lastEventAt,
     required this.lastEvent,
     required this.lastError,
@@ -26,8 +34,21 @@ class GeofenceStatus {
     final hasBg = rawBg is bool
         ? rawBg
         : '$rawBg'.toLowerCase() == 'true';
+    final rawExpected = map?['expectedCount'];
+    final rawPendingId = map?['pendingId'];
+    final rawPendingAge = map?['pendingAgeSeconds'];
     return GeofenceStatus(
       syncedCount: count,
+      expectedCount: rawExpected is num
+          ? rawExpected.toInt()
+          : int.tryParse('${rawExpected ?? ''}') ?? count,
+      lastSyncAt: map?['lastSyncAt']?.toString(),
+      pendingId: rawPendingId is num
+          ? rawPendingId.toInt()
+          : int.tryParse('${rawPendingId ?? ''}'),
+      pendingAgeSeconds: rawPendingAge is num
+          ? rawPendingAge.toInt()
+          : int.tryParse('${rawPendingAge ?? ''}'),
       lastEventAt: map?['lastEventAt']?.toString(),
       lastEvent: map?['lastEvent']?.toString(),
       lastError: map?['lastError']?.toString(),
@@ -41,7 +62,9 @@ class GeofenceStatus {
 ///
 /// This is a no-op on platforms other than Android.
 abstract class GeofenceService {
-  Future<void> syncGeofences(List<ReminderEntity> reminders);
+  /// Returns true only when the native side confirmed registration, so the
+  /// coordinator can remember the last successfully synced fingerprint.
+  Future<bool> syncGeofences(List<ReminderEntity> reminders);
   Future<void> clearAll();
   Future<GeofenceStatus> getStatus();
 }
@@ -59,8 +82,8 @@ class GeofenceServiceImpl implements GeofenceService {
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   @override
-  Future<void> syncGeofences(List<ReminderEntity> reminders) async {
-    if (!_isAndroid) return;
+  Future<bool> syncGeofences(List<ReminderEntity> reminders) async {
+    if (!_isAndroid) return false;
 
     final candidates = reminders
         .where(
@@ -97,8 +120,10 @@ class GeofenceServiceImpl implements GeofenceService {
             .toList(),
       });
       debugPrint('[GEOFENCE] Synced ${active.length} reminder geofences');
+      return true;
     } catch (e) {
       debugPrint('[GEOFENCE] Failed to sync geofences: $e');
+      return false;
     }
   }
 

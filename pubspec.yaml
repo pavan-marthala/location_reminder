@@ -34,8 +34,8 @@ dependencies:
   injectable: ^2.4.0
   intl: ^0.20.2
   json_annotation: ^4.9.0
-  mapbox_maps_flutter: ^2.24.3
-  no_screenshot: ^1.0.0
+  mapbox_maps_flutter: ^3.36.0-rc.1
+  no_screenshot: ^2.0.1
   package_info_plus: ^10.2.0
   path: ^1.9.0
   path_provider: ^2.1.5

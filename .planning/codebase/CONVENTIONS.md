@@ -27,8 +27,8 @@ lib/
 ├── features/                     # Feature-specific modules
 │   └── reminders/                # Example feature: Reminders management
 │       ├── data/                 # Data Layer: external communication, caching, persistence
-│       │   ├── datasources/      # Remote API or local database (Isar) queries
-│       │   ├── models/           # Data models (JSON serializable, Isar collections)
+│       │   ├── datasources/      # Remote API or local database (Drift) queries
+│       │   ├── models/           # Data models (JSON serializable, Drift collections)
 │       │   └── repositories/     # Concrete repository implementations
 │       ├── domain/               # Domain Layer: core business logic (framework-independent)
 │       │   ├── entities/         # Plain Dart objects representing core domain models
@@ -121,7 +121,7 @@ To guarantee type safety and prevent side effects from mutable states, all domai
 
 ### 4.2 Data Models vs. Domain Entities
 *   **Domain Entities** (`lib/features/domain/entities/`): Clean Dart classes with absolute minimal dependencies. They define *what* the application operates on (e.g., `Reminder` entity).
-*   **Data Models** (`lib/features/data/models/`): Framework-specific versions of entities (e.g., database representations for Isar, or JSON schemas for network adapters).
+*   **Data Models** (`lib/features/data/models/`): Framework-specific versions of entities (e.g., database representations for Drift, or JSON schemas for network adapters).
 *   Provide extension mapper functions to translate between data models and domain entities:
     *   `ToModel`: E.g., `ReminderModel.fromEntity(Reminder entity)`
     *   `ToEntity`: E.g., `Reminder toEntity()`
@@ -136,34 +136,36 @@ Dependency injection decouples class creation from implementation details, allow
 *   **`@injectable`**: Used for short-lived factory dependencies (e.g., use cases, BLoCs). A new instance is created every time it's requested.
 *   **`@lazySingleton`**: Used for long-lived, heavy dependencies that should only have one instance globally and be created on-demand (e.g., repository implementations, local data sources).
 *   **`@singleton`**: Used for singletons that must be initialized immediately at startup.
-*   **`@preResolve`**: Applied to asynchronous initialization functions (like opening the Isar database) that must finish before the application UI starts up.
+*   **`@preResolve`**: Applied to asynchronous initialization functions (currently `SharedPreferences.getInstance()`) that must finish before the application UI starts up.
 
 ### 5.2 External Dependencies Module
-All third-party dependencies (e.g., Isar, FlutterLocalNotificationsPlugin, AudioPlayer) must be declared in a module registered under `lib/core/di/register_module.dart`:
+Third-party dependencies (`AppDatabase`, `FlutterLocalNotificationsPlugin`, `AudioPlayer`, `SharedPreferences`) are provided by `lib/core/di/register_module.dart`:
 
 ```dart
 @module
 abstract class RegisterModule {
   @preResolve
-  Future<Isar> get isar async => ...;
+  Future<SharedPreferences> get prefs => SharedPreferences.getInstance();
+
+  @singleton
+  AppDatabase get database => AppDatabase(_openConnection());
 
   @lazySingleton
-  FlutterLocalNotificationsPlugin get localNotifications => ...;
+  FlutterLocalNotificationsPlugin get localNotifications =>
+      FlutterLocalNotificationsPlugin();
 }
 ```
 
 ---
 
-## 6. Isar Database & Local Persistence
+## 6. Drift Database & Local Persistence
 
-Isar is used for fast local storage. Follow these rules to keep the database interactions safe:
+Drift stores reminders in `app_database.db`. Both the main isolate and the background location isolate open the same file.
 
-*   **Collections**: Define collections using the `@collection` annotation from Isar (e.g., `@collection class ReminderModel`).
-*   **Schema Registration**: All collections must be registered in the Isar initialization located in `RegisterModule`.
-*   **ID Strategy**: Use `Id` type for IDs. Let Isar assign auto-incrementing integers or implement a deterministic ID generator using hash functions for off-line synchronization needs.
-*   **Transactions**:
-    *   Use `isar.writeTxn(...)` for all writes (insert, update, delete).
-    *   Always keep transactions as short and scoped as possible to prevent thread blockages.
+*   **Tables**: Declare tables by extending `Table` (e.g. `class Reminders extends Table`) and register them in `@DriftDatabase(tables: [Reminders])`.
+*   **Schema version**: Currently `6`. Every migration must preserve earlier migrations and remain idempotent; schema 6 normalises stored radii below 150 m.
+*   **Writes**: Use `RemindersCompanion` with `into`, `update` and `delete`. Conditional updates (e.g. `claimTrigger`) are single short transactions because the two isolates share the file.
+*   **Mapping**: `ReminderMapper` converts between `ReminderData` rows and the Freezed `ReminderEntity` domain model; no Drift types leak into the domain layer.
 
 ---
 

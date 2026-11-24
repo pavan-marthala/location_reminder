@@ -4,6 +4,7 @@ import 'package:reminders/core/di/injection.dart';
 import 'package:reminders/core/theme/app_theme.dart';
 import 'package:reminders/core/theme/app_colors.dart';
 import 'package:reminders/core/theme/app_typography.dart';
+import 'package:reminders/core/utils/app_constants.dart';
 import 'package:reminders/core/utils/app_button.dart';
 import 'package:reminders/core/utils/app_toast.dart';
 import 'package:reminders/core/routes/app_routes.dart';
@@ -81,6 +82,13 @@ class _CreateReminderPageState extends State<CreateReminderPage> {
     if (_selectedLat == null || _selectedLng == null || _selectedRadius == null) {
       showErrorToast(message: 'Please select a location geofence first');
       return;
+    }
+
+    // The fenced radius must be exactly the radius shown to the user. Old
+    // reminders saved before the 150 m floor was introduced are normalised.
+    final effectiveRadius = AppConstants.clampGeofenceRadius(_selectedRadius!);
+    if (effectiveRadius != _selectedRadius) {
+      setState(() => _selectedRadius = effectiveRadius);
     }
 
     setState(() => _isSaving = true);

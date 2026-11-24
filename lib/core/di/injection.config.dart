@@ -130,7 +130,6 @@ extension GetItInjectableX on _i1.GetIt {
           gh<_i24.CreateReminderUseCase>(),
           gh<_i23.UpdateReminderUseCase>(),
           gh<_i19.DeleteReminderUseCase>(),
-          gh<_i17.MonitoringCoordinator>(),
           gh<_i7.ReminderQueryService>(),
           gh<_i14.SettingsService>(),
           gh<_i11.LocationService>(),

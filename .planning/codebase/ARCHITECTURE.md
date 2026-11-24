@@ -7,7 +7,7 @@ The Reminders application is built using a **Feature-First** layout adhering to 
 
 ### Benefits of this Architecture
 * **Testability**: Business rules (use cases and entities) can be tested in isolation with simple unit tests without mocking Flutter components or complex platforms.
-* **Maintainability**: Low coupling between modules ensures changes in one feature or layer (e.g., changing local storage from Isar to Hive) do not propagate across the codebase.
+* **Maintainability**: Low coupling between modules ensures changes in one feature or layer (e.g., changing local storage from Drift to Hive) do not propagate across the codebase.
 * **Scalability**: Multiple developers can work on distinct features simultaneously without merge conflicts or architectural drift.
 
 ---
@@ -47,7 +47,7 @@ graph TD
 
     %% External Frameworks
     UI -.->|Flutter UI| UI
-    DS -.->|Isar DB / Geolocator| DS
+    DS -.->|Drift DB / Geolocator| DS
 ```
 
 ### A. Domain Layer (Inward / Business Core)
@@ -58,8 +58,8 @@ The domain layer is the conceptual core of each feature. It must not import any 
 
 ### B. Data Layer (Outward / Infrastructure)
 The data layer implements the interfaces defined in the domain layer and interacts with external frameworks, databases, and platform APIs.
-* **Models**: Concrete representations of data structures returned by databases or APIs (e.g., Isar schemas, JSON schemas). Built using `Freezed` for immutability, data cloning, and generation of serialization methods.
-* **Data Sources**: Perform actual raw data retrieval and storage operations. Local data sources write to the local database (Isar) or shared preferences; remote data sources communicate with REST endpoints (e.g., using `Dio`).
+* **Models**: Concrete representations of data structures returned by databases or APIs (e.g., Drift schemas, JSON schemas). Built using `Freezed` for immutability, data cloning, and generation of serialization methods.
+* **Data Sources**: Perform actual raw data retrieval and storage operations. Local data sources write to the local database (Drift) or shared preferences; remote data sources communicate with REST endpoints (e.g., using `Dio`).
 * **Repository Implementations**: Implement domain contracts, coordinate remote and local data source actions, and translate/map data layer models to domain-ready entities.
 
 ### C. Presentation Layer (Outward / User Interface)
@@ -104,15 +104,15 @@ Use Case ─────────────> depend on RepoContract (GetIt 
 
 ### Dependency Injection with GetIt & Injectable
 * Configured in `lib/core/di/`.
-* `@module` annotation in `register_module.dart` resolves third-party packages (like `Isar`, `FlutterLocalNotificationsPlugin`, and `AudioPlayer`) so they can be injected easily.
+* `@module` annotation in `register_module.dart` resolves third-party packages (like `Drift`, `FlutterLocalNotificationsPlugin`, and `AudioPlayer`) so they can be injected easily.
 * Uses code generation via `build_runner` to produce compile-time type-safe injections.
 
-### Persistence Strategy (Isar)
-* Local caching is handled by `Isar` database instances.
-* Configured as an asynchronous, non-blocking service pre-resolved during app initialization.
-* Entities are separated from Isar schemas to prevent database details from bleeding into the domain logic.
+### Persistence Strategy (Drift / SQLite)
+* Reminders are stored in `app_database.db` via Drift (schema version 6). Both the UI isolate and the background isolate open the same file.
+* `SharedPreferences` (pre-resolved in `RegisterModule`) holds settings, the isolate heartbeat and the pending native geofence hand-off envelope.
+* Freezed `ReminderEntity` objects are mapped to/from Drift rows by `ReminderMapper`, so database types do not enter the domain layer.
 
 ### Background Services and Platform APIs
-* Geolocator and background tasks (`flutter_background_service`) execute in isolated contexts.
-* The background service communicates updates to the application through notifications or shared storage coordinates.
-* Device integrations (Audio playback, notifications) are abstracted behind service wrapper contracts.
+* Play Services geofences are the surviving arrival detector; the Flutter foreground service handles live adaptive sampling and alarm presentation.
+* `MonitoringCoordinator` reconciles fences from a debounced repository watch stream using a stable fingerprint; the isolate consumes pending arrivals on a 5-second poll.
+* Device integrations (audio, notifications, battery-optimization settings) are abstracted behind service interfaces and MethodChannels.

@@ -36,6 +36,7 @@ void main() async {
   await getIt<MonitoringCoordinator>().evaluateMonitoringState(
     source: 'main',
     reason: 'app_start',
+    forceGeofenceResync: true,
   );
   await getIt<MapboxService>().init();
 
@@ -146,6 +147,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         .evaluateMonitoringState(
           source: 'app_lifecycle',
           reason: 'resumed',
+          forceGeofenceResync: true,
         )
         .catchError((Object e) {
       debugPrint('[MAIN] Resume monitoring recovery failed: $e');

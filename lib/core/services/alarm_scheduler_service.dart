@@ -6,6 +6,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:reminders/core/di/injection.dart';
+import 'package:reminders/core/services/alarm_notification_details.dart';
 import 'package:reminders/core/services/monitoring_coordinator.dart';
 import 'package:reminders/core/services/settings_service.dart';
 import 'package:reminders/features/reminders/domain/repositories/reminder_repository.dart';
@@ -67,23 +68,7 @@ class AlarmSchedulerServiceImpl implements AlarmSchedulerService {
     debugPrint('[SNOOZE] Alarm ID (Request Code): $reminderId');
 
     final vibrate = _settingsService.isVibrationEnabled();
-    final androidDetails = AndroidNotificationDetails(
-      'alarm_channel',
-      'Alarms & Reminders',
-      channelDescription:
-          'Channel for location-based reminders and alarm triggers',
-      importance: Importance.max,
-      priority: Priority.high,
-      playSound: false, // Audio played by AlarmPage
-      enableVibration: vibrate,
-      fullScreenIntent: true,
-      category: AndroidNotificationCategory.alarm,
-    );
-
-    final details = NotificationDetails(
-      android: androidDetails,
-      iOS: const DarwinNotificationDetails(),
-    );
+    final details = AlarmNotificationDetails.platform(vibrate: vibrate);
 
     try {
       await _localNotifications.zonedSchedule(

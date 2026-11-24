@@ -11,8 +11,8 @@ import java.util.Locale
  * foreground service. When the isolate boots it consumes and clears the value.
  */
 object PendingTrigger {
-    private const val KEY_ID = "pending_geofence_trigger_id"
-    private const val KEY_AT = "pending_geofence_trigger_at"
+    const val KEY_ID = "pending_geofence_trigger_id"
+    const val KEY_AT = "pending_geofence_trigger_at"
 
     fun set(context: Context, reminderId: Int) {
         FlutterPrefs.writeLong(context, KEY_ID, reminderId.toLong())

@@ -45,10 +45,11 @@ Since the application tracks user location in the background and sends alert not
 
 The core of the application relies on coordinate monitoring while the app is in the background, utilizing `flutter_background_service` and `geolocator`.
 
-- **Isolate Architecture**: A separate Dart execution thread (isolate) is spun up by `flutter_background_service` when initialized.
-- **Location Updates**: The background isolate initiates location listening using `Geolocator.getPositionStream`.
-- **Geofence Calculation**: Each location update calculates the distance between the user's current coordinates and all active geofenced reminders saved in Isar.
-- **Database Thread-Safety**: Since the background service runs in a separate isolate, it initializes its own instance of `Isar` to read active reminders, adhering to thread-safety guidelines.
+- **Isolate Architecture**: A separate Dart isolate runs the foreground location monitor (`flutter_background_service`), with a persistent `location`-type notification.
+- **System Geofences**: Play Services registers `rem_<id>_target` (user radius, 150 m floor) and `rem_<id>_approach` (10 km) fences. The native receiver survives process death, writes the pending arrival and starts the foreground service.
+- **Location Updates**: The isolate uses `Geolocator.getPositionStream` with adaptive sampling (far/mid/near buckets based on distance to the nearest reminder).
+- **Geofence Calculation**: Each position is compared against active reminders from Drift; arrival is claimed with a conditional update so it cannot double-fire with the system fence.
+- **Database**: The isolate opens its own Drift connection to the same `app_database.db` file (schema version 6).
 
 ---
 
@@ -62,14 +63,13 @@ Local notifications are managed using the `flutter_local_notifications` package.
 
 ---
 
-## 4. Google Maps API Integration
+## 4. Mapbox Integration
 
-Visualizing geofences and reminder coordinates on the UI utilizes `google_maps_flutter`.
+Map rendering and place search use `mapbox_maps_flutter` and the Mapbox geocoding HTTP API.
 
-- **API Keys**:
-  - **Android**: Set in `android/app/src/main/AndroidManifest.xml` within the `<meta-data>` block under `com.google.android.geo.API_KEY`.
-  - **iOS**: Configured programmatically inside `ios/Runner/AppDelegate.swift` using `GMSServices.provideAPIKey()`.
-- **Map Components**: Rendered with custom styles, active geofence circles, and interactive markers.
+- **API Key**: `MAPBOX_ACCESS_TOKEN` in `.env`, loaded by `flutter_dotenv` and applied with `MapboxOptions.setAccessToken()` in `MapboxServiceImpl.init()`.
+- **Map Components**: The location picker draws the selected geofence circle with a draggable radius handle (150 m–10 km), nearby reminder markers, and place-autocomplete results from geocoding.
+- **Reverse geocoding** supplies the location name/address saved with each reminder.
 
 ---
 
@@ -77,9 +77,9 @@ Visualizing geofences and reminder coordinates on the UI utilizes `google_maps_f
 
 Alert sound triggers are handled by the `audioplayers` package.
 
-- **Assets**: Audio files are located in `assets/audio/` and declared in `pubspec.yaml`.
-- **Lifecycle**: The `AudioPlayer` is registered as a lazy singleton via `get_it` and disposed of correctly on app closure.
-- **Background Audio**: Alert playing works in the background isolate to sound alerts immediately upon entering a geofenced area.
+- **Assets**: Tone files are in `assets/audio/` and declared in `pubspec.yaml`; the default tone is also bundled as an Android raw resource for system notifications.
+- **Lifecycle**: `AlarmService` owns looping audio when `AlarmPage` is open and stops audio/vibration on dismiss, complete and snooze.
+- **Background Audio**: The OS plays the bundled alarm sound through the full-screen `alarm_channel` notification; when the alarm screen opens it cancels that notification and takes over with looping audio.
 
 ---
 

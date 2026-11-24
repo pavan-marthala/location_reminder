@@ -201,9 +201,9 @@ Since this app uses native system features (Geolocator, Maps, Local Notification
 *   **Geolocator**: Mock the geolocator location stream. Avoid calling native GPS hardware in tests.
 *   **Notifications**: Mock `FlutterLocalNotificationsPlugin`. Check if `show` or `cancel` was called by mocking the object.
 *   **AudioPlayer**: Mock the `AudioPlayer` interface and stub `play`, `stop`, or `pause` methods.
-*   **Isar Database**:
-    *   *Unit tests*: It is recommended to mock the Repository or local DataSource layer instead of executing real Isar schemas in tests.
-    *   *Integration tests*: If you need to test the real Isar database implementation, initialize Isar in a temporary directory (e.g., using `Directory.systemTemp`) and run tests synchronously. Ensure you close the database and clear data after each test.
+*   **Drift Database**:
+    *   *Unit tests*: It is recommended to mock the Repository or local DataSource layer instead of executing real Drift schemas in tests.
+    *   *Integration tests*: If you need to test the real Drift database implementation, initialize Drift in a temporary directory (e.g., using `Directory.systemTemp`) and run tests synchronously. Ensure you close the database and clear data after each test.
 
 ---
 

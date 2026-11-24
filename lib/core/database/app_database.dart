@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:reminders/core/utils/app_constants.dart';
 import 'package:reminders/generated/assets.dart';
 
 part 'app_database.g.dart';
@@ -30,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -63,6 +64,15 @@ class AppDatabase extends _$AppDatabase {
             await safeAddColumn(reminders, reminders.locationName);
             await safeAddColumn(reminders, reminders.locationAddress);
             await safeAddColumn(reminders, reminders.completedAt);
+          }
+          if (from < 6) {
+            // The registered geofence has always enforced a 150 m floor.
+            // Normalise stored values once so the displayed radius matches
+            // the fence that actually fires. Idempotent by construction.
+            final minRadius = AppConstants.minGeofenceRadiusMeters;
+            await customStatement(
+              'UPDATE reminders SET radius = $minRadius WHERE radius < $minRadius',
+            );
           }
         },
         beforeOpen: (details) async {

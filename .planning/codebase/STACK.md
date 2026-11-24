@@ -23,16 +23,17 @@ Below is the list of key packages used in the project, as declared in `pubspec.y
 - **`build_runner`** (dev dependency, version `2.4.0`): The Dart tool used to execute code generation tasks (e.g. for `injectable` and `freezed`).
 
 ### Database & Storage
-- **`isar`** (version `^3.1.0+1`): A fast, lightweight, and type-safe NoSQL database for Flutter. Used to store reminders, location coordinates, logs, and settings.
-- **`isar_flutter_libs`** (version `^3.1.0+1`): Contains the native binaries required by Isar for target mobile platforms.
-- **`isar_generator`** (dev dependency, version `^3.1.0+1`): Generator to create Isar schemas and query handlers.
-- **`path_provider`** (version `^2.1.5`): Locates common directories on filesystem (e.g. Application Documents Directory where the Isar database is initialized).
+- **`drift`** (version `2.14.1`): Type-safe SQLite ORM. Stores reminders, geofence coordinates/radius and alarm state in `app_database.db` (schema version 6); both the UI and background isolates open the same file.
+- **`sqlite3_flutter_libs`** (version `^0.5.24`): Native SQLite binaries for target mobile platforms.
+- **`drift_dev`** (dev dependency, version `2.14.1`): Code generator for Drift tables and queries (`app_database.g.dart`).
+- **`path_provider`** (version `^2.1.5`): Locates the Application Documents Directory where the database file is created.
 - **`flutter_secure_storage`** (version `^10.0.0`): Secure key-value storage for sensitive data (API keys, user credentials, etc.).
 - **`shared_preferences`** (no specific version constraint, maps to latest available): Used for storing simple configuration settings and flags.
 
 ### Geolocation & Maps
 - **`geolocator`** (version `^14.0.2`): Queries the device's location, monitors location updates, handles permission checks, and calculates distances between coordinates.
-- **`google_maps_flutter`** (version `^2.17.1`): The official Google Maps plugin for Flutter. Provides map rendering, camera controls, custom markers, and polygon rendering (geofences) on both iOS and Android.
+- **`mapbox_maps_flutter`** (version `^2.24.3`): Map rendering, camera controls, draggable geofence-radius handle and place annotations. Geocoding is done through Mapbox HTTP APIs via `dio`; the access token is loaded from `.env`.
+- **Play Services Geofencing** (`play-services-location:21.3.0` in `android/app/build.gradle.kts`): System-owned arrival detection that survives process death; wired to Dart through a MethodChannel.
 
 ### Background Execution & Alerts
 - **`flutter_background_service`** (version `^5.1.0`): Manages running Dart code in the background (as a foreground/background service). Essential for location monitoring when the app is suspended or terminated.

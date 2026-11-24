@@ -26,9 +26,13 @@ class PermissionValidationServiceImpl implements PermissionValidationService {
   @override
   Future<bool> isAppReady() async {
     final locationReady = await isLocationAlwaysGranted();
+    final notificationReady = await isNotificationGranted();
     final onboardingCompleted = getIt<SettingsService>().isOnboardingCompleted();
     final reliabilityReady = await _isBackgroundReliabilityReady();
-    return locationReady && onboardingCompleted && reliabilityReady;
+    return locationReady &&
+        notificationReady &&
+        onboardingCompleted &&
+        reliabilityReady;
   }
 
   /// Background monitoring can only survive screen lock and Doze when the app

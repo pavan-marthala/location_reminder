@@ -62,4 +62,9 @@ class ReminderRepositoryImpl implements ReminderRepository {
   Future<int> reactivateExpiredSnoozes() {
     return _datasource.reactivateExpiredSnoozes();
   }
+
+  @override
+  Future<int> claimTrigger(int id, DateTime now) {
+    return _datasource.claimTrigger(id, now);
+  }
 }

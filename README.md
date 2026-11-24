@@ -1,6 +1,12 @@
 # reminders
 
-A new Flutter project.
+A Flutter location-reminder app. Create a reminder, pick a place and a geofence radius on the map, and the app alerts you when you arrive.
+
+## Geofence radius
+
+- Supported radius range: **150 m to 10 km**. The map picker constrains the radius handle to this range, and the same value is stored and registered as the Android geofence.
+- Upgrading from an earlier version runs a one-time migration (database schema version 6) that raises any stored radius below 150 m to 150 m. This matches the 150 m floor the native geofence has always enforced, so the alarm now fires at the radius shown in the UI.
+- Android Play Services allows at most 100 geofences per app. When more than 50 reminders are active, only the target fence per reminder is registered (the 10 km "approach" fence is skipped).
 
 ## Getting Started
 

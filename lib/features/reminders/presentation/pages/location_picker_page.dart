@@ -7,6 +7,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'package:go_router/go_router.dart';
 import 'package:reminders/core/theme/app_theme.dart';
+import 'package:reminders/core/utils/app_constants.dart';
 import 'package:reminders/core/utils/app_button.dart';
 import 'package:reminders/core/utils/app_toast.dart';
 import 'package:reminders/features/reminders/domain/entities/location_selection_result.dart';
@@ -55,8 +56,18 @@ class NearbyGeofenceRenderer {
 
     // 2. Sort by distance ascending
     filtered.sort((a, b) {
-      final distA = geo.Geolocator.distanceBetween(centerLat, centerLng, a.latitude, a.longitude);
-      final distB = geo.Geolocator.distanceBetween(centerLat, centerLng, b.latitude, b.longitude);
+      final distA = geo.Geolocator.distanceBetween(
+        centerLat,
+        centerLng,
+        a.latitude,
+        a.longitude,
+      );
+      final distB = geo.Geolocator.distanceBetween(
+        centerLat,
+        centerLng,
+        b.latitude,
+        b.longitude,
+      );
       return distA.compareTo(distB);
     });
 
@@ -97,7 +108,8 @@ class NearbyGeofenceRenderer {
       const double earthRadius = 6378137.0;
       final double latOffset = (r.radiusMeters / earthRadius) * (180.0 / pi);
       final double latRad = r.latitude * pi / 180.0;
-      final double lngOffset = (r.radiusMeters / (earthRadius * cos(latRad))) * (180.0 / pi);
+      final double lngOffset =
+          (r.radiusMeters / (earthRadius * cos(latRad))) * (180.0 / pi);
 
       final List<List<double>> coordinates = [
         [r.longitude - lngOffset, r.latitude + latOffset],
@@ -111,17 +123,24 @@ class NearbyGeofenceRenderer {
         if (!existsSource) {
           final source = ImageSource(id: sourceId, coordinates: coordinates);
           await style.addSource(source);
-          final mbxImage = MbxImage(width: 512, height: 512, data: circleBytes);
-          await style.updateStyleImageSourceImage(sourceId, mbxImage);
+          final styleImage = StyleImage.bytes(circleBytes);
+          await style.updateImageForSource(sourceId, styleImage);
         } else {
-          await style.setStyleSourceProperty(sourceId, 'coordinates', coordinates);
+          await style.setStyleSourceProperty(
+            sourceId,
+            'coordinates',
+            coordinates,
+          );
         }
 
         final existsLayer = await style.styleLayerExists(layerId);
         if (!existsLayer) {
           final layer = RasterLayer(id: layerId, sourceId: sourceId);
           // Place below main geofence layer to preserve active styling hierarchy
-          await style.addLayerAt(layer, LayerPosition(below: 'geofence-raster-layer'));
+           await style.addLayer(layer);
+           try {
+             await style.moveStyleLayer(layerId, LayerPosition(below: 'geofence-raster-layer'));
+           } catch (_) {}
         }
       } catch (e) {
         debugPrint('Error rendering nearby geofence raster for ID $id: $e');
@@ -292,7 +311,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     if (_mapboxMap != null) {
       await _mapboxMap!.flyTo(
         CameraOptions(
-          center: Point(coordinates: Position(prediction.longitude, prediction.latitude)),
+          center: Point(
+            coordinates: Position(prediction.longitude, prediction.latitude),
+          ),
           zoom: _getZoomLevelForRadius(_radiusMeters),
         ),
         MapAnimationOptions(duration: 900),
@@ -319,7 +340,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   Future<void> _loadMarkerIcons() async {
     _centerMarkerBytes = await _createCenterMarkerBytes();
     _handleMarkerBytes = await _createCircularHandleBytes(dragging: false);
-    _handleMarkerDraggingBytes = await _createCircularHandleBytes(dragging: true);
+    _handleMarkerDraggingBytes = await _createCircularHandleBytes(
+      dragging: true,
+    );
     _circleRasterBytes = await _createCircleRasterBytes();
     _nearbyMarkerBytes = await _createNearbyMarkerBytes();
     _nearbyCircleBytes = await _createNearbyCircleRasterBytes();
@@ -358,8 +381,13 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       ..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(cx - 3.0, cy - 3.0), 3.5, highlightPaint);
 
-    final ui.Image image = await recorder.endRecording().toImage(width.toInt(), height.toInt());
-    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    final ui.Image image = await recorder.endRecording().toImage(
+      width.toInt(),
+      height.toInt(),
+    );
+    final ByteData? byteData = await image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
     return byteData!.buffer.asUint8List();
   }
 
@@ -386,8 +414,13 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       ..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(cx, cy), 10.0, corePaint);
 
-    final ui.Image image = await recorder.endRecording().toImage(width.toInt(), height.toInt());
-    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    final ui.Image image = await recorder.endRecording().toImage(
+      width.toInt(),
+      height.toInt(),
+    );
+    final ByteData? byteData = await image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
     return byteData!.buffer.asUint8List();
   }
 
@@ -404,7 +437,11 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     final Paint shadowPaint = Paint()
       ..color = Colors.black.withValues(alpha: dragging ? 0.35 : 0.25)
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, dragging ? 8.0 : 4.0);
-    canvas.drawCircle(Offset(cx, cy + (dragging ? 3.0 : 1.5)), radius, shadowPaint);
+    canvas.drawCircle(
+      Offset(cx, cy + (dragging ? 3.0 : 1.5)),
+      radius,
+      shadowPaint,
+    );
 
     final Paint fillPaint = Paint()
       ..color = Colors.white
@@ -423,8 +460,13 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       ..strokeWidth = 1.0;
     canvas.drawCircle(Offset(cx, cy), radius - 1.5, innerHighlight);
 
-    final ui.Image image = await recorder.endRecording().toImage(width.toInt(), height.toInt());
-    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    final ui.Image image = await recorder.endRecording().toImage(
+      width.toInt(),
+      height.toInt(),
+    );
+    final ByteData? byteData = await image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
     return byteData!.buffer.asUint8List();
   }
 
@@ -437,14 +479,10 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     const double radius = 240.0;
 
     final Paint fillPaint = Paint()
-      ..shader = ui.Gradient.radial(
-        Offset(cx, cy),
-        radius,
-        [
-          const Color(0xFF00B0FF).withValues(alpha: 0.03),
-          const Color(0xFF00B0FF).withValues(alpha: 0.20),
-        ],
-      )
+      ..shader = ui.Gradient.radial(Offset(cx, cy), radius, [
+        const Color(0xFF00B0FF).withValues(alpha: 0.03),
+        const Color(0xFF00B0FF).withValues(alpha: 0.20),
+      ])
       ..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(cx, cy), radius, fillPaint);
 
@@ -467,8 +505,13 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       ..strokeWidth = 1.0;
     _drawDashedCircle(canvas, Offset(cx, cy), radius, highlightPaint);
 
-    final ui.Image image = await recorder.endRecording().toImage(size.toInt(), size.toInt());
-    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    final ui.Image image = await recorder.endRecording().toImage(
+      size.toInt(),
+      size.toInt(),
+    );
+    final ByteData? byteData = await image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
     return byteData!.buffer.asUint8List();
   }
 
@@ -491,16 +534,29 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       ..strokeWidth = 2.0;
     canvas.drawCircle(Offset(cx, cy), radius, borderPaint);
 
-    final ui.Image image = await recorder.endRecording().toImage(size.toInt(), size.toInt());
-    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    final ui.Image image = await recorder.endRecording().toImage(
+      size.toInt(),
+      size.toInt(),
+    );
+    final ByteData? byteData = await image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
     return byteData!.buffer.asUint8List();
   }
 
-  void _drawDashedCircle(Canvas canvas, Offset center, double radius, Paint paint, {double dashLength = 5.0, double spaceLength = 5.0}) {
+  void _drawDashedCircle(
+    Canvas canvas,
+    Offset center,
+    double radius,
+    Paint paint, {
+    double dashLength = 5.0,
+    double spaceLength = 5.0,
+  }) {
     final double circumference = 2 * pi * radius;
     final int dashCount = (circumference / (dashLength + spaceLength)).floor();
     final double angleStep = 2 * pi / dashCount;
-    final double dashAngle = angleStep * (dashLength / (dashLength + spaceLength));
+    final double dashAngle =
+        angleStep * (dashLength / (dashLength + spaceLength));
     for (int i = 0; i < dashCount; i++) {
       final double startAngle = i * angleStep;
       canvas.drawArc(
@@ -517,20 +573,26 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     _mapboxMap = mapboxMap;
     await _loadMarkerIcons();
 
+    mapboxMap.addInteraction(
+      TapInteraction.onMap((context) {
+        _onMapTapped(context.point.coordinates);
+      }),
+    );
+
     try {
       await mapboxMap.location.updateSettings(
-        LocationComponentSettings(
-          enabled: true,
-          pulsingEnabled: true,
-        ),
+        LocationComponentSettings(enabled: true, pulsingEnabled: true),
       );
     } catch (e) {
       debugPrint('Failed to enable Mapbox location component: $e');
     }
 
-    _centerPointManager = await mapboxMap.annotations.createPointAnnotationManager();
-    _handlePointManager = await mapboxMap.annotations.createPointAnnotationManager();
-    final nearbyPointManager = await mapboxMap.annotations.createPointAnnotationManager();
+    _centerPointManager = await mapboxMap.annotations
+        .createPointAnnotationManager();
+    _handlePointManager = await mapboxMap.annotations
+        .createPointAnnotationManager();
+    final nearbyPointManager = await mapboxMap.annotations
+        .createPointAnnotationManager();
 
     if (_nearbyMarkerBytes != null && _nearbyCircleBytes != null) {
       _nearbyRenderer = NearbyGeofenceRenderer(
@@ -541,14 +603,17 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         excludeId: widget.editingReminderId,
       );
 
-      nearbyPointManager.tapEvents(onTap: (annotation) {
-        if (_nearbyRenderer != null) {
-          final reminder = _nearbyRenderer!.annotationToReminder[annotation.id];
-          if (reminder != null) {
-            _showReminderInfoPopup(reminder);
+      nearbyPointManager.tapEvents(
+        onTap: (annotation) {
+          if (_nearbyRenderer != null) {
+            final reminder =
+                _nearbyRenderer!.annotationToReminder[annotation.id];
+            if (reminder != null) {
+              _showReminderInfoPopup(reminder);
+            }
           }
-        }
-      });
+        },
+      );
     }
 
     _handlePointManager!.dragEvents(
@@ -570,7 +635,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
           handleCoords.lng.toDouble(),
         );
 
-        final clamped = distance.clamp(100.0, 10000.0);
+        final clamped = AppConstants.clampGeofenceRadius(distance);
         _radiusMeters = clamped;
         _radiusMetersNotifier.value = clamped;
 
@@ -580,7 +645,12 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
           handleCoords.lat.toDouble(),
           handleCoords.lng.toDouble(),
         );
-        final snappedPos = _getPositionAlongBearing(_centerLat!, _centerLng!, _radiusMeters, bearingRad);
+        final snappedPos = _getPositionAlongBearing(
+          _centerLat!,
+          _centerLng!,
+          _radiusMeters,
+          bearingRad,
+        );
 
         _handleAnnotation!.geometry = Point(coordinates: snappedPos);
         if (_handleMarkerDraggingBytes != null) {
@@ -590,7 +660,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         const double earthRadius = 6378137.0;
         final double latOffset = (_radiusMeters / earthRadius) * (180.0 / pi);
         final double latRad = _centerLat! * pi / 180.0;
-        final double lngOffset = (_radiusMeters / (earthRadius * cos(latRad))) * (180.0 / pi);
+        final double lngOffset =
+            (_radiusMeters / (earthRadius * cos(latRad))) * (180.0 / pi);
 
         final List<List<double>> coordinates = [
           [_centerLng! - lngOffset, _centerLat! + latOffset],
@@ -601,7 +672,11 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
 
         Future.wait([
           _handlePointManager!.update(_handleAnnotation!),
-          mapboxMap.style.setStyleSourceProperty('geofence-image-source', 'coordinates', coordinates),
+          mapboxMap.style.setStyleSourceProperty(
+            'geofence-image-source',
+            'coordinates',
+            coordinates,
+          ),
         ]).catchError((e) {
           debugPrint('Error updating geofence annotations: $e');
           return const <void>[];
@@ -644,7 +719,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         if (_mapboxMap != null) {
           await _mapboxMap!.setCamera(
             CameraOptions(
-              center: Point(coordinates: Position(position.longitude, position.latitude)),
+              center: Point(
+                coordinates: Position(position.longitude, position.latitude),
+              ),
               zoom: 14.0,
             ),
           );
@@ -673,27 +750,43 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     final dLon = (lon2 - lon1) * pi / 180;
 
     final y = sin(dLon) * cos(lat2Rad);
-    final x = cos(lat1Rad) * sin(lat2Rad) - sin(lat1Rad) * cos(lat2Rad) * cos(dLon);
+    final x =
+        cos(lat1Rad) * sin(lat2Rad) - sin(lat1Rad) * cos(lat2Rad) * cos(dLon);
     return atan2(y, x);
   }
 
-  Position _getPositionAlongBearing(double latitude, double longitude, double radiusMeters, double bearingRad) {
+  Position _getPositionAlongBearing(
+    double latitude,
+    double longitude,
+    double radiusMeters,
+    double bearingRad,
+  ) {
     const double earthRadius = 6378137;
     final latRad = latitude * pi / 180;
     final radial = radiusMeters / earthRadius;
-    final newLatRad = asin(sin(latRad) * cos(radial) + cos(latRad) * sin(radial) * cos(bearingRad));
-    final newLngRad = (longitude * pi / 180) +
-        atan2(sin(bearingRad) * sin(radial) * cos(latRad),
-            cos(radial) - sin(latRad) * sin(newLatRad));
+    final newLatRad = asin(
+      sin(latRad) * cos(radial) + cos(latRad) * sin(radial) * cos(bearingRad),
+    );
+    final newLngRad =
+        (longitude * pi / 180) +
+        atan2(
+          sin(bearingRad) * sin(radial) * cos(latRad),
+          cos(radial) - sin(latRad) * sin(newLatRad),
+        );
     return Position(newLngRad * 180 / pi, newLatRad * 180 / pi);
   }
 
-  Position _getHandlePosition(double latitude, double longitude, double radiusMeters) {
+  Position _getHandlePosition(
+    double latitude,
+    double longitude,
+    double radiusMeters,
+  ) {
     return _getPositionAlongBearing(latitude, longitude, radiusMeters, pi / 2);
   }
 
   Future<void> _updateNearbyMarkers() async {
-    if (_centerLat == null || _centerLng == null || _nearbyRenderer == null) return;
+    if (_centerLat == null || _centerLng == null || _nearbyRenderer == null)
+      return;
 
     await _nearbyRenderer!.updateNearby(
       allReminders: _allReminders,
@@ -730,7 +823,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
               Expanded(
                 child: Text(
                   reminder.title,
-                  style: typography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                  style: typography.titleMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -740,16 +835,28 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildPopupRow(context, Icons.place_outlined, 'Distance', _formatDistance(distance)),
+              _buildPopupRow(
+                context,
+                Icons.place_outlined,
+                'Distance',
+                _formatDistance(distance),
+              ),
               const SizedBox(height: 8),
-              _buildPopupRow(context, Icons.radar, 'Geofence Radius', '${reminder.radiusMeters.round()} m'),
+              _buildPopupRow(
+                context,
+                Icons.radar,
+                'Geofence Radius',
+                '${reminder.radiusMeters.round()} m',
+              ),
               const SizedBox(height: 8),
               _buildPopupRow(
                 context,
                 Icons.info_outline,
                 'Status',
                 reminder.status.toUpperCase(),
-                valueColor: reminder.isEnabled ? colors.primary : colors.textSecondary,
+                valueColor: reminder.isEnabled
+                    ? colors.primary
+                    : colors.textSecondary,
               ),
             ],
           ),
@@ -764,7 +871,13 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     );
   }
 
-  Widget _buildPopupRow(BuildContext context, IconData icon, String label, String value, {Color? valueColor}) {
+  Widget _buildPopupRow(
+    BuildContext context,
+    IconData icon,
+    String label,
+    String value, {
+    Color? valueColor,
+  }) {
     final colors = context.appColors;
     final typography = context.appTypography;
 
@@ -772,7 +885,10 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       children: [
         Icon(icon, size: 18, color: colors.textTertiary),
         const SizedBox(width: 8),
-        Text('$label: ', style: typography.bodyMedium.copyWith(color: colors.textSecondary)),
+        Text(
+          '$label: ',
+          style: typography.bodyMedium.copyWith(color: colors.textSecondary),
+        ),
         Expanded(
           child: Text(
             value,
@@ -830,7 +946,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     const double earthRadius = 6378137.0;
     final double latOffset = (_radiusMeters / earthRadius) * (180.0 / pi);
     final double latRad = _centerLat! * pi / 180.0;
-    final double lngOffset = (_radiusMeters / (earthRadius * cos(latRad))) * (180.0 / pi);
+    final double lngOffset =
+        (_radiusMeters / (earthRadius * cos(latRad))) * (180.0 / pi);
 
     final List<List<double>> coordinates = [
       [_centerLng! - lngOffset, _centerLat! + latOffset],
@@ -841,15 +958,12 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
 
     final existsSource = await style.styleSourceExists(sourceId);
     if (!existsSource) {
-      final source = ImageSource(
-        id: sourceId,
-        coordinates: coordinates,
-      );
+      final source = ImageSource(id: sourceId, coordinates: coordinates);
       await style.addSource(source);
 
       if (_circleRasterBytes != null) {
-        final mbxImage = MbxImage(width: 512, height: 512, data: _circleRasterBytes!);
-        await style.updateStyleImageSourceImage(sourceId, mbxImage);
+        final styleImage = StyleImage.bytes(_circleRasterBytes!);
+        await style.updateImageForSource(sourceId, styleImage);
       }
     } else {
       await style.setStyleSourceProperty(sourceId, 'coordinates', coordinates);
@@ -870,13 +984,13 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         debugPrint('Failed to get style layers: $e');
       }
 
-      final layer = RasterLayer(
-        id: layerId,
-        sourceId: sourceId,
-      );
+      final layer = RasterLayer(id: layerId, sourceId: sourceId);
 
       if (firstSymbolId != null) {
-        await style.addLayerAt(layer, LayerPosition(below: firstSymbolId));
+        await style.addLayer(layer);
+        try {
+          await style.moveStyleLayer(layerId, LayerPosition(below: firstSymbolId));
+        } catch (_) {}
       } else {
         await style.addLayer(layer);
       }
@@ -884,7 +998,11 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
 
     if (_handlePointManager != null && _handleMarkerBytes != null) {
       await _handlePointManager!.deleteAll();
-      final handlePos = _getHandlePosition(_centerLat!, _centerLng!, _radiusMeters);
+      final handlePos = _getHandlePosition(
+        _centerLat!,
+        _centerLng!,
+        _radiusMeters,
+      );
 
       _handleAnnotation = await _handlePointManager!.create(
         PointAnnotationOptions(
@@ -905,7 +1023,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     _drawCircleAndHandle();
   }
 
-  Future<bool?> _showDuplicateWarningDialog(List<DuplicateReminder> duplicates) {
+  Future<bool?> _showDuplicateWarningDialog(
+    List<DuplicateReminder> duplicates,
+  ) {
     final colors = context.appColors;
     final typography = context.appTypography;
 
@@ -925,7 +1045,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
               Expanded(
                 child: Text(
                   'Duplicate Reminder Detected',
-                  style: typography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                  style: typography.titleMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -943,14 +1065,17 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                 const SizedBox(height: 12),
                 Text(
                   'Nearby reminders:',
-                  style: typography.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                  style: typography.bodyMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Flexible(
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: duplicates.length,
-                    separatorBuilder: (context, index) => const Divider(height: 1),
+                    separatorBuilder: (context, index) =>
+                        const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final dup = duplicates[index];
                       final distanceStr = dup.distanceMeters >= 1000
@@ -1016,7 +1141,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
               onPressed: () => Navigator.of(context).pop(false),
               child: Text(
                 'Cancel',
-                style: typography.labelLarge.copyWith(color: colors.textSecondary),
+                style: typography.labelLarge.copyWith(
+                  color: colors.textSecondary,
+                ),
               ),
             ),
             ElevatedButton(
@@ -1077,7 +1204,10 @@ Total cached reminders = ${_allReminders.length}
 
     try {
       final mapboxService = getIt<MapboxService>();
-      final geocodeResult = await mapboxService.reverseGeocode(_centerLat!, _centerLng!);
+      final geocodeResult = await mapboxService.reverseGeocode(
+        _centerLat!,
+        _centerLng!,
+      );
 
       final result = LocationSelectionResult(
         latitude: _centerLat!,
@@ -1095,8 +1225,10 @@ Total cached reminders = ${_allReminders.length}
         latitude: _centerLat!,
         longitude: _centerLng!,
         radiusMeters: _radiusMeters,
-        locationName: 'Location (${_centerLat!.toStringAsFixed(4)}, ${_centerLng!.toStringAsFixed(4)})',
-        locationAddress: 'Coordinates: ${_centerLat!.toStringAsFixed(6)}, ${_centerLng!.toStringAsFixed(6)}',
+        locationName:
+            'Location (${_centerLat!.toStringAsFixed(4)}, ${_centerLng!.toStringAsFixed(4)})',
+        locationAddress:
+            'Coordinates: ${_centerLat!.toStringAsFixed(6)}, ${_centerLng!.toStringAsFixed(6)}',
       );
       if (mounted) {
         context.pop(result);
@@ -1122,7 +1254,10 @@ Total cached reminders = ${_allReminders.length}
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : const Icon(Icons.my_location_rounded),
             onPressed: _isLoadingLocation ? null : _zoomToUserLocation,
@@ -1134,13 +1269,10 @@ Total cached reminders = ${_allReminders.length}
           // Mapbox Widget
           MapWidget(
             key: const ValueKey("locationPickerMap"),
-            cameraOptions: CameraOptions(
+            viewport: CameraViewportState(
               zoom: 12.0,
             ),
             onMapCreated: _onMapCreated,
-            onTapListener: (context) {
-              _onMapTapped(context.point.coordinates);
-            },
           ),
 
           // Instruction Overlay if no location is selected yet (and not searching)
@@ -1150,7 +1282,10 @@ Total cached reminders = ${_allReminders.length}
               left: 16,
               right: 16,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: colors.card.withValues(alpha: 0.95),
                   borderRadius: BorderRadius.circular(12),
@@ -1170,7 +1305,9 @@ Total cached reminders = ${_allReminders.length}
                     Expanded(
                       child: Text(
                         'Tap anywhere on the map to set a location geofence.',
-                        style: typography.bodyMedium.copyWith(fontWeight: FontWeight.w500),
+                        style: typography.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
@@ -1210,7 +1347,10 @@ Total cached reminders = ${_allReminders.length}
                     },
                     decoration: InputDecoration(
                       hintText: 'Search places...',
-                      prefixIcon: Icon(Icons.search, color: colors.textTertiary),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: colors.textTertiary,
+                      ),
                       suffixIcon: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -1229,12 +1369,19 @@ Total cached reminders = ${_allReminders.length}
                         ],
                       ),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 16,
+                      ),
                     ),
                     onChanged: _onSearchChanged,
                   ),
                 ),
-                if (_isSearching || _predictions.isNotEmpty || _searchError != null || (_searchController.text.trim().length >= 3 && _predictions.isEmpty)) ...[
+                if (_isSearching ||
+                    _predictions.isNotEmpty ||
+                    _searchError != null ||
+                    (_searchController.text.trim().length >= 3 &&
+                        _predictions.isEmpty)) ...[
                   const SizedBox(height: 8),
                   Container(
                     constraints: const BoxConstraints(maxHeight: 280),
@@ -1259,38 +1406,50 @@ Total cached reminders = ${_allReminders.length}
                             if (_isSearching)
                               const Padding(
                                 padding: EdgeInsets.all(16.0),
-                                child: Center(
-                                  child: LinearProgressIndicator(),
-                                ),
+                                child: Center(child: LinearProgressIndicator()),
                               ),
                             if (_searchError != null)
                               Padding(
                                 padding: const EdgeInsets.all(16.0),
                                 child: Text(
                                   _searchError!,
-                                  style: typography.bodyMedium.copyWith(color: colors.error),
+                                  style: typography.bodyMedium.copyWith(
+                                    color: colors.error,
+                                  ),
                                   textAlign: TextAlign.center,
                                 ),
                               ),
-                            if (!_isSearching && _searchError == null && _searchController.text.trim().length >= 3 && _predictions.isEmpty)
+                            if (!_isSearching &&
+                                _searchError == null &&
+                                _searchController.text.trim().length >= 3 &&
+                                _predictions.isEmpty)
                               Padding(
                                 padding: const EdgeInsets.all(16.0),
                                 child: Text(
                                   'No results found.',
-                                  style: typography.bodyMedium.copyWith(color: colors.textSecondary),
+                                  style: typography.bodyMedium.copyWith(
+                                    color: colors.textSecondary,
+                                  ),
                                   textAlign: TextAlign.center,
                                 ),
                               ),
                             ..._predictions.map((p) {
                               return ListTile(
-                                leading: Icon(Icons.location_on_rounded, color: colors.primary),
+                                leading: Icon(
+                                  Icons.location_on_rounded,
+                                  color: colors.primary,
+                                ),
                                 title: Text(
                                   p.name,
-                                  style: typography.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                                  style: typography.bodyMedium.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 subtitle: Text(
                                   p.address,
-                                  style: typography.bodySmall.copyWith(color: colors.textSecondary),
+                                  style: typography.bodySmall.copyWith(
+                                    color: colors.textSecondary,
+                                  ),
                                 ),
                                 onTap: () => _onPredictionSelected(p),
                               );
@@ -1314,7 +1473,9 @@ Total cached reminders = ${_allReminders.length}
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: colors.card,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
                 border: Border(top: BorderSide(color: colors.border)),
                 boxShadow: [
                   BoxShadow(
@@ -1337,11 +1498,15 @@ Total cached reminders = ${_allReminders.length}
                           children: [
                             Text(
                               _formatRadius(radius),
-                              style: typography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                              style: typography.titleMedium.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             Text(
                               'Drag handle on the edge to resize',
-                              style: typography.bodySmall.copyWith(color: colors.textTertiary),
+                              style: typography.bodySmall.copyWith(
+                                color: colors.textTertiary,
+                              ),
                             ),
                           ],
                         );

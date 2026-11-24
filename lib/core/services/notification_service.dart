@@ -4,6 +4,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:injectable/injectable.dart';
 import 'package:go_router/go_router.dart';
 import 'package:reminders/core/routes/app_routes.dart';
+import 'package:reminders/core/services/alarm_notification_details.dart';
 import 'package:reminders/main.dart';
 
 abstract class NotificationService {
@@ -15,6 +16,7 @@ abstract class NotificationService {
   });
   Future<void> showFullScreenTestNotification();
   Future<bool> areNotificationsEnabled();
+  Future<void> cancelAlarm(int reminderId);
   int? takePendingLaunchReminderId();
 }
 
@@ -26,10 +28,10 @@ class NotificationServiceImpl implements NotificationService {
 
   int? _pendingLaunchReminderId;
 
-  static const String _channelId = 'alarm_channel';
-  static const String _channelName = 'Alarms & Reminders';
+  static const String _channelId = AlarmNotificationDetails.channelId;
+  static const String _channelName = AlarmNotificationDetails.channelName;
   static const String _channelDescription =
-      'Channel for location-based reminders and alarm triggers';
+      AlarmNotificationDetails.channelDescription;
 
   @override
   Future<void> init() async {
@@ -174,6 +176,13 @@ class NotificationServiceImpl implements NotificationService {
     }
 
     return true;
+  }
+
+  @override
+  Future<void> cancelAlarm(int reminderId) {
+    // Stops the OS-owned sound and dismisses the full-screen surface once the
+    // alarm screen has taken over with its looping audio.
+    return _localNotifications.cancel(id: reminderId);
   }
 
   @override

@@ -12,6 +12,7 @@ import 'package:reminders/core/services/notification_service.dart';
 import 'package:reminders/features/infrastructure_validation/presentation/bloc/validation_bloc.dart';
 import 'package:reminders/features/infrastructure_validation/presentation/bloc/validation_event.dart';
 import 'package:reminders/features/infrastructure_validation/presentation/bloc/validation_state.dart';
+import 'package:reminders/features/settings/presentation/widgets/monitor_diagnostics_card.dart';
 
 class DeveloperToolsPage extends StatelessWidget {
   const DeveloperToolsPage({super.key});
@@ -121,19 +122,6 @@ class _DeveloperToolsPageViewState extends State<_DeveloperToolsPageView> {
     } catch (_) {}
   }
 
-  String _formatHeartbeat(String? raw) {
-    if (raw == null || raw.isEmpty) return 'Never';
-    final parsed = DateTime.tryParse(raw);
-    if (parsed == null) return raw;
-    final diff = DateTime.now().difference(parsed);
-    if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) {
-      return '${diff.inHours}h ${diff.inMinutes % 60}m ago';
-    }
-    return '${diff.inDays}d ago';
-  }
-
   @override
   void dispose() {
     _diagnosticsTimer?.cancel();
@@ -202,76 +190,28 @@ class _DeveloperToolsPageViewState extends State<_DeveloperToolsPageView> {
 
                   // Section 1b: Recovery & Geofences
                   _buildSectionHeader(context, 'Recovery & Geofences'),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          _buildDiagnosticRow(
-                            'Last Heartbeat',
-                            _formatHeartbeat(_heartbeatAt),
-                            valueColor: _heartbeatAt == null
-                                ? colors.error
-                                : colors.success,
-                          ),
-                          const Divider(),
-                          _buildDiagnosticRow(
-                            'Background State',
-                            (_backgroundLastState ?? 'Unknown').toUpperCase(),
-                          ),
-                          if ((_backgroundLastDetails ?? '').isNotEmpty) ...[
-                            const Divider(),
-                            _buildDiagnosticRow(
-                              'Last Detail',
-                              _backgroundLastDetails!,
-                            ),
-                          ],
-                          const Divider(),
-                          _buildDiagnosticRow(
-                            'Geofences Registered',
-                            '${_geofenceStatus?.syncedCount ?? 0}',
-                          ),
-                          const Divider(),
-                          _buildDiagnosticRow(
-                            'Background Location',
-                            (_geofenceStatus?.hasBackgroundLocation ?? false)
-                                ? 'Always'
-                                : 'Missing',
-                            valueColor:
-                                (_geofenceStatus?.hasBackgroundLocation ?? false)
-                                    ? colors.success
-                                    : colors.error,
-                          ),
-                          const Divider(),
-                          _buildDiagnosticRow(
-                            'Last Geofence Event',
-                            _geofenceStatus?.lastEvent ?? 'None',
-                          ),
-                          if ((_geofenceStatus?.lastEventAt ?? '').isNotEmpty) ...[
-                            const Divider(),
-                            _buildDiagnosticRow(
-                              'Last Event At',
-                              _formatHeartbeat(_geofenceStatus?.lastEventAt),
-                            ),
-                          ],
-                          if ((_geofenceStatus?.lastError ?? '').isNotEmpty) ...[
-                            const Divider(),
-                            _buildDiagnosticRow(
-                              'Geofence Error',
-                              _geofenceStatus!.lastError!,
-                              valueColor: colors.error,
-                            ),
-                          ],
-                          const SizedBox(height: 8),
-                          TextButton.icon(
-                            onPressed: _loadDiagnostics,
-                            icon: const Icon(Icons.refresh_rounded, size: 18),
-                            label: const Text('Refresh Diagnostics'),
-                          ),
-                        ],
-                      ),
+                  MonitorDiagnosticsCard(
+                    diagnostics: MonitorDiagnostics(
+                      geofence: _geofenceStatus,
+                      heartbeatAt: _heartbeatAt,
+                      backgroundState: _backgroundLastState,
+                      monitoringEnabled: state.isMonitoringEnabled,
+                      foregroundServiceRunning:
+                          state.isBackgroundServiceRunning,
+                      notificationGranted:
+                          state.isNotificationPermissionGranted,
+                      backgroundLocationGranted:
+                          state.isBackgroundLocationPermissionGranted,
                     ),
+                    onRefresh: _loadDiagnostics,
                   ),
+                  if ((_backgroundLastDetails ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _buildDiagnosticRow(
+                      'Last Detail',
+                      _backgroundLastDetails!,
+                    ),
+                  ],
                   const SizedBox(height: 20),
 
                   // Section 2: GPS Diagnostics
